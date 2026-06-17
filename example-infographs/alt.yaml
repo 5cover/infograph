@@ -1,0 +1,412 @@
+# infograph.yaml
+#
+# Infograph MVP.
+#
+# Goal:
+# Represent facts, experiences, decisions, constraints and their relationships
+# in a human-writable graph.
+#
+# This file should not describe slides, reports or speaker notes.
+# It describes the underlying information from which those artifacts can later
+# be derived.
+#
+# Query profiles are intentionally not stored here.
+# They should live in TypeScript code, because they are procedural strategies:
+# depth limits, complexity limits, edge filtering, boundary detection, ordering.
+#
+# A projection/query returns:
+# - active nodes: the selected presentation surface
+# - active edges: relationships inside that surface
+# - boundary edges: relationships from active nodes to inactive nodes
+#
+# Boundary edges can later become discussion openings, Q/A paths, annex material,
+# or deeper explanation paths.
+$schema: infograph.v1
+info:
+  # Human-readable name for the whole graph.
+  title: Alternance 2ème partie
+  # Short description of the real-world context represented by the graph.
+  # Gives global orientation without repeating the same context in every node.
+  context: ENGIE apprenticeship
+  # Person responsible for validating the graph.
+  # This graph is not just extracted text. It is a validated representation.
+  # The author field makes that explicit.
+  author: me
+# Available materialized sources to verify the node's claims. Memory is not a source, it is a private buffer.
+domain:
+  source:
+    journal:
+    user stories:
+    documentation:
+    common:
+      desc: factual information
+  complexity:
+    simple:
+      value: 1
+      desc: easy to mention
+    contained:
+      value: 2
+      desc: needs explanation, but self-containd
+    contextual:
+      value: 3
+      desc: needs context
+    intertwined:
+      value: 4
+      desc: needs deep context or demonstration
+  # Allowed node kinds. Unique items. /[-_a-z]+/
+  kind:
+    project:
+      desc: |
+        A named mission, initiative or structured work area.
+        Apprenticeship work is organized around missions, not only isolated tasks.
+        Example: Sponsorship.
+    task:
+      desc: |
+        A concrete task, implementation effort, investigation or sub-part of a project.
+        Lets the graph represent actual work without creating one project per task.
+        Example: amount calculation reconstruction, view bug fixes, workflow updates.
+    product:
+      desc: |
+        An user-facing artifact: presentation, application, site Separates work from its outputs.
+        Useful when explaining what was actually delivered.
+    tool:
+      desc: |
+        A technical platform, software, framework or environment used in the work.
+        Tracks the technical environment.
+        Example: Power Automate, SharePoint, LeanKit, Jira, Confluence.
+    constraint:
+      desc: |
+        A limitation, pressure, rule, instability or external condition that shapes the work.
+        The journal contains many cases where the important fact is not what was done, but what made it difficult or shaped the available choices.
+        Example: short handover, runtime errors, support restrictions, changing scope.
+    event:
+      desc: |
+        A dated or period-bound occurrence that changed the situation.
+        Some nodes are important because they happened at a specific time. Example: return from leave, demo on June 9, abandonment of a tool direction.
+    decision:
+      desc: |
+        A choice, explicit or implicit, that changed direction or reduced uncertainty.
+        Decisions explain why the work followed one path instead of another.
+        Example: abandoning Confluence, returning to LeanKit, not implementing NJflow.
+    learning:
+      desc: |
+        A skill, realization, progression axis or change in judgment.
+        Evidence of progression. Example: moving from implementation to reliability reasoning.
+    actor:
+      desc: |
+        A person, team, support group or institution involved in the situation.
+        Some constraints and decisions are organizational. Keeping actors explicit avoids hiding social/project context in prose.
+        Example: IUT, support team, Indian team, project owner, Mahmoud, Fabrice.
+    jargon:
+      desc: |
+        A domain-specific term.
+        Example: cumulated amount
+    process:
+      desc: |
+        An executable recipe for actions actors with visibility rules over time.
+        Example: request analysis
+    '-':
+      desc: Free-form fallback for information that does not fit the graph cleanly yet.
+        Prevents schema pressure. If something is important but hard to model, it can enter the graph first and be structured later.
+  verb:
+    contains:
+      desc: |
+        The source includes the target as a sub-part.
+        Basic structure relation. Analogy: UML composition. The target is only relevant within the source.
+        Example: Sponsorship contains amount calculation work.
+    uses:
+      desc: |
+        The source uses the target as a tool, platform, method or resource.
+        Essential for technical environment projections. Analogy: UML agregation.
+        Example: Sponsorship uses Power Automate.
+    produces:
+      desc: |
+        The source creates, modifies or results in the target.
+        Connects work to concrete outputs.
+        Example: work item produces demo artifact.
+    requires:
+      desc: |
+        Understanding, completing or validating the source requires the target.
+        Captures hidden depth. These edges often become discussion openings when outside the active surface.
+    explains:
+      desc: |
+        The source explains, triggers or makes the target more likely.
+        Captures chronology and causality without writing a full narrative.
+    illustrates:
+      desc: |
+        The source is an example of the target.
+        Lets concrete events support broader claims. Example: handover pressure illustrates autonomy growth.
+    constrains:
+      desc: |
+        The source limits, shapes, pressures or hinders the target.
+        The journal repeatedly describes work shaped by tool limits, support constraints, planning pressure and changing scope.
+    prevents:
+      desc: |
+        Useful for representing tradeoffs. Example: limited available team capacity prevents additional staffing.
+        The source prevents the target
+    replaces:
+      desc: |
+        The source takes the place of the target.
+        Useful for project direction changes.
+        Example: LeanKit replaces Jira in the chosen workflow direction.
+    '-':
+      desc: |
+        Weak fallback relation when a connection matters but is not yet precise.
+        Prevents premature modeling. Better to store an imperfect relation than to lose the connection.
+# Stable keys. Edges need stable references. Keys: /[-_a-z ]+/
+# The key should not depend on the exact wording of the title.
+nodes:
+  # Node category.
+  # Queries may treat projects, tools, constraints, decisions and learnings
+  # differently without needing complex inference.
+  project:
+    sponsorship:
+      info:
+        # Short human label for the node. Required.
+        # Makes the graph readable and editable by hand.
+        # This is not final artifact wording.
+        title: Sponsorship
+        # Compact factual description of the node. Required.
+        # Gives enough context to understand the node without following every edge.
+        # It should remain factual, not rhetorical.
+        summary: Business project involving sponsorship-related workflows, follow-up, data handling and automation.
+        # Atomic factual claims attached to the node. Unique items.
+        # Keeps facts separated from wording.
+        # The same statements can later support slides, reports or oral explanations.
+        fact:
+          - The project became one of the main active missions of the apprenticeship.
+          - The project evolved over time instead of remaining a fixed implementation task.
+        # Approximate time range during which this node matters.
+        # Allows timeline-oriented queries without forcing every fact into prose.
+        # Approximate periods are acceptable for manual writing.
+        period:
+          from: 2025-12
+          to: 2026-07
+        # Human-validated importance of this node in the real experience.
+        # one of
+        # - minor
+        # - useful
+        # - major
+        # - central
+        # Prevents the tool from confusing amount of journal text with real importance.
+        # A short journal entry can describe something central.
+        importance: central
+        # Estimated explanation cost of this node.
+        # Query profiles can control how much complexity appears in a projection.
+        complexity: contained
+        # Where the information comes from.
+        # Preserve whether something comes from notes, documents, meetings, or code.
+        # Keeps uncertainty visible. Unique items.
+        # Single source or array of sources.
+        source: journal
+        # Lightweight labels. Unique items. Single tag or array of tags.
+        # Supports simple search and grouping without adding many specialized fields.
+        tag:
+          - sponsorship
+          - business workflow
+          - automation
+      # Outgoing edges.
+      uses:
+        power_automate:
+          # provides additional edge information.
+          with:
+            # Some relationships are harder to explain than the things they connect.
+            complexity: contained
+            fact: Power Automate was used to implement automation aspects of Sponsorship.
+          # no info, so power_automate must exist at a level above
+        sharepoint:
+          with:
+            complexity: simple
+            fact:
+              - SharePoint was part of the project environment.
+      contains:
+        product:
+          # the node is understood as belonging to the scope of this particualr node. In display, we will show something like Sponsorship: Application. This is what allows us to use broad names in context.
+          application:
+            with:
+              fact: Having an application was not initially part of the need.
+            info:
+              title: Application
+              summary: The application serves as a front-end for the product.
+              fact: # these should be edges but you get the point.
+                - Since it was added, SharePoint is fully treated as a database layer
+                - Having a dedicated front-end helped simplify
+            uses:
+              power_apps:
+              # no info. parsing checks if sponsorsip contains power_apps. no. so it checks the level above, the root nodes.
+        process:
+          amount_calculation:
+            with:
+              complexity: contextual
+              fact: Sponsorship reliability depended partly on understanding amount calculation behavior.
+            info:
+              title: Amount calculation
+              summary: Business calculation logic that required reconstruction, understanding and reliable handling.
+              importance: central
+              complexity: intertwined
+              source:
+                - journal
+                - user stories
+              fact:
+                - The calculation logic was difficult to understand without sufficient context.
+                - A short handover was not enough to fully absorb the calculation behavior.
+                - Reliability depended on understanding edge cases and implicit rules.
+              period:
+                from: 2026-05
+                to: 2026-07
+              tag:
+                - calculation
+                - business-rules
+                - reliability
+                - edge-cases
+            requires:
+              reliability_focus:
+                with:
+                  complexity: contextual
+                  fact: Calculation complexity contributed to the need for a stronger reliability focus.
+
+  power_automate:
+    kind: tool
+    title: Power Automate
+    summary: Main automation platform used in the project, with significant practical constraints around reliability, debugging and maintainability.
+    importance: central
+    complexity: contextual
+    source: journal
+    fact:
+      - Power Automate was central to the implementation work.
+      - The platform introduced recurring reliability and maintainability concerns.
+      - Some issues were difficult to prevent because errors often appeared at runtime.
+    period:
+      from: 2025-12
+      to: 2026-07
+    tag:
+      - power automate
+      - low-code
+      - reliability
+      - runtime-errors
+    requires:
+      reliability_focus:
+        with:
+          complexity: contained
+          fact: Power Automate constraints made reliability and maintainability more important.
+  sharepoint:
+    kind: tool
+    title: SharePoint
+    summary: Data and collaboration platform used as part of the business workflow and automation environment.
+    importance: major
+    complexity: contained
+    source: journal
+    fact:
+      - SharePoint was part of the technical environment.
+      - The structure of stored data affected automation behavior.
+    period:
+      from: 2025-12
+      to: 2026-07
+    tag:
+      - sharepoint
+      - data
+      - collaboration
+  evolving_scope:
+    kind: constraint
+    title: Evolving project scope
+    summary: The project changed over time, which affected planning, understanding and implementation priorities.
+    importance: central
+    complexity: contextual
+    source: journal
+    fact:
+      - The project did not remain stable from its initial framing.
+      - New expectations and constraints appeared as the work progressed.
+      - The evolution of the project increased the need for context rebuilding.
+    period:
+      from: 2025-12
+      to: 2026-07
+    tag:
+      - scope
+      - planning
+      - project management
+    explains:
+      handover_pressure:
+        with:
+          complexity: contained
+          fact: A changing project made short handover harder.
+    constrains:
+      sponsorship:
+        with:
+          complexity: contained
+          fact: The evolving scope affected how the Sponsorship work had to be understood and presented.
+  reliability_focus:
+    kind: realization
+    title: Reliability focus
+    summary: The work shifted from simply making automations work to making them understandable, maintainable and reliable.
+    importance: central
+    complexity: intertwined
+    source: journal
+    fact:
+      - A working automation was not sufficient by itself.
+      - The project required attention to maintainability, traceability and edge cases.
+      - This became a major learning axis of the apprenticeship.
+    period:
+      from: 2026-04
+      to: 2026-07
+    tag:
+      - reliability
+      - maintainability
+      - learning
+      - automation
+    requires:
+      autonomy_growth:
+        with:
+          complexity: contained
+          fact: Working on reliability required more independent judgment.
+  handover_pressure:
+    kind: event
+    title: Handover under time pressure
+    summary: A short handover period made it difficult to reconstruct the full context of an evolved project.
+    importance: major
+    complexity: contextual
+    source: journal
+    fact:
+      - A limited handover period was not enough to fully understand the evolved project.
+      - The situation increased the need to reconstruct context from existing artifacts and behavior.
+    period:
+      from: 2026-06
+      to: 2026-06
+    tag:
+      - handover
+      - context
+      - planning
+    illustrates:
+      autonomy_growth:
+        with:
+          complexity: contained
+          fact: The handover situation illustrates the need to reconstruct context autonomously.
+  autonomy_growth:
+    kind: learning
+    title: Autonomy growth
+    summary: Progression from executing tasks toward reconstructing context, identifying risks, and reasoning about reliability.
+    importance: central
+    complexity: contained
+    source: journal
+    fact:
+      - The apprenticeship required increasing autonomy over time.
+      - Autonomy involved understanding unclear systems, not only implementing requested changes.
+      - The work developed stronger judgment around complexity and reliability.
+    period:
+      from: 2026-01
+      to: 2026-07
+    tag:
+      - autonomy
+      - learning
+      - progression
+# Edges. key format: `${source key} ${verb} ${target key}`
+# Use for edges that don't belong to any particular node.
+edges:
+  # The source node uses or relies on the target node as a tool, platform,
+  # method or resource.
+  # Useful for technical environment queries.
+  # Low-friction relation: easy to explain in a presentation.
+  autonomy_growth - handover_pressure:
+    fact: These two nodes are related somehow
+
+# invariants
+# all edges are keyed bu (source key, verb, target key)

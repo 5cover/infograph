@@ -1,0 +1,79 @@
+# yaml-language-server: $schema=https://json-schema.org/draft-07/schema
+type: object
+additionalProperties: false
+required:
+  - domain
+  - nodes
+properties:
+  info:
+    type: object
+    properties:
+      title:
+        type: string
+        description: Human-readable name for the whole graph.
+      context:
+        type: string
+        description: |
+          Short description of the real-world context represented by the graph.
+          Gives global orientation without repeating the same context in every node.
+      author:
+        type: string
+        description: Person responsible for validating the graph.
+          This graph is not just extracted text. It is a validated representation.
+          The author field makes that explicit.
+  domain:
+    description: Definitions of this graph's vocabulary.
+    type: object
+    required:
+      - kind
+      - verb
+      - complexity
+      - source
+    properties:
+      kind:
+        description: Allowed node kinds.
+        allOf:
+          - $ref: '#/definitions/keyword_registry'
+      verb:
+        description: What kind of relationships exists.
+        propertyNames:
+          not:
+            enum:
+              - with
+              - info
+        allOf:
+          - $ref: '#/definitions/keyword_registry'
+      complexity:
+        description: Allowed complexity levels.
+        additionalProperties:
+          required:
+            - value
+          properties:
+            value:
+              type: 'number'
+        allOf:
+          - $ref: '#/definitions/keyword_registry'
+      source:
+        description: |
+          Available materialized sources to verify the node's claims.
+          Memory is not a source, it is a private buffer.
+        allOf:
+          - $ref: '#/definitions/keyword_registry'
+  nodes:
+    description: todo
+  edges:
+    description: todo
+definitions:
+  keyword_registry:
+    type: object
+    propertyNames:
+      type: string
+      pattern: '[-_a-z]+'
+    additionalProperties:
+      type:
+        - 'null'
+        - object
+      properties:
+        desc:
+          type: string
+# todo: finish, comment into descs, test $ref + keyword behavior under draft-07, consider yaml object merging with <<?
