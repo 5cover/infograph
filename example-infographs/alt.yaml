@@ -23,16 +23,9 @@
 # or deeper explanation paths.
 $schema: infograph.v1
 info:
-  # Human-readable name for the whole graph.
   title: Alternance 2ème partie
-  # Short description of the real-world context represented by the graph.
-  # Gives global orientation without repeating the same context in every node.
   context: ENGIE apprenticeship
-  # Person responsible for validating the graph.
-  # This graph is not just extracted text. It is a validated representation.
-  # The author field makes that explicit.
   author: me
-# Available materialized sources to verify the node's claims. Memory is not a source, it is a private buffer.
 domain:
   source:
     journal:
@@ -53,7 +46,6 @@ domain:
     intertwined:
       value: 4
       desc: needs deep context or demonstration
-  # Allowed node kinds. Unique items. /[-_a-z]+/
   kind:
     project:
       desc: |
@@ -162,45 +154,17 @@ nodes:
   project:
     sponsorship:
       info:
-        # Short human label for the node. Required.
-        # Makes the graph readable and editable by hand.
-        # This is not final artifact wording.
         title: Sponsorship
-        # Compact factual description of the node. Required.
-        # Gives enough context to understand the node without following every edge.
-        # It should remain factual, not rhetorical.
         summary: Business project involving sponsorship-related workflows, follow-up, data handling and automation.
-        # Atomic factual claims attached to the node. Unique items.
-        # Keeps facts separated from wording.
-        # The same statements can later support slides, reports or oral explanations.
         fact:
           - The project became one of the main active missions of the apprenticeship.
           - The project evolved over time instead of remaining a fixed implementation task.
-        # Approximate time range during which this node matters.
-        # Allows timeline-oriented queries without forcing every fact into prose.
-        # Approximate periods are acceptable for manual writing.
         period:
           from: 2025-12
           to: 2026-07
-        # Human-validated importance of this node in the real experience.
-        # one of
-        # - minor
-        # - useful
-        # - major
-        # - central
-        # Prevents the tool from confusing amount of journal text with real importance.
-        # A short journal entry can describe something central.
         importance: central
-        # Estimated explanation cost of this node.
-        # Query profiles can control how much complexity appears in a projection.
         complexity: contained
-        # Where the information comes from.
-        # Preserve whether something comes from notes, documents, meetings, or code.
-        # Keeps uncertainty visible. Unique items.
-        # Single source or array of sources.
         source: journal
-        # Lightweight labels. Unique items. Single tag or array of tags.
-        # Supports simple search and grouping without adding many specialized fields.
         tag:
           - sponsorship
           - business workflow

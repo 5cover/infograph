@@ -18,16 +18,13 @@ properties:
           Gives global orientation without repeating the same context in every node.
       author:
         type: string
-        description: Person responsible for validating the graph.
-          This graph is not just extracted text. It is a validated representation.
-          The author field makes that explicit.
+        description: Person responsible for validating the graph. This graph is not just extracted text. It is a validated representation. The author field makes that explicit.
   domain:
     description: Definitions of this graph's vocabulary.
     type: object
     required:
       - kind
       - verb
-      - complexity
       - source
     properties:
       kind:
@@ -43,16 +40,6 @@ properties:
               - info
         allOf:
           - $ref: '#/definitions/keyword_registry'
-      complexity:
-        description: Allowed complexity levels.
-        additionalProperties:
-          required:
-            - value
-          properties:
-            value:
-              type: 'number'
-        allOf:
-          - $ref: '#/definitions/keyword_registry'
       source:
         description: |
           Available materialized sources to verify the node's claims.
@@ -60,15 +47,20 @@ properties:
         allOf:
           - $ref: '#/definitions/keyword_registry'
   nodes:
-    description: todo
+    description: Nodes of the graph. Keys are node kinds.
+    type: object
+    allOf:
+      - $ref: '#/definitions/identkeys'
+    additionalProperties:
+      type: object
+
   edges:
     description: todo
 definitions:
   keyword_registry:
     type: object
-    propertyNames:
-      type: string
-      pattern: '[-_a-z]+'
+    allOf:
+      - $ref: '#/definitions/identkeys'
     additionalProperties:
       type:
         - 'null'
@@ -76,4 +68,8 @@ definitions:
       properties:
         desc:
           type: string
-# todo: finish, comment into descs, test $ref + keyword behavior under draft-07, consider yaml object merging with <<?
+  identkeys:
+    propertyNames:
+      description: 'Identifier-like key.'
+      type: string
+      pattern: ^[-_a-z]+$
