@@ -5,12 +5,13 @@ import {
     type BaseKeys,
     type Importance,
     type InfographInfo,
-    type Period,
+    type InfographDate,
     type Infograph,
     type InfographNode,
     type InfographNodeKey,
     type InfographDomain,
     importance,
+    type InfographClaim,
 } from './types'
 
 const kdataEdge = 'with'
@@ -21,18 +22,23 @@ export const defineInfograph = <Keys extends BaseKeys>(infograph: InputInfograph
 export type Flexarray<T> = T | T[]
 
 export type InputEdgeInfo = {
-    complexity?: Complexity
+    complexity?: InputClaim<Complexity>
     fact?: Flexarray<string>
+}
+
+export type InputClaim<T> = {
+    is: T
+    why: Flexarray<string>
 }
 
 export type InputNodeInfo<Keys extends BaseKeys> = {
     title: string
     summary?: string
     fact?: Flexarray<string>
-    period?: Period<string>
-    importance?: Importance
-    complexity?: Complexity
-    source?: Flexarray<Keys['source']>
+    date?: string | InfographDate<string>
+    importance?: InputClaim<Importance>
+    complexity?: InputClaim<Complexity>
+    source?: Flexarray<InputClaim<Keys['source']>>
     tag?: Flexarray<string>
 }
 
@@ -66,8 +72,8 @@ const zEdgeId = z.templateLiteral([zNodeKey, ' ', zVerbKey, ' ', zNodeKey])
 
 const zComplexity: z.ZodType<Complexity> = z.union([
     z.literal('simple').describe('easy to mention'),
-    z.literal('contained').describe('needs explanation, but self-containd'),
-    z.literal('contextual').describe('needs context'),
+    z.literal('natural').describe('needs explanation, but self-contained and natural to explain'),
+    z.literal('contextual').describe('needs context from other nodes not in the relation'),
     z.literal('intertwined').describe('needs deep context or demonstration'),
 ])
 
@@ -78,6 +84,14 @@ const zPlainKeyword = z.null().or(
 )
 
 const zFlexarray = <T extends SomeType>(item: T) => z.union([item, z.array(item)])
+
+const zClaim = <T extends z.ZodType<string>>(is: T) =>
+    z.object({
+        is: is.describe('Selected value.'),
+        why: zFlexarray(z.string()).describe(
+            'Justification for selecting this value. Why choose this value and not another. Retraces author intent.',
+        ),
+    })
 
 const zNode = z.looseObject({
     [kdataNode]: z.object({
@@ -97,24 +111,32 @@ const zNode = z.looseObject({
             .describe(
                 'Atomic factual claims attached to the node. Keeps facts separated from wording. The same statements can later support slides, reports or oral explanations.',
             ),
-        period: z
+        date: z
             // normally, dates would be parsed here, but the transforms breaks with looseRecord passing values as-is
             .object({
                 from: z.string(),
                 to: z.string(),
             })
+            .or(z.string())
             .optional()
             .describe(
                 'Approximate time range during which this node matters. Allows timeline-oriented queries without forcing every fact into prose. Approximate periods are acceptable for manual writing.',
             ),
-        importance: z
-            .enum(importance)
+        importance: zClaim(z.enum(importance))
             .optional()
             .describe(
                 'Importance of this node in the real experience. Not correlated to complexity or size. Left missing when unknown.',
             ),
-        complexity: zComplexity.optional().describe('Estimated explanation cost of this node.'),
-        source: zFlexarray(zSourceKey).optional().describe('Where the information comes from.'),
+        complexity: zClaim(zComplexity)
+            .optional()
+            .describe(
+                'Estimated explanation cost of this node. Note: this refers to explanation complexity, not node complexity. A node may refer to a very complex task and remain reasonably simple to explain.',
+            ),
+        source: zFlexarray(zClaim(zSourceKey))
+            .optional()
+            .describe(
+                'Where the information comes from. Source can be omitted for common / general knowledge information, like well-known public tools.',
+            ),
         tag: zFlexarray(z.string())
             .optional()
             .describe(
@@ -124,7 +146,7 @@ const zNode = z.looseObject({
 })
 
 const zEdge = z.object({
-    complexity: zComplexity.optional(),
+    complexity: zClaim(zComplexity).optional(),
     fact: zFlexarray(z.string())
         .optional()
         .describe('Some relationships are harder to explain than the things they connect.'),
@@ -236,7 +258,10 @@ const zInfograph = zInfographInput.pipe(
                             from,
                             verb,
                             to,
-                            [kdataNode]: { complexity: edge.complexity, fact: deflex(edge.fact) },
+                            info: {
+                                complexity: edge.complexity && buildClaim(edge.complexity),
+                                fact: deflex(edge.fact),
+                            },
                         }
                     })
                     .toArray()
@@ -274,14 +299,21 @@ const zInfograph = zInfographInput.pipe(
                     ...d,
                     title: parents.map(p => p.title).join(' '),
                     fact: deflex(d.fact),
-                    source: deflex(d.source),
+                    complexity: d.complexity && buildClaim(d.complexity),
+                    importance: d.importance && buildClaim(d.importance),
+                    source: deflex(d.source)?.map(buildClaim),
                     tag: deflex(d.tag),
-                    period:
-                        d.period ?
-                            {
-                                from: verifyDate(d.period.from),
-                                to: verifyDate(d.period.to),
-                            }
+                    date:
+                        d.date ?
+                            typeof d.date === 'string' ?
+                                (() => {
+                                    const on = verifyDate(d.date)
+                                    return { from: on, to: on }
+                                })()
+                            :   {
+                                    from: verifyDate(d.date.from),
+                                    to: verifyDate(d.date.to),
+                                }
                         :   undefined,
                 },
             ] as const
@@ -292,14 +324,13 @@ const zInfograph = zInfographInput.pipe(
                 const nodes = value as Exclude<InputOutgoing<BaseKeys>[string], undefined>
                 return entries(nodes).flatMap(([outkey, node]) => {
                     const isInlineNode = node && kdataNode in node
-                    const to =
-                        isInlineNode ? flattenNodeKey(outkey, parents) : (outkey as InfographNodeKey<BaseKeys>)
+                    const to = isInlineNode ? flattenNodeKey(outkey, parents) : (outkey as InfographNodeKey<BaseKeys>)
                     infographEdges.push({
                         verb,
                         from: key,
                         to,
                         info: {
-                            complexity: node?.[kdataEdge]?.complexity,
+                            complexity: node?.[kdataEdge]?.complexity && buildClaim(node?.[kdataEdge]?.complexity),
                             fact: deflex(node?.[kdataEdge]?.fact),
                         },
                     })
@@ -333,8 +364,19 @@ export const getSchema = () =>
         reused: 'ref',
     })
 
-function deflex(fa: Flexarray<string> | undefined) {
-    return typeof fa === 'string' ? [fa] : fa
+function buildClaim<T>(c: InputClaim<T>): InfographClaim<T> {
+    return { is: c.is, why: deflex(c.why) }
+}
+
+function deflex<T>(fa: Flexarray<readonly T[]> | undefined): never // ambiguous
+function deflex<T>(fa: Flexarray<Exclude<T, undefined>>): Exclude<T, undefined>[]
+function deflex<T>(fa: Flexarray<T> | undefined): T[] | undefined
+function deflex<T>(fa: Flexarray<T> | undefined): T[] | undefined {
+    return (
+        fa === undefined ? undefined
+        : Array.isArray(fa) ? fa
+        : [fa]
+    )
 }
 
 function nodeKey(kind: string, id: string) {

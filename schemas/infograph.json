@@ -58,7 +58,7 @@
       "description": "Use for edges that don't belong to any particular node.",
       "allOf": [
         {
-          "$ref": "#/definitions/__schema28"
+          "$ref": "#/definitions/__schema34"
         }
       ]
     }
@@ -148,7 +148,7 @@
           "$ref": "#/definitions/__schema12"
         },
         {
-          "$ref": "#/definitions/__schema22"
+          "$ref": "#/definitions/__schema27"
         }
       ]
     },
@@ -178,7 +178,7 @@
                 }
               ]
             },
-            "period": {
+            "date": {
               "description": "Approximate time range during which this node matters. Allows timeline-oriented queries without forcing every fact into prose. Approximate periods are acceptable for manual writing.",
               "allOf": [
                 {
@@ -195,18 +195,18 @@
               ]
             },
             "complexity": {
-              "description": "Estimated explanation cost of this node.",
+              "description": "Estimated explanation cost of this node. Note: this refers to explanation complexity, not node complexity. A node may refer to a very complex task and remain reasonably simple to explain.",
               "allOf": [
                 {
-                  "$ref": "#/definitions/__schema18"
+                  "$ref": "#/definitions/__schema19"
                 }
               ]
             },
             "source": {
-              "description": "Where the information comes from.",
+              "description": "Where the information comes from. Source can be omitted for common / general knowledge information, like well-known public tools.",
               "allOf": [
                 {
-                  "$ref": "#/definitions/__schema19"
+                  "$ref": "#/definitions/__schema22"
                 }
               ]
             },
@@ -214,7 +214,7 @@
               "description": "Lightweight labels. Supports simple search and grouping without adding many specialized fields.",
               "allOf": [
                 {
-                  "$ref": "#/definitions/__schema20"
+                  "$ref": "#/definitions/__schema25"
                 }
               ]
             }
@@ -250,31 +250,90 @@
       "type": "string"
     },
     "__schema16": {
+      "anyOf": [
+        {
+          "type": "object",
+          "properties": {
+            "from": {
+              "type": "string"
+            },
+            "to": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "from",
+            "to"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "string"
+        }
+      ]
+    },
+    "__schema17": {
       "type": "object",
       "properties": {
-        "from": {
-          "type": "string"
+        "is": {
+          "type": "string",
+          "enum": [
+            "minor",
+            "useful",
+            "major",
+            "central"
+          ]
         },
-        "to": {
-          "type": "string"
+        "why": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/__schema18"
+            },
+            {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/__schema18"
+              }
+            }
+          ]
         }
       },
       "required": [
-        "from",
-        "to"
+        "is",
+        "why"
       ],
       "additionalProperties": false
     },
-    "__schema17": {
-      "type": "string",
-      "enum": [
-        "minor",
-        "useful",
-        "major",
-        "central"
-      ]
-    },
     "__schema18": {
+      "type": "string"
+    },
+    "__schema19": {
+      "type": "object",
+      "properties": {
+        "is": {
+          "$ref": "#/definitions/__schema20"
+        },
+        "why": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/__schema21"
+            },
+            {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/__schema21"
+              }
+            }
+          ]
+        }
+      },
+      "required": [
+        "is",
+        "why"
+      ],
+      "additionalProperties": false
+    },
+    "__schema20": {
       "anyOf": [
         {
           "type": "string",
@@ -283,13 +342,13 @@
         },
         {
           "type": "string",
-          "const": "contained",
-          "description": "needs explanation, but self-containd"
+          "const": "natural",
+          "description": "needs explanation, but self-contained and natural to explain"
         },
         {
           "type": "string",
           "const": "contextual",
-          "description": "needs context"
+          "description": "needs context from other nodes not in the relation"
         },
         {
           "type": "string",
@@ -298,36 +357,68 @@
         }
       ]
     },
-    "__schema19": {
-      "anyOf": [
-        {
-          "$ref": "#/definitions/__schema9"
-        },
-        {
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/__schema9"
-          }
-        }
-      ]
-    },
-    "__schema20": {
-      "anyOf": [
-        {
-          "$ref": "#/definitions/__schema21"
-        },
-        {
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/__schema21"
-          }
-        }
-      ]
-    },
     "__schema21": {
       "type": "string"
     },
     "__schema22": {
+      "anyOf": [
+        {
+          "$ref": "#/definitions/__schema23"
+        },
+        {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/__schema23"
+          }
+        }
+      ]
+    },
+    "__schema23": {
+      "type": "object",
+      "properties": {
+        "is": {
+          "$ref": "#/definitions/__schema9"
+        },
+        "why": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/__schema24"
+            },
+            {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/__schema24"
+              }
+            }
+          ]
+        }
+      },
+      "required": [
+        "is",
+        "why"
+      ],
+      "additionalProperties": false
+    },
+    "__schema24": {
+      "type": "string"
+    },
+    "__schema25": {
+      "anyOf": [
+        {
+          "$ref": "#/definitions/__schema26"
+        },
+        {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/__schema26"
+          }
+        }
+      ]
+    },
+    "__schema26": {
+      "type": "string"
+    },
+    "__schema27": {
       "type": "object",
       "patternProperties": {
         "^(?!\\x77ith$|\\x69nfo$)[-_a-z]+$": {
@@ -336,21 +427,24 @@
             "$ref": "#/definitions/__schema10"
           },
           "additionalProperties": {
-            "$ref": "#/definitions/__schema23"
+            "$ref": "#/definitions/__schema28"
           },
           "description": "Outgoing edges."
         }
       }
     },
-    "__schema23": {
+    "__schema28": {
       "anyOf": [
         {
-          "$ref": "#/definitions/__schema24"
+          "type": "null"
+        },
+        {
+          "$ref": "#/definitions/__schema29"
         },
         {
           "allOf": [
             {
-              "$ref": "#/definitions/__schema24"
+              "$ref": "#/definitions/__schema29"
             },
             {
               "$ref": "#/definitions/__schema12"
@@ -358,7 +452,7 @@
             {
               "allOf": [
                 {
-                  "$ref": "#/definitions/__schema22"
+                  "$ref": "#/definitions/__schema27"
                 }
               ]
             }
@@ -366,65 +460,87 @@
         }
       ]
     },
-    "__schema24": {
+    "__schema29": {
       "type": "object",
       "properties": {
         "with": {
           "description": "Edge information.",
           "allOf": [
             {
-              "$ref": "#/definitions/__schema25"
+              "$ref": "#/definitions/__schema30"
             }
           ]
         }
       },
       "additionalProperties": {}
     },
-    "__schema25": {
+    "__schema30": {
       "type": "object",
       "properties": {
         "complexity": {
-          "allOf": [
-            {
-              "$ref": "#/definitions/__schema18"
+          "type": "object",
+          "properties": {
+            "is": {
+              "$ref": "#/definitions/__schema20"
+            },
+            "why": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/__schema31"
+                },
+                {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/definitions/__schema31"
+                  }
+                }
+              ]
             }
-          ]
+          },
+          "required": [
+            "is",
+            "why"
+          ],
+          "additionalProperties": false
         },
         "fact": {
           "description": "Some relationships are harder to explain than the things they connect.",
           "allOf": [
             {
-              "$ref": "#/definitions/__schema26"
+              "$ref": "#/definitions/__schema32"
             }
           ]
         }
       },
       "additionalProperties": false
     },
-    "__schema26": {
+    "__schema31": {
+      "type": "string"
+    },
+    "__schema32": {
       "anyOf": [
         {
-          "$ref": "#/definitions/__schema27"
+          "$ref": "#/definitions/__schema33"
         },
         {
           "type": "array",
           "items": {
-            "$ref": "#/definitions/__schema27"
+            "$ref": "#/definitions/__schema33"
           }
         }
       ]
     },
-    "__schema27": {
+    "__schema33": {
       "type": "string"
     },
-    "__schema28": {
+    "__schema34": {
       "type": "object",
       "propertyNames": {
         "type": "string",
         "pattern": "^[-_a-z]+ [-_a-z]+ (?!\\x77ith$|\\x69nfo$)[-_a-z]+ [-_a-z]+ [-_a-z]+$"
       },
       "additionalProperties": {
-        "$ref": "#/definitions/__schema25"
+        "$ref": "#/definitions/__schema30"
       }
     }
   }

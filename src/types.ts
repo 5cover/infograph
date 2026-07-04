@@ -1,26 +1,31 @@
-export const complexity = ['simple', 'contained', 'contextual', 'intertwined'] as const
+export const complexity = ['simple', 'natural', 'contextual', 'intertwined'] as const
 export type Complexity = (typeof complexity)[number]
 export const importance = ['minor', 'useful', 'major', 'central'] as const
 export type Importance = (typeof importance)[number]
 
 export type EdgeInfo = {
-    complexity?: Complexity
+    complexity?: InfographClaim<Complexity>
     fact?: string[]
 }
 
-export type Period<T = Date> = {
+export type InfographDate<T = Date> = {
     from: T
     to: T
+}
+
+export type InfographClaim<T> = {
+    is: T
+    why: string[]
 }
 
 export type InfographNode<Keys extends BaseKeys> = {
     title: string
     summary?: string
     fact?: string[]
-    period?: Period
-    importance?: Importance
-    complexity?: Complexity
-    source?: Keys['source'][]
+    date?: InfographDate
+    importance?: InfographClaim<Importance>
+    complexity?: InfographClaim<Complexity>
+    source?: InfographClaim<Keys['source']>[]
     tag?: string[]
 }
 

@@ -12,7 +12,7 @@ export function toMermaid<Keys extends BaseKeys>(
 
     for (const [key, node] of infograph.nodes.entries()) {
         lines.push(
-            `${nodeId(key)}["${escapeMermaidText(key + (node.period?.from ? '<br>' + node.period?.from.toISOString().split('T', 1)[0] : ''))}"]`,
+            `${nodeId(key)}["${escapeMermaidText(key + (node.date?.from ? '<br>' + node.date?.from.toISOString().split('T', 1)[0] : ''))}"]`,
         )
     }
 

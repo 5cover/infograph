@@ -31,8 +31,8 @@ domain:
     journal:
     user stories:
     documentation:
-    common:
-      desc: factual information
+    url:
+      desc: specific url (put url in why)
 
   kind:
     project:
@@ -133,7 +133,7 @@ domain:
       desc: |
         Weak fallback relation when a connection matters but is not yet precise.
         Prevents premature modeling. Better to store an imperfect relation than to lose the connection.
-# Stable keys. Edges need stable references. Keys: /[-_a-z ]+/
+# Stable keys. Edges need stable references. Keys: /${kind} [-_a-z ]+/. The kind is part of the node key identity, and always provided in references. So "project sponsorship" and "tool sponsorship" are different nodes.
 # The key should not depend on the exact wording of the title.
 nodes:
   # Node category.
@@ -144,14 +144,20 @@ nodes:
       title: Sponsorship
       summary: Business project involving sponsorship-related workflows, follow-up, data handling and automation.
       fact:
-        - The project became one of the main active missions of the apprenticeship.
-        - The project evolved over time instead of remaining a fixed implementation task.
-      period:
+        - The project becomes one of the main active missions of the apprenticeship.
+        - The project evolves over time instead of remaining a fixed implementation task.
+      date:
         from: 2025-12
         to: 2026-07
-      importance: central
-      complexity: contained
-      source: journal
+      importance:
+        is: central
+        why: Major project, agregating many learning, strategic opportunities, and catalyzing personal growth.
+      complexity:
+        is: natural
+        why: The purpose of the application and the main features of the sponsorship analysis and approval flow is natural to explain.
+      source:
+        is: journal
+        why: (refer to main entries about the project one by one)
       tag:
         - sponsorship
         - business workflow
@@ -162,12 +168,16 @@ nodes:
         # provides additional edge information.
         with:
           # Some relationships are harder to explain than the things they connect.
-          complexity: contained
+          complexity:
+            is: natural
+            why: Power Automate usage evolves throughout the project, changing from a pure authoring to a partially generated surface due to the need for reliabilty guarantees provided by tooling.
           fact: Power Automate was used to implement automation aspects of Sponsorship.
         # no info, so power_automate must exist at a level above
       tool sharepoint:
         with:
-          complexity: simple
+          complexity:
+            is: simple
+            why: SharePoint is used as a database; repeatable provisioning challenges remain unsolved
           fact: SharePoint was part of the project environment.
     contains:
       # the node is understood as belonging to the scope of this particualar node. In display, we will show something like Sponsorship: Application. The id becomes project sponsorship > product application. This is what allows us to use broad names in context.
@@ -182,21 +192,23 @@ nodes:
             - Having a dedicated front-end helped simplify
       process amount_calculation:
         with:
-          complexity: contextual
-          fact: Sponsorship reliability depended partly on understanding amount calculation behavior.
+          complexity:
+            is: contextual
+            why: The process includes a rolling time window and has evolved
+          fact: Sponsorship reliability depends partly on understanding amount calculation behavior.
         info:
           title: Amount calculation
-          summary: Business calculation logic that required reconstruction, understanding and reliable handling.
+          summary: Business calculation logic that requires reconstruction, understanding and reliable handling.
           importance: central
           complexity: intertwined
           source:
             - journal
             - user stories
           fact:
-            - The calculation logic was difficult to understand without sufficient context.
-            - A short handover was not enough to fully absorb the calculation behavior.
+            - The calculation logic is difficult to understand without sufficient context.
+            - A short handover is not enough to fully absorb the calculation behavior.
             - Reliability depended on understanding edge cases and implicit rules.
-          period:
+          date:
             from: 2026-05
             to: 2026-07
           tag:
@@ -210,14 +222,17 @@ nodes:
     info:
       title: Power Automate
       summary: Main automation platform used in the project, with significant practical constraints around reliability, debugging and maintainability.
-      importance: central
-      complexity: contextual
-      source: journal
+      importance:
+        is: central
+        why: Main, "default" automation and business logic execution substrate for Studio projects.
+      complexity:
+        is: simple
+        why: The basics and general information are simple. Advanced features are more complex to explain.
       fact:
-        - Power Automate was central to the implementation work.
-        - The platform introduced recurring reliability and maintainability concerns.
-        - Some issues were difficult to prevent because errors often appeared at runtime.
-      period:
+        - Power Automate is central to the implementation work.
+        - The platform introduces recurring reliability and maintainability concerns.
+        - Some issues are difficult to prevent because errors often appear at runtime.
+      date:
         from: 2025-12
         to: 2026-07
       tag:
@@ -228,19 +243,24 @@ nodes:
     requires:
       constraint reliability_focus:
         with:
-          complexity: contained
-          fact: Power Automate constraints made reliability and maintainability more important.
+          complexity:
+            is: natural
+            why: The concept is clear, the implementation is less clear
+          fact: Power Automate constraints and pitfalls make reliability and maintainability more important.
   tool sharepoint:
     info:
       title: SharePoint
       summary: Data and collaboration platform used as part of the business workflow and automation environment.
-      importance: major
-      complexity: contained
-      source: journal
+      importance:
+        is: major
+        why: Main database tool, used by the Studio for persistence and business data retention.
+      complexity:
+        is: natural
+        why: SharePoint is widely known and used.
       fact:
-        - SharePoint was part of the technical environment.
-        - The structure of stored data affected automation behavior.
-      period:
+        - SharePoint is part of the technical environment.
+        - The structure of stored data affects automation behavior.
+      date:
         from: 2025-12
         to: 2026-07
       tag:
@@ -250,15 +270,24 @@ nodes:
   constraint evolving_scope:
     info:
       title: Evolving project scope
-      summary: The project changed over time, which affected planning, understanding and implementation priorities.
-      importance: central
-      complexity: contextual
-      source: journal
+      summary: The project changes over time, which affected planning, understanding and implementation priorities.
+      importance:
+        is: central
+        why: Changes increase workload and risk, thereby requiring more tools to protect reliability.
+      complexity:
+        is: natural
+        why: Many project evolved
+      source:
+        - is: journal
+          why: (reference main related entry dates here)
+        - is: journal
+          why: (reference main related entry dates here)
       fact:
-        - The project did not remain stable from its initial framing.
-        - New expectations and constraints appeared as the work progressed.
-        - The evolution of the project increased the need for context rebuilding.
-      period:
+        - The project does not remain stable from its initial framing.
+        - New expectations and constraints appear as the work progresses.
+        - The evolution of the project increases the need for context rebuilding.
+        - The project is a moving system; increasing the number of parts increases complexity nonlinearily.
+      date:
         from: 2025-12
         to: 2026-07
       tag:
@@ -268,25 +297,34 @@ nodes:
     explains:
       event handover_pressure:
         with:
-          complexity: contained
+          complexity:
+            is: natural
+            why: The transition are simple officially, however there are remaining concerns and unanswered questions in practice
           fact: A changing project made short handover harder.
     constrains:
       project sponsorship:
         with:
-          complexity: contained
-          fact: The evolving scope affected how the Sponsorship work had to be understood and presented.
+          complexity:
+            is: natural
+            why: The evolving scope affected how the Sponsorship work had to be understood and presented.
   constraint reliability_focus:
     info:
       title: Reliability focus
-      summary: The work shifted from simply making automations work to making them understandable, maintainable and reliable.
-      importance: central
-      complexity: intertwined
-      source: journal
+      summary: The work shifts from simply making automations work to making them understandable, maintainable and reliable.
+      importance:
+        is: central
+        why: Prototypes need to work. Product need to work twice. Uncertainty reduction is a major part of my work.
+      complexity:
+        is: intertwined
+        why: Relates to every project contextually, depending on stack, Power Platform pitfalls, and hidden semantics.
+      source:
+        is: journal
+        why: Main focus, pretty much from the very first day
       fact:
-        - A working automation was not sufficient by itself.
-        - The project required attention to maintainability, traceability and edge cases.
-        - This became a major learning axis of the apprenticeship.
-      period:
+        - A working automation is not sufficient by itself.
+        - The project requires attention to maintainability, traceability and edge cases.
+        - This becomes a major learning axis of the apprenticeship.
+      date:
         from: 2026-04
         to: 2026-07
       tag:
@@ -297,19 +335,29 @@ nodes:
     requires:
       learning autonomy_growth:
         with:
-          complexity: contained
-          fact: Working on reliability required more independent judgment.
+          complexity:
+            is: natural
+            why: Required overview of the system; still simple to explain
+          fact: Working on reliability requirsd more independent judgment.
   event handover_pressure:
     info:
       title: Handover under time pressure
-      summary: A short handover period made it difficult to reconstruct the full context of an evolved project.
-      importance: major
-      complexity: contextual
-      source: journal
+      summary: A short handover period makes it difficult to reconstruct the full context of an evolved project.
+      importance:
+        is: major
+        why: Changes the mission of the DSI Studio and my future opportunities.
+      complexity:
+        is: contextual
+        why: Affects every project differently
+      source:
+        - is: journal
+          why: (reference main related entry dates here)
+        - is: journal
+          why: (reference main related entry dates here)
       fact:
-        - A limited handover period was not enough to fully understand the evolved project.
-        - The situation increased the need to reconstruct context from existing artifacts and behavior.
-      period:
+        - A limited handover period is not enough to fully understand the evolved project.
+        - The situation increases the need to reconstruct context from existing artifacts and behavior.
+      date:
         from: 2026-06
         to: 2026-06
       tag:
@@ -319,34 +367,57 @@ nodes:
     illustrates:
       learning autonomy_growth:
         with:
-          complexity: contained
+          complexity:
+            is: natural
+            why: Prepared of Knowledge Transfers by myself, "surprise English" meetings over lunchtime, little official information
           fact: The handover situation illustrates the need to reconstruct context autonomously.
   learning autonomy_growth:
     info:
       title: Autonomy growth
       summary: Progression from executing tasks toward reconstructing context, identifying risks, and reasoning about reliability.
-      importance: central
-      complexity: contained
-      source: journal
+      importance:
+        is: central
+        why: Concerns almost every project.
+      complexity:
+        is: contextual
+        why: Autonomy applies differently from project to project.
+      source:
+        is: journal
+        why: distributed
       fact:
-        - The apprenticeship required increasing autonomy over time.
-        - Autonomy involved understanding unclear systems, not only implementing requested changes.
-        - The work developed stronger judgment around complexity and reliability.
-      period:
+        - The apprenticeship requires increasing autonomy over time.
+        - Autonomy involves understanding unclear systems, not only implementing requested changes.
+        - The work develops stronger judgment around complexity and reliability.
+      date:
         from: 2026-01
         to: 2026-07
       tag:
         - autonomy
         - learning
         - progression
+  event quarterly_meeting:
+    info:
+      title: Quarterly Meeting
+      summary: The DSI's quarterly meeting. News about the organization, project presentations, cybersecurity metrics, client NPS.
+      importance:
+        is: useful
+        why: it brings some long awaited context and direction after the Indian transition
+      complexity:
+        is: natural
+        why: it doesn't directly affect ongoing projects. it is a scheduled event.
+      source:
+        - is: journal
+          why: entry 2026-06-26
+      fact:
+        - Covers the finaliaztion the transition of projects to the Indian Power Platform development team
+        - Fabrice's secondborn daughter # elements not directly related to the work are to be included as well! while some may seem unrelated, they can bring additional context. The point is to represent all information, not just what you believe relevant right now.
+        - Future role of the DSI after the Indian team takes over Power Platform and SharePoint developments
+      date: 2026-06-26 # A lone date is supported (it is parsed to equal from/to) for punctual events
 # Edges. key format: `${source key} ${verb} ${target key}`
 # Use for edges that don't belong to any particular node.
 edges:
   # The source node uses or relies on the target node as a tool, platform,
   # method or resource.
-  # Useful for technical environment queries.
-  # Low-friction relation: easy to explain in a presentation.
+  # all edges are keyed by (source key, verb, target key)
   learning autonomy_growth - event handover_pressure:
     fact: These two nodes are related somehow
-  # invariants
-  # all edges are keyed bu (source key, verb, target key)
