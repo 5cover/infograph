@@ -1,16 +1,16 @@
 import { z } from 'zod'
-import { SomeType } from 'zod/v4/core'
+import type { SomeType } from 'zod/v4/core'
 import {
-    Complexity,
-    BaseKeys,
-    Importance,
+    type Complexity,
+    type BaseKeys,
+    type Importance,
+    type InfographInfo,
+    type Period,
+    type Infograph,
+    type InfographNode,
+    type InfographNodeKey,
+    type InfographDomain,
     importance,
-    InfographInfo,
-    Period,
-    Infograph,
-    InfographNode,
-    InfographNodeKey,
-    InfographDomain,
 } from './types'
 
 const kdataEdge = 'with'
@@ -233,9 +233,9 @@ const zInfograph = zInfographInput.pipe(
                         defer(verifyNode, from)
                         defer(verifyNode, to)
                         return {
-                            from: nodeKey(fromkind, from),
+                            from,
                             verb,
-                            to: nodeKey(tokind, to),
+                            to,
                             [kdataNode]: { complexity: edge.complexity, fact: deflex(edge.fact) },
                         }
                     })
@@ -263,10 +263,10 @@ const zInfograph = zInfographInput.pipe(
             node: InputNode<BaseKeys>,
             parents: { kind: string; id: string; title: string }[],
         ): Generator<[k: InfographNodeKey<BaseKeys>, v: InfographNode<BaseKeys>]> {
-            const [kind, id] = originalKey.split(' ', 2)
-            const key = nodeKey(kind, [id, ...parents.map(p => nodeKey(p.kind, p.id)).reverse()].join(' < '))
-            verifyKind(kind)
             const d = node[kdataNode]
+            const [kind, id] = originalKey.split(' ', 2)
+            const key = flattenNodeKey(originalKey, parents)
+            verifyKind(kind)
             parents.push({ kind, id, title: d.title })
             yield [
                 key,
@@ -290,23 +290,29 @@ const zInfograph = zInfographInput.pipe(
                 verifyVerb(verb)
                 if (!value) return []
                 const nodes = value as Exclude<InputOutgoing<BaseKeys>[string], undefined>
-                return entries(nodes).flatMap(([inkey_, node]) => {
-                    const inkey = inkey_ as InfographNodeKey<BaseKeys>
-                    if (node && kdataNode in node) return parseNode(inkey_, node, parents)
-                    else defer(verifyNode, inkey)
+                return entries(nodes).flatMap(([outkey, node]) => {
+                    const isInlineNode = node && kdataNode in node
+                    const to =
+                        isInlineNode ? flattenNodeKey(outkey, parents) : (outkey as InfographNodeKey<BaseKeys>)
                     infographEdges.push({
                         verb,
                         from: key,
-                        to: inkey as InfographNodeKey<BaseKeys>,
+                        to,
                         info: {
                             complexity: node?.[kdataEdge]?.complexity,
                             fact: deflex(node?.[kdataEdge]?.fact),
                         },
                     })
+                    if (isInlineNode) return parseNode(outkey, node, parents)
+                    defer(verifyNode, to)
                     return []
                 })
             })
             parents.pop()
+        }
+        function flattenNodeKey(originalKey: string, parents: { kind: string; id: string }[]) {
+            const [kind, id] = originalKey.split(' ', 2)
+            return nodeKey(kind, [id, ...parents.map(p => nodeKey(p.kind, p.id)).reverse()].join(' < '))
         }
         function* entries<V>(o: { [k: string]: V }) {
             for (const [k, v] of Object.entries(o)) {
