@@ -33,6 +33,7 @@ domain:
     documentation:
     common:
       desc: factual information
+
   kind:
     project:
       desc: |
@@ -179,9 +180,6 @@ nodes:
           fact: # these should be edges but you get the point.
             - Since it was added, SharePoint is fully treated as a database layer
             - Having a dedicated front-end helped simplify
-        uses:
-          tool power_apps:
-          # no info. parsing checks if sponsorsip contains power_apps. no. so it checks the level above, the root nodes.
       process amount_calculation:
         with:
           complexity: contextual
@@ -208,9 +206,6 @@ nodes:
             - edge-cases
         requires:
           constraint reliability_focus:
-            with:
-              complexity: contextual
-              fact: Calculation complexity contributed to the need for a stronger reliability focus.
   tool power_automate:
     info:
       title: Power Automate

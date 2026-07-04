@@ -203,19 +203,19 @@ const zInfograph = zInfographInput.pipe(
         }
 
         const verifyKeyset =
-            <K extends string = string>(has: (key: K) => boolean) =>
+            <K extends string = string>(thing: string, has: (key: K) => boolean) =>
             (key: K) => {
                 if (has(key)) return
                 ctx.issues.push({
                     code: 'custom',
                     input: key,
                     path: [...path],
-                    message: `Undefined kind: '${key}'`,
+                    message: `Undefined ${thing}: '${key}'`,
                 })
             }
-        const verifyKind = verifyKeyset(k => k in g.domain.kind)
-        const verifyVerb = verifyKeyset(k => k in g.domain.verb)
-        const verifyNodeKey = verifyKeyset<InfographNodeKey<BaseKeys>>(k => infograph.nodes.has(k))
+        const verifyKind = verifyKeyset('kind', k => k in g.domain.kind)
+        const verifyVerb = verifyKeyset('verb', k => k in g.domain.verb)
+        const verifyNode = verifyKeyset<InfographNodeKey<BaseKeys>>('node', k => infograph.nodes.has(k))
         type DeferredEntry<K extends string> = [f: (key: K) => void, key: K]
         const deferredChecks: DeferredEntry<any>[] = []
         const defer = <K extends string>(...r: DeferredEntry<K>) => {
@@ -230,8 +230,8 @@ const zInfograph = zInfographInput.pipe(
                         verifyVerb(verb)
                         const from = nodeKey(fromkind, fromid)
                         const to = nodeKey(tokind, toid)
-                        defer(verifyNodeKey, from)
-                        defer(verifyNodeKey, to)
+                        defer(verifyNode, from)
+                        defer(verifyNode, to)
                         return {
                             from: nodeKey(fromkind, from),
                             verb,
@@ -248,7 +248,7 @@ const zInfograph = zInfographInput.pipe(
             domain: g.domain,
             edges: infographEdges,
             nodes: new Map(
-                walkEntry(g, 'nodes', nodes => entries(nodes).flatMap(([key, node]) => parseNode(key, node))),
+                walkEntry(g, 'nodes', nodes => entries(nodes).flatMap(([key, node]) => parseNode(key, node, []))),
             ),
         }
 
@@ -259,17 +259,20 @@ const zInfograph = zInfographInput.pipe(
         return infograph
 
         function* parseNode(
-            key_: string,
+            originalKey: string,
             node: InputNode<BaseKeys>,
+            parents: { kind: string; id: string; title: string }[],
         ): Generator<[k: InfographNodeKey<BaseKeys>, v: InfographNode<BaseKeys>]> {
-            const key = key_ as InfographNodeKey<BaseKeys> // schema validates this already
-            verifyKind(key.split(' ')[0])
+            const [kind, id] = originalKey.split(' ', 2)
+            const key = nodeKey(kind, [id, ...parents.map(p => nodeKey(p.kind, p.id)).reverse()].join(' < '))
+            verifyKind(kind)
             const d = node[kdataNode]
-
+            parents.push({ kind, id, title: d.title })
             yield [
                 key,
                 {
                     ...d,
+                    title: parents.map(p => p.title).join(' '),
                     fact: deflex(d.fact),
                     source: deflex(d.source),
                     tag: deflex(d.tag),
@@ -287,21 +290,23 @@ const zInfograph = zInfographInput.pipe(
                 verifyVerb(verb)
                 if (!value) return []
                 const nodes = value as Exclude<InputOutgoing<BaseKeys>[string], undefined>
-                return entries(nodes).flatMap(([inkey, node]) => {
-                    if (!node) return []
-                    if (kdataNode in node) return parseNode(inkey, node)
+                return entries(nodes).flatMap(([inkey_, node]) => {
+                    const inkey = inkey_ as InfographNodeKey<BaseKeys>
+                    if (node && kdataNode in node) return parseNode(inkey_, node, parents)
+                    else defer(verifyNode, inkey)
                     infographEdges.push({
                         verb,
                         from: key,
                         to: inkey as InfographNodeKey<BaseKeys>,
                         info: {
-                            complexity: node[kdataEdge]?.complexity,
-                            fact: deflex(node[kdataEdge]?.fact),
+                            complexity: node?.[kdataEdge]?.complexity,
+                            fact: deflex(node?.[kdataEdge]?.fact),
                         },
                     })
                     return []
                 })
             })
+            parents.pop()
         }
         function* entries<V>(o: { [k: string]: V }) {
             for (const [k, v] of Object.entries(o)) {
