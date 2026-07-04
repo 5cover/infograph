@@ -8,23 +8,23 @@ export type EdgeInfo = {
     fact?: string[]
 }
 
-export type Period = {
-    from: Date
-    to: Date
+export type Period<T = Date> = {
+    from: T
+    to: T
 }
 
-export type NodeInfo<Domain extends BaseDomain> = {
+export type InfographNode<Keys extends BaseKeys> = {
     title: string
     summary?: string
     fact?: string[]
     period?: Period
     importance?: Importance
     complexity?: Complexity
-    source?: (keyof Domain['source'])[]
+    source?: Keys['source'][]
     tag?: string[]
 }
 
-export type InfographMeta = {
+export type InfographInfo = {
     title?: string
     context?: string
     author?: string
@@ -32,26 +32,29 @@ export type InfographMeta = {
 
 type Keyword = undefined | null | { desc?: string }
 
-export type BaseDomain = {
-    kind: Record<string, Keyword>
-    verb: Record<string, Keyword>
-    source: Record<string, Keyword>
+export type BaseKeys = {
+    node: string
+    kind: string
+    verb: string
+    source: string
 }
 
-export type Infograph<NodeKey extends string, Domain extends BaseDomain> = {
-    meta?: InfographMeta
-    domain: Domain
-    nodes: Map<
-        NodeKey,
-        {
-            kind: keyof Domain['kind']
-            info: NodeInfo<Domain>
-        }
-    >
-    edges?: {
-        verb: keyof Domain['verb']
-        from: NodeKey
-        to: NodeKey
+export type InfographNodeKey<Keys extends BaseKeys> = `${Keys['kind']} ${Keys['node']}`
+
+export type Infograph<Keys extends BaseKeys> = {
+    info?: InfographInfo
+    domain: InfographDomain<Keys>
+    nodes: Map<InfographNodeKey<Keys>, InfographNode<Keys>>
+    edges: {
+        verb: Keys['verb']
+        from: InfographNodeKey<Keys>
+        to: InfographNodeKey<Keys>
         info: EdgeInfo
     }[]
+}
+
+export type InfographDomain<Keys extends BaseKeys> = {
+    kind: Record<Keys['kind'], Keyword>
+    verb: Record<Keys['verb'], Keyword>
+    source: Record<Keys['source'], Keyword>
 }
