@@ -382,8 +382,10 @@ nodes:
         is: contextual
         why: Autonomy applies differently from project to project.
       source:
-        is: journal
-        why: distributed
+        - is: journal
+          why: distributed
+        - is: journal
+          why: (you could refer an entry with a specific major instance of autonomy here)
       fact:
         - The apprenticeship requires increasing autonomy over time.
         - Autonomy involves understanding unclear systems, not only implementing requested changes.
