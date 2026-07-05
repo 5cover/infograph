@@ -1,3 +1,5 @@
+Write the infograph of my apprenticeship to out/infograph.yaml
+
 ## instructions
 
 - keep prose factual
@@ -16,7 +18,7 @@ directory|desc|notes
 journalt|daily YYYY-MM-DD work logs
 ../engie/Sponsorship|Engie Sponsorship project repositories|has Sponsorship.wiki (wiki), Sponsorship (main), and tools (tools)
 ../engie/Legal Higlights 2|Legal Highlights project
-ai/journalt.md
+ai/journalt.md|AI chat export
 
 Start with the first day in journalt, and explore relevant repositories as needed. You can use git commands to get the local datetime and any other information about commits.
 
@@ -30,3 +32,7 @@ filename|desc|notes
 ../infograph/example-infographs/alt.yaml|Example infograph.|It provides an example of the structure, and good enough starting points for verbs and kinds, but you need not copy th exact prose style. The earlier instructions about prose prime over the example prose.
 ../infograph/src/input/|Input infograph parsing code. Focus on the zInfographInput zod schema defined in schemas.ts. Consider kdataEdge = 'with', kdataNode = 'info', as defined in types.ts. index.ts contains validation code, complex but still useful if you want the exact rule
 ai/infograph.md|AI chat export providing context on the rationale and development of the infograph project
+
+## how to read
+
+- For AI chat exports, you have access to dated messages where I discuss with an AI, and deepen my understanding of subjects. Use it to retrace context and intent, not only techniacl details.
