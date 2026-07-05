@@ -23,7 +23,7 @@ program
     .argument('<file>', 'YAML or JSON infograph file')
     .addOption(new Option('-b, --budget <number>', 'branch complexity budget').default(20).argParser(parseNumber))
     .addOption(new Option('--simple <number>', 'cost of simple complexity').argParser(parseNumber))
-    .addOption(new Option('--contained <number>', 'cost of contained complexity').argParser(parseNumber))
+    .addOption(new Option('--natural <number>', 'cost of natural complexity').argParser(parseNumber))
     .addOption(new Option('--contextual <number>', 'cost of contextual complexity').argParser(parseNumber))
     .addOption(new Option('--intertwined <number>', 'cost of intertwined complexity').argParser(parseNumber))
     .addOption(new Option('--missing <number>', 'cost of missing complexity').argParser(parseNumber))

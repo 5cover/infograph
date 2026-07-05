@@ -97,10 +97,13 @@ const zEdge = z.object({
 const zNodeRef = z.looseObject({
     [kdataEdge]: zEdge.optional().describe('Edge information.'),
 })
+const zExternalNodeRef = zNodeRef.refine(node => !(kdataNode in node), {
+    message: `Invalid inline node. '${kdataNode}' must match the inline node schema.`,
+})
 const zOutgoing: z.ZodType<InputOutgoing<BaseKeys>> = z.looseRecord(
     zVerbKey,
     z
-        .record(zNodeKey, z.union([z.null(), zNodeRef, zNodeRef.and(zNode).and(z.lazy(() => zOutgoing))]))
+        .record(zNodeKey, z.union([z.null(), zNodeRef.and(zNode).and(z.lazy(() => zOutgoing)), zExternalNodeRef]))
         .describe('Outgoing edges.'),
 )
 

@@ -52,6 +52,7 @@ const zInfograph = zInfographInput.pipe(
             }
         const verifyKind = verifyKeyset('kind', k => k in g.domain.kind)
         const verifyVerb = verifyKeyset('verb', k => k in g.domain.verb)
+        const verifySource = verifyKeyset('source', k => k in g.domain.source)
         const verifyNode = verifyKeyset<InfographNodeKey<BaseKeys>>('node', k => infograph.nodes.has(k))
         type DeferredEntry<K extends string> = [f: (key: K) => void, key: K]
         const deferredChecks: DeferredEntry<any>[] = []
@@ -116,7 +117,10 @@ const zInfograph = zInfographInput.pipe(
                     fact: deflex(d.fact),
                     complexity: d.complexity && buildClaim(d.complexity),
                     importance: d.importance && buildClaim(d.importance),
-                    source: deflex(d.source)?.map(buildClaim),
+                    source: deflex(d.source)?.map(source => {
+                        verifySource(source.is)
+                        return buildClaim(source)
+                    }),
                     tag: deflex(d.tag),
                     date:
                         d.date ?

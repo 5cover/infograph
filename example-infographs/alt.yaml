@@ -199,11 +199,17 @@ nodes:
         info:
           title: Amount calculation
           summary: Business calculation logic that requires reconstruction, understanding and reliable handling.
-          importance: central
-          complexity: intertwined
+          importance:
+            is: central
+            why: The amount calculation is one of the core reliability risks in the Sponsorship work.
+          complexity:
+            is: intertwined
+            why: Explaining it requires business rules, date windows, edge cases, and implementation context.
           source:
-            - journal
-            - user stories
+            - is: journal
+              why: Journal entries describe the reconstruction and reliability work around this process.
+            - is: user stories
+              why: User stories provide business expectations for the calculation behavior.
           fact:
             - The calculation logic is difficult to understand without sufficient context.
             - A short handover is not enough to fully absorb the calculation behavior.

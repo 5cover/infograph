@@ -23,7 +23,7 @@ export type ChronologicalThread<Keys extends BaseKeys> = {
 
 export const defaultChronologicalComplexity: Required<ChronologicalComplexity> = {
     simple: 1,
-    contained: 2,
+    natural: 2,
     contextual: 4,
     intertwined: 8,
     missing: 1,
