@@ -58,7 +58,7 @@
       "description": "Use for edges that don't belong to any particular node.",
       "allOf": [
         {
-          "$ref": "#/definitions/__schema34"
+          "$ref": "#/definitions/__schema48"
         }
       ]
     }
@@ -148,7 +148,7 @@
           "$ref": "#/definitions/__schema12"
         },
         {
-          "$ref": "#/definitions/__schema27"
+          "$ref": "#/definitions/__schema38"
         }
       ]
     },
@@ -198,7 +198,7 @@
               "description": "Estimated explanation cost of this node. Note: this refers to explanation complexity, not node complexity. A node may refer to a very complex task and remain reasonably simple to explain.",
               "allOf": [
                 {
-                  "$ref": "#/definitions/__schema19"
+                  "$ref": "#/definitions/__schema20"
                 }
               ]
             },
@@ -206,7 +206,7 @@
               "description": "Where the information comes from. Source can be omitted for common / general knowledge information, like well-known public tools.",
               "allOf": [
                 {
-                  "$ref": "#/definitions/__schema22"
+                  "$ref": "#/definitions/__schema28"
                 }
               ]
             },
@@ -214,7 +214,15 @@
               "description": "Lightweight labels. Supports simple search and grouping without adding many specialized fields.",
               "allOf": [
                 {
-                  "$ref": "#/definitions/__schema25"
+                  "$ref": "#/definitions/__schema32"
+                }
+              ]
+            },
+            "actor": {
+              "description": "Physical or organizational entities whose perspective, actions or constraints are materially represented by this node. Optional but encouraged.",
+              "allOf": [
+                {
+                  "$ref": "#/definitions/__schema34"
                 }
               ]
             }
@@ -282,7 +290,8 @@
             "useful",
             "major",
             "central"
-          ]
+          ],
+          "description": "Selected value."
         },
         "why": {
           "anyOf": [
@@ -290,12 +299,10 @@
               "$ref": "#/definitions/__schema18"
             },
             {
-              "type": "array",
-              "items": {
-                "$ref": "#/definitions/__schema18"
-              }
+              "$ref": "#/definitions/__schema19"
             }
-          ]
+          ],
+          "description": "Justification for selecting this value. Why choose this value and not another. Retraces author intent."
         }
       },
       "required": [
@@ -308,89 +315,32 @@
       "type": "string"
     },
     "__schema19": {
-      "type": "object",
-      "properties": {
-        "is": {
-          "$ref": "#/definitions/__schema20"
-        },
-        "why": {
-          "anyOf": [
-            {
-              "$ref": "#/definitions/__schema21"
-            },
-            {
-              "type": "array",
-              "items": {
-                "$ref": "#/definitions/__schema21"
-              }
-            }
-          ]
-        }
-      },
-      "required": [
-        "is",
-        "why"
-      ],
-      "additionalProperties": false
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/__schema18"
+      }
     },
     "__schema20": {
-      "anyOf": [
-        {
-          "type": "string",
-          "const": "simple",
-          "description": "easy to mention"
-        },
-        {
-          "type": "string",
-          "const": "natural",
-          "description": "needs explanation, but self-contained and natural to explain"
-        },
-        {
-          "type": "string",
-          "const": "contextual",
-          "description": "needs context from other nodes not in the relation"
-        },
-        {
-          "type": "string",
-          "const": "intertwined",
-          "description": "needs deep context or demonstration"
-        }
-      ]
-    },
-    "__schema21": {
-      "type": "string"
-    },
-    "__schema22": {
-      "anyOf": [
-        {
-          "$ref": "#/definitions/__schema23"
-        },
-        {
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/__schema23"
-          }
-        }
-      ]
-    },
-    "__schema23": {
       "type": "object",
       "properties": {
         "is": {
-          "$ref": "#/definitions/__schema9"
+          "description": "Selected value.",
+          "allOf": [
+            {
+              "$ref": "#/definitions/__schema25"
+            }
+          ]
         },
         "why": {
           "anyOf": [
             {
-              "$ref": "#/definitions/__schema24"
+              "$ref": "#/definitions/__schema26"
             },
             {
-              "type": "array",
-              "items": {
-                "$ref": "#/definitions/__schema24"
-              }
+              "$ref": "#/definitions/__schema27"
             }
-          ]
+          ],
+          "description": "Justification for selecting this value. Why choose this value and not another. Retraces author intent."
         }
       },
       "required": [
@@ -399,19 +349,39 @@
       ],
       "additionalProperties": false
     },
+    "__schema21": {
+      "type": "string",
+      "const": "simple",
+      "description": "easy to mention"
+    },
+    "__schema22": {
+      "type": "string",
+      "const": "natural",
+      "description": "needs explanation, but self-contained and natural to explain"
+    },
+    "__schema23": {
+      "type": "string",
+      "const": "contextual",
+      "description": "needs context from other nodes not in the relation"
+    },
     "__schema24": {
-      "type": "string"
+      "type": "string",
+      "const": "intertwined",
+      "description": "needs deep context or demonstration"
     },
     "__schema25": {
       "anyOf": [
         {
-          "$ref": "#/definitions/__schema26"
+          "$ref": "#/definitions/__schema21"
         },
         {
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/__schema26"
-          }
+          "$ref": "#/definitions/__schema22"
+        },
+        {
+          "$ref": "#/definitions/__schema23"
+        },
+        {
+          "$ref": "#/definitions/__schema24"
         }
       ]
     },
@@ -419,103 +389,61 @@
       "type": "string"
     },
     "__schema27": {
-      "type": "object",
-      "patternProperties": {
-        "^(?!\\x77ith$|\\x69nfo$)[-_a-z]+$": {
-          "type": "object",
-          "propertyNames": {
-            "$ref": "#/definitions/__schema10"
-          },
-          "additionalProperties": {
-            "$ref": "#/definitions/__schema28"
-          },
-          "description": "Outgoing edges."
-        }
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/__schema26"
       }
     },
     "__schema28": {
       "anyOf": [
         {
-          "type": "null"
-        },
-        {
           "$ref": "#/definitions/__schema29"
         },
         {
-          "allOf": [
-            {
-              "$ref": "#/definitions/__schema29"
-            },
-            {
-              "$ref": "#/definitions/__schema12"
-            },
-            {
-              "allOf": [
-                {
-                  "$ref": "#/definitions/__schema27"
-                }
-              ]
-            }
-          ]
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/__schema29"
+          }
         }
       ]
     },
     "__schema29": {
       "type": "object",
       "properties": {
-        "with": {
-          "description": "Edge information.",
+        "is": {
+          "description": "Selected value.",
           "allOf": [
+            {
+              "$ref": "#/definitions/__schema9"
+            }
+          ]
+        },
+        "why": {
+          "anyOf": [
             {
               "$ref": "#/definitions/__schema30"
-            }
-          ]
-        }
-      },
-      "additionalProperties": {}
-    },
-    "__schema30": {
-      "type": "object",
-      "properties": {
-        "complexity": {
-          "type": "object",
-          "properties": {
-            "is": {
-              "$ref": "#/definitions/__schema20"
             },
-            "why": {
-              "anyOf": [
-                {
-                  "$ref": "#/definitions/__schema31"
-                },
-                {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/definitions/__schema31"
-                  }
-                }
-              ]
-            }
-          },
-          "required": [
-            "is",
-            "why"
-          ],
-          "additionalProperties": false
-        },
-        "fact": {
-          "description": "Some relationships are harder to explain than the things they connect.",
-          "allOf": [
             {
-              "$ref": "#/definitions/__schema32"
+              "$ref": "#/definitions/__schema31"
             }
-          ]
+          ],
+          "description": "Justification for selecting this value. Why choose this value and not another. Retraces author intent."
         }
       },
+      "required": [
+        "is",
+        "why"
+      ],
       "additionalProperties": false
     },
-    "__schema31": {
+    "__schema30": {
       "type": "string"
+    },
+    "__schema31": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/__schema30"
+      }
     },
     "__schema32": {
       "anyOf": [
@@ -534,13 +462,194 @@
       "type": "string"
     },
     "__schema34": {
+      "anyOf": [
+        {
+          "$ref": "#/definitions/__schema35"
+        },
+        {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/__schema35"
+          }
+        }
+      ]
+    },
+    "__schema35": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Distinctive handle for a physical or organizational actor whose perspective, actions or constraints are materially represented by this node."
+        },
+        "role": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/__schema36"
+            },
+            {
+              "$ref": "#/definitions/__schema37"
+            }
+          ],
+          "description": "One or more reasons why this actor belongs in this node actor list."
+        }
+      },
+      "required": [
+        "name",
+        "role"
+      ],
+      "additionalProperties": false
+    },
+    "__schema36": {
+      "type": "string"
+    },
+    "__schema37": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/__schema36"
+      }
+    },
+    "__schema38": {
+      "type": "object",
+      "patternProperties": {
+        "^(?!\\x77ith$|\\x69nfo$)[-_a-z]+$": {
+          "type": "object",
+          "propertyNames": {
+            "$ref": "#/definitions/__schema10"
+          },
+          "additionalProperties": {
+            "$ref": "#/definitions/__schema39"
+          },
+          "description": "Outgoing edges."
+        }
+      }
+    },
+    "__schema39": {
+      "anyOf": [
+        {
+          "type": "null"
+        },
+        {
+          "allOf": [
+            {
+              "$ref": "#/definitions/__schema40"
+            },
+            {
+              "$ref": "#/definitions/__schema12"
+            },
+            {
+              "allOf": [
+                {
+                  "$ref": "#/definitions/__schema38"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "allOf": [
+            {
+              "$ref": "#/definitions/__schema40"
+            }
+          ]
+        }
+      ]
+    },
+    "__schema40": {
+      "type": "object",
+      "properties": {
+        "with": {
+          "$ref": "#/definitions/__schema41"
+        }
+      },
+      "additionalProperties": {
+        "$ref": "#/definitions/__schema47"
+      }
+    },
+    "__schema41": {
+      "description": "Edge information.",
+      "allOf": [
+        {
+          "$ref": "#/definitions/__schema42"
+        }
+      ]
+    },
+    "__schema42": {
+      "type": "object",
+      "properties": {
+        "complexity": {
+          "type": "object",
+          "properties": {
+            "is": {
+              "description": "Selected value.",
+              "allOf": [
+                {
+                  "$ref": "#/definitions/__schema25"
+                }
+              ]
+            },
+            "why": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/__schema43"
+                },
+                {
+                  "$ref": "#/definitions/__schema44"
+                }
+              ],
+              "description": "Justification for selecting this value. Why choose this value and not another. Retraces author intent."
+            }
+          },
+          "required": [
+            "is",
+            "why"
+          ],
+          "additionalProperties": false
+        },
+        "fact": {
+          "description": "Some relationships are harder to explain than the things they connect.",
+          "allOf": [
+            {
+              "$ref": "#/definitions/__schema45"
+            }
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "__schema43": {
+      "type": "string"
+    },
+    "__schema44": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/__schema43"
+      }
+    },
+    "__schema45": {
+      "anyOf": [
+        {
+          "$ref": "#/definitions/__schema46"
+        },
+        {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/__schema46"
+          }
+        }
+      ]
+    },
+    "__schema46": {
+      "type": "string"
+    },
+    "__schema47": {},
+    "__schema48": {
       "type": "object",
       "propertyNames": {
         "type": "string",
         "pattern": "^[-_a-z]+ [-_a-z]+ (?!\\x77ith$|\\x69nfo$)[-_a-z]+ [-_a-z]+ [-_a-z]+$"
       },
       "additionalProperties": {
-        "$ref": "#/definitions/__schema30"
+        "$ref": "#/definitions/__schema42"
       }
     }
   }

@@ -158,6 +158,9 @@ nodes:
       source:
         is: journal
         why: (refer to main entries about the project one by one)
+      actor:
+        name: apprentice
+        role: Main implementer and context reconstructor for the sponsorship work.
       tag:
         - sponsorship
         - business workflow
@@ -360,6 +363,13 @@ nodes:
           why: (reference main related entry dates here)
         - is: journal
           why: (reference main related entry dates here)
+      actor:
+        - name: apprentice
+          role:
+            - Must reconstruct project context from artifacts and meetings.
+            - Experiences the time pressure materially during handover.
+        - name: Indian Power Platform team
+          role: Receives transferred project responsibilities after the transition.
       fact:
         - A limited handover period is not enough to fully understand the evolved project.
         - The situation increases the need to reconstruct context from existing artifacts and behavior.
