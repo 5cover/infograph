@@ -5,7 +5,7 @@ import type { BaseKeys, Infograph, InfographNodeKey } from '../types'
 // reachable through a cycle. Components are returned in reverse topological order
 // (a component appears before the components it can reach), as Tarjan emits them.
 export function stronglyConnectedComponents<Keys extends BaseKeys>(
-    infograph: Infograph<Keys>,
+    infograph: Infograph<Keys>
 ): InfographNodeKey<Keys>[][] {
     const nodeKeys = [...infograph.nodes.keys()]
     const adjacency = new Map<InfographNodeKey<Keys>, InfographNodeKey<Keys>[]>(nodeKeys.map(key => [key, []]))

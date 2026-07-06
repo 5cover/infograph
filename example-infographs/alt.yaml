@@ -86,8 +86,7 @@ domain:
         An executable recipe for actions actors with visibility rules over time.
         Example: request analysis
     '-':
-      desc: Free-form fallback for information that does not fit the graph cleanly yet.
-        Prevents schema pressure. If something is important but hard to model, it can enter the graph first and be structured later.
+      desc: Free-form fallback for information that does not fit the graph cleanly yet. Prevents schema pressure. If something is important but hard to model, it can enter the graph first and be structured later.
   verb:
     contains:
       desc: |

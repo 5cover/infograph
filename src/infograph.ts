@@ -8,7 +8,7 @@ export type ToMermaidConfig<Keys extends BaseKeys> = {
 // endpoints are both kept. Domain and info are carried over unchanged.
 export function subgraph<Keys extends BaseKeys>(
     infograph: Infograph<Keys>,
-    nodeKeys: Iterable<InfographNodeKey<Keys>>,
+    nodeKeys: Iterable<InfographNodeKey<Keys>>
 ): Infograph<Keys> {
     const keep = new Set(nodeKeys)
     return {
@@ -20,13 +20,13 @@ export function subgraph<Keys extends BaseKeys>(
 
 export function toMermaid<Keys extends BaseKeys>(
     infograph: Infograph<Keys>,
-    config: ToMermaidConfig<BaseKeys> = {},
+    config: ToMermaidConfig<BaseKeys> = {}
 ): string {
     const lines = ['flowchart TD']
 
     for (const [key, node] of infograph.nodes.entries()) {
         lines.push(
-            `${nodeId(key)}["${escapeMermaidText(key + (node.date?.from ? '<br>' + node.date?.from.toISOString().split('T', 1)[0] : ''))}"]`,
+            `${nodeId(key)}["${escapeMermaidText(key + (node.date?.from ? '<br>' + node.date?.from.toISOString().split('T', 1)[0] : ''))}"]`
         )
     }
 

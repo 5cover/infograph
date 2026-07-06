@@ -1,5 +1,11 @@
 import { z } from 'zod'
-import { type BaseKeys, type Infograph, type InfographNode, type InfographNodeKey, type InfographClaim } from '../types.js'
+import {
+    type BaseKeys,
+    type Infograph,
+    type InfographNode,
+    type InfographNodeKey,
+    type InfographClaim,
+} from '../types.js'
 import {
     type InputInfograph,
     type InputNode,
@@ -81,7 +87,7 @@ const zInfograph = zInfographInput.pipe(
                         }
                     })
                     .toArray()
-            :   [],
+            :   []
         )
 
         const infograph: Infograph<BaseKeys> = {
@@ -89,7 +95,7 @@ const zInfograph = zInfographInput.pipe(
             domain: g.domain,
             edges: infographEdges,
             nodes: new Map(
-                walkEntry(g, 'nodes', nodes => entries(nodes).flatMap(([key, node]) => parseNode(key, node, []))),
+                walkEntry(g, 'nodes', nodes => entries(nodes).flatMap(([key, node]) => parseNode(key, node, [])))
             ),
         }
 
@@ -102,7 +108,7 @@ const zInfograph = zInfographInput.pipe(
         function* parseNode(
             originalKey: string,
             node: InputNode<BaseKeys>,
-            parents: { kind: string; id: string; title: string }[],
+            parents: { kind: string; id: string; title: string }[]
         ): Generator<[k: InfographNodeKey<BaseKeys>, v: InfographNode<BaseKeys>]> {
             const d = node[kdataNode]
             const [kind, id] = originalKey.split(' ', 2)
@@ -172,7 +178,7 @@ const zInfograph = zInfographInput.pipe(
                 path.pop()
             }
         }
-    }),
+    })
 )
 
 export const parseInfograph = (data: unknown) => zInfograph.parse(data, { reportInput: true })

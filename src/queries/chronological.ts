@@ -28,7 +28,7 @@ export const defaultChronologicalComplexity: Required<ChronologicalComplexity> =
 
 export function chronological<Keys extends BaseKeys>(
     infograph: Infograph<Keys>,
-    input: ChronologicalInput,
+    input: ChronologicalInput
 ): ChronologicalThread<Keys> {
     const complexity = { ...defaultChronologicalComplexity, ...input.complexity }
     const root = chooseRoot(infograph)
@@ -104,7 +104,7 @@ function incidentEdges<Keys extends BaseKeys>(infograph: Infograph<Keys>, node: 
 
 function otherNode<Keys extends BaseKeys>(
     edge: InfographEdge<Keys>,
-    node: InfographNodeKey<Keys>,
+    node: InfographNodeKey<Keys>
 ): InfographNodeKey<Keys> {
     if (edge.from === node) return edge.to
     if (edge.to === node) return edge.from
@@ -117,7 +117,7 @@ function compareCandidates<Keys extends BaseKeys>(
     currentNode: InfographNodeKey<Keys>,
     edgeOrder: Map<InfographEdge<Keys>, number>,
     a: InfographEdge<Keys>,
-    b: InfographEdge<Keys>,
+    b: InfographEdge<Keys>
 ) {
     const aOther = infograph.nodes.get(otherNode(a, currentNode))
     const bOther = infograph.nodes.get(otherNode(b, currentNode))
@@ -141,14 +141,14 @@ function outgoingCount<Keys extends BaseKeys>(infograph: Infograph<Keys>, node: 
 function cost<Keys extends BaseKeys>(
     node: InfographNode<Keys>,
     edge: InfographEdge<Keys>,
-    complexity: Required<ChronologicalComplexity>,
+    complexity: Required<ChronologicalComplexity>
 ) {
     return nodeComplexity(node, complexity) + complexity[edge.info.complexity.is]
 }
 
 function nodeComplexity<Keys extends BaseKeys>(
     node: InfographNode<Keys>,
-    complexity: Required<ChronologicalComplexity>,
+    complexity: Required<ChronologicalComplexity>
 ) {
     return complexity[node.complexity.is]
 }

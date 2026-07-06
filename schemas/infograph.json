@@ -15,11 +15,7 @@
           "$ref": "#/definitions/__schema3"
         }
       },
-      "required": [
-        "title",
-        "context",
-        "author"
-      ],
+      "required": ["title", "context", "author"],
       "additionalProperties": false,
       "description": "Infograph metadata."
     },
@@ -36,11 +32,7 @@
           "$ref": "#/definitions/__schema9"
         }
       },
-      "required": [
-        "kind",
-        "verb",
-        "source"
-      ],
+      "required": ["kind", "verb", "source"],
       "additionalProperties": false,
       "description": "Definitions of the infograph's vocabulary."
     },
@@ -63,10 +55,7 @@
       ]
     }
   },
-  "required": [
-    "domain",
-    "nodes"
-  ],
+  "required": ["domain", "nodes"],
   "additionalProperties": false,
   "definitions": {
     "__schema0": {
@@ -126,9 +115,7 @@
               ]
             }
           },
-          "required": [
-            "desc"
-          ],
+          "required": ["desc"],
           "additionalProperties": false
         },
         {
@@ -230,10 +217,7 @@
                   "$ref": "#/definitions/__schema24"
                 }
               },
-              "required": [
-                "is",
-                "why"
-              ],
+              "required": ["is", "why"],
               "additionalProperties": false,
               "description": "Estimated explanation cost of this node. Note: this refers to explanation complexity, not node complexity. A node may refer to a very complex task and remain reasonably simple to explain."
             },
@@ -254,16 +238,11 @@
               ]
             }
           },
-          "required": [
-            "title",
-            "complexity"
-          ],
+          "required": ["title", "complexity"],
           "additionalProperties": false
         }
       },
-      "required": [
-        "info"
-      ],
+      "required": ["info"],
       "additionalProperties": {}
     },
     "__schema13": {
@@ -292,10 +271,7 @@
               "$ref": "#/definitions/__schema15"
             }
           },
-          "required": [
-            "from",
-            "to"
-          ],
+          "required": ["from", "to"],
           "additionalProperties": false
         },
         {
@@ -317,12 +293,7 @@
       "properties": {
         "is": {
           "type": "string",
-          "enum": [
-            "minor",
-            "useful",
-            "major",
-            "central"
-          ],
+          "enum": ["minor", "useful", "major", "central"],
           "description": "Selected value."
         },
         "why": {
@@ -337,10 +308,7 @@
           "description": "Justification for selecting this value. Why choose this value and not another. Retraces author intent."
         }
       },
-      "required": [
-        "is",
-        "why"
-      ],
+      "required": ["is", "why"],
       "additionalProperties": false
     },
     "__schema17": {
@@ -449,10 +417,7 @@
           "description": "Justification for selecting this value. Why choose this value and not another. Retraces author intent."
         }
       },
-      "required": [
-        "is",
-        "why"
-      ],
+      "required": ["is", "why"],
       "additionalProperties": false
     },
     "__schema28": {
@@ -526,9 +491,7 @@
           "$ref": "#/definitions/__schema33"
         }
       },
-      "required": [
-        "with"
-      ],
+      "required": ["with"],
       "additionalProperties": {
         "$ref": "#/definitions/__schema39"
       }
@@ -564,10 +527,7 @@
           "description": "Justification for selecting this value. Why choose this value and not another. Retraces author intent."
         }
       },
-      "required": [
-        "is",
-        "why"
-      ],
+      "required": ["is", "why"],
       "additionalProperties": false
     },
     "__schema35": {
@@ -609,9 +569,7 @@
           "$ref": "#/definitions/__schema36"
         }
       },
-      "required": [
-        "complexity"
-      ],
+      "required": ["complexity"],
       "additionalProperties": false
     },
     "__schema39": {},

@@ -25,10 +25,11 @@ Data flows: **human-writable YAML/JSON → validated & flattened canonical `Info
 
 There are two distinct type layers — do not conflate them:
 
-- **Input types** (`src/input/types.ts`, `src/input/schemas.ts`): what a human writes. Ergonomic and nested — outgoing edges are written *inside* their source node keyed by verb, nodes can be defined inline at the far end of an edge, values use the "flexarray" convention (`T | T[]`), and dates are strings.
+- **Input types** (`src/input/types.ts`, `src/input/schemas.ts`): what a human writes. Ergonomic and nested — outgoing edges are written _inside_ their source node keyed by verb, nodes can be defined inline at the far end of an edge, values use the "flexarray" convention (`T | T[]`), and dates are strings.
 - **Canonical types** (`src/types.ts`): the normalized model everything downstream consumes. `Infograph<Keys>` has a closed `domain` vocabulary (`kind` / `verb` / `source`), a `nodes` **Map** keyed by `` `${kind} ${id}` ``, and a flat `edges` array. Flexarrays are expanded to arrays; dates are `Date` ranges (`{from, to}`).
 
 The conversion between the two layers is the heart of the codebase, in `src/input/index.ts` (`parseInfograph`), a single zod `.pipe(z.transform(...))`:
+
 - Recursively walks nested input nodes, **flattening** them into the canonical `nodes` Map. Nested/inline node keys carry their parent chain: `` `kind id < parentkind parentid` `` (see `flattenNodeKey`).
 - Hoists inline outgoing edges into the flat `edges` array.
 - Verifies references against the closed vocabulary (`kind`, `verb`, `source`) and validates date strings. Node-existence checks are **deferred** (collected in `deferredChecks`, run after all nodes are built) because an edge may reference a node defined later.

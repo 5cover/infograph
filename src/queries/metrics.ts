@@ -84,15 +84,15 @@ export function metrics<Keys extends BaseKeys>(infograph: Infograph<Keys>): Metr
         edgesByVerb: tally(infograph.edges.map(edge => edge.verb)),
         nodesByImportance: tallyLevels(
             importanceLevels,
-            nodes.map(node => node.importance?.is),
+            nodes.map(node => node.importance?.is)
         ),
         nodesByComplexity: tallyLevels(
             complexityLevels,
-            nodes.map(node => node.complexity.is),
+            nodes.map(node => node.complexity.is)
         ),
         edgesByComplexity: tallyLevels(
             complexityLevels,
-            infograph.edges.map(edge => edge.info.complexity.is),
+            infograph.edges.map(edge => edge.info.complexity.is)
         ),
         incidence: stats(totalValues),
         inDegree: stats(inValues),
@@ -152,20 +152,20 @@ function density(nodeCount: number, edgeCount: number): number {
 
 function fieldCoverage<Keys extends BaseKeys>(
     nodes: InfographNode<Keys>[],
-    nodeCount: number,
+    nodeCount: number
 ): Record<string, FieldCoverage> {
     return Object.fromEntries(
         coverageFields.map(field => {
             const count = nodes.filter(node => node[field] !== undefined).length
             return [field, { count, ratio: nodeCount === 0 ? 0 : round(count / nodeCount) }]
-        }),
+        })
     )
 }
 
 // Weakly connected components: edges are treated as undirected via union-find.
 function components<Keys extends BaseKeys>(
     nodeKeys: InfographNodeKey<Keys>[],
-    edges: Infograph<Keys>['edges'],
+    edges: Infograph<Keys>['edges']
 ): ComponentStats {
     const parent = new Map<InfographNodeKey<Keys>, InfographNodeKey<Keys>>(nodeKeys.map(key => [key, key]))
 
@@ -213,7 +213,7 @@ const FEEDBACK_ARC_SET_BUDGET = 100_000
 // rather than the proven minimum. Self-loops are 1-edge cycles, always mandatory.
 function feedbackArcSetSize<Keys extends BaseKeys>(
     nodeKeys: InfographNodeKey<Keys>[],
-    edges: Infograph<Keys>['edges'],
+    edges: Infograph<Keys>['edges']
 ): number {
     const nodeSet = new Set(nodeKeys)
     const active: { from: InfographNodeKey<Keys>; to: InfographNodeKey<Keys> }[] = []
@@ -228,7 +228,7 @@ function feedbackArcSetSize<Keys extends BaseKeys>(
 
     const adjacencyOfActive = () => {
         const adjacency = new Map<InfographNodeKey<Keys>, { to: InfographNodeKey<Keys>; edge: number }[]>(
-            nodeKeys.map(key => [key, []]),
+            nodeKeys.map(key => [key, []])
         )
         active.forEach((edge, i) => {
             if (!removed[i]) adjacency.get(edge.from)!.push({ to: edge.to, edge: i })
