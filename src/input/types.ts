@@ -6,7 +6,7 @@ import type {
     InfographDomain,
     InfographInfo,
     InfographNodeKey,
-} from '../types'
+} from '../types.js'
 
 export const kdataEdge = 'with'
 export const kdataNode = 'info'
@@ -14,7 +14,7 @@ export const kdataNode = 'info'
 export type Flexarray<T> = T | T[]
 
 export type InputEdgeInfo = {
-    complexity?: InputClaim<Complexity>
+    complexity: InputClaim<Complexity>
     fact?: Flexarray<string>
 }
 
@@ -29,12 +29,12 @@ export type InputNodeInfo<Keys extends BaseKeys> = {
     fact?: Flexarray<string>
     date?: string | InfographDate<string>
     importance?: InputClaim<Importance>
-    complexity?: InputClaim<Complexity>
+    complexity: InputClaim<Complexity>
     source?: Flexarray<InputClaim<Keys['source']>>
     tag?: Flexarray<string>
 }
 
-export type InputNodeRef = { [kdataEdge]?: InputEdgeInfo }
+export type InputNodeRef = { [kdataEdge]: InputEdgeInfo }
 
 type R<K extends PropertyKey, V> = { [P in K]?: V }
 
@@ -43,7 +43,7 @@ export type InputNode<Keys extends BaseKeys> = { [kdataNode]: InputNodeInfo<Keys
 type InputEdgeId<Keys extends BaseKeys> = `${InfographNodeKey<Keys>} ${Keys['verb']} ${InfographNodeKey<Keys>}`
 
 export type InputOutgoing<Keys extends BaseKeys> = {
-    [P in Keys['verb']]?: R<InfographNodeKey<Keys>, null | InputNodeRef | (InputNodeRef & InputNode<Keys>)>
+    [P in Keys['verb']]?: R<InfographNodeKey<Keys>, InputNodeRef | (InputNodeRef & InputNode<Keys>)>
 }
 
 export type InputInfograph<Keys extends BaseKeys> = {

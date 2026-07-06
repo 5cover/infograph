@@ -1,10 +1,12 @@
 import { InvalidArgumentError, Option } from '@commander-js/extra-typings'
 import { readFileSync } from 'node:fs'
 import * as YAML from 'js-yaml'
-import { parseInfograph } from './input'
-import { chronological, type ChronologicalComplexity } from './queries/chronological'
-import { metrics } from './queries/metrics'
-import type { BaseKeys, Infograph } from './types'
+import { parseInfograph } from './input/index.js'
+import { chronological, type ChronologicalComplexity } from './queries/chronological.js'
+import { metrics } from './queries/metrics.js'
+import { stronglyConnectedComponents } from './queries/scc.js'
+import { subgraph, toMermaid } from './infograph.js'
+import type { BaseKeys, Infograph } from './types.js'
 import { program } from 'commander'
 
 program.name('infograph').description('Manipulate parsed infographs').version('1.0.0')
@@ -27,7 +29,6 @@ program
     .addOption(new Option('--natural <number>', 'cost of natural complexity').argParser(parseNumber))
     .addOption(new Option('--contextual <number>', 'cost of contextual complexity').argParser(parseNumber))
     .addOption(new Option('--intertwined <number>', 'cost of intertwined complexity').argParser(parseNumber))
-    .addOption(new Option('--missing <number>', 'cost of missing complexity').argParser(parseNumber))
     .action((file, options) => {
         const infograph = readInfograph(file)
         const complexity = getComplexityOptions(options)
@@ -48,6 +49,24 @@ program
         writeJson(metrics(infograph))
     })
 
+program
+    .command('scc')
+    .description('Render each strongly connected component as a Mermaid subgraph')
+    .argument('<file>', 'YAML or JSON infograph file')
+    .action(file => {
+        const infograph = readInfograph(file)
+        const components = stronglyConnectedComponents(infograph)
+            .filter(c => c.length > 1)
+            .sort((a, b) => b.length - a.length)
+
+        components.forEach((component, index) => {
+            console.log(`\n### SCC ${index + 1} — ${component.length} node${component.length === 1 ? '' : 's'}\n`)
+            console.log('```mermaid')
+            console.log(toMermaid(subgraph(infograph, component)))
+            console.log('```')
+        })
+    })
+
 program.parse()
 
 function readInfograph(file: string) {
@@ -66,7 +85,6 @@ function getComplexityOptions(options: {
     natural?: number
     contextual?: number
     intertwined?: number
-    missing?: number
 }) {
     const complexity: ChronologicalComplexity = {}
 
@@ -74,7 +92,6 @@ function getComplexityOptions(options: {
     if (options.natural !== undefined) complexity.natural = options.natural
     if (options.contextual !== undefined) complexity.contextual = options.contextual
     if (options.intertwined !== undefined) complexity.intertwined = options.intertwined
-    if (options.missing !== undefined) complexity.missing = options.missing
 
     return Object.keys(complexity).length ? complexity : undefined
 }

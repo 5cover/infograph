@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { type BaseKeys, type Infograph, type InfographNode, type InfographNodeKey, type InfographClaim } from '../types'
+import { type BaseKeys, type Infograph, type InfographNode, type InfographNodeKey, type InfographClaim } from '../types.js'
 import {
     type InputInfograph,
     type InputNode,
@@ -8,8 +8,8 @@ import {
     kdataEdge,
     type InputClaim,
     type Flexarray,
-} from './types'
-import { verbPattern, zInfographInput } from './schemas'
+} from './types.js'
+import { verbPattern, zInfographInput } from './schemas.js'
 
 export const defineInfograph = <Keys extends BaseKeys>(infograph: InputInfograph<Keys>) => infograph
 
@@ -75,7 +75,7 @@ const zInfograph = zInfographInput.pipe(
                             verb,
                             to,
                             info: {
-                                complexity: edge.complexity && buildClaim(edge.complexity),
+                                complexity: buildClaim(edge.complexity),
                                 fact: deflex(edge.fact),
                             },
                         }
@@ -115,7 +115,7 @@ const zInfograph = zInfographInput.pipe(
                     ...d,
                     title: parents.map(p => p.title).join(' '),
                     fact: deflex(d.fact),
-                    complexity: d.complexity && buildClaim(d.complexity),
+                    complexity: buildClaim(d.complexity),
                     importance: d.importance && buildClaim(d.importance),
                     source: deflex(d.source)?.map(source => {
                         verifySource(source.is)
@@ -149,8 +149,8 @@ const zInfograph = zInfographInput.pipe(
                         from: key,
                         to,
                         info: {
-                            complexity: node?.[kdataEdge]?.complexity && buildClaim(node?.[kdataEdge]?.complexity),
-                            fact: deflex(node?.[kdataEdge]?.fact),
+                            complexity: buildClaim(node[kdataEdge].complexity),
+                            fact: deflex(node[kdataEdge].fact),
                         },
                     })
                     if (isInlineNode) return parseNode(outkey, node, parents)

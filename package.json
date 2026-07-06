@@ -1,24 +1,35 @@
 {
-  "name": "infograph",
-  "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "packageManager": "pnpm@11.9.0",
-  "type": "module",
-  "dependencies": {
+  "name"           : "infograph",
+  "version"        : "1.0.0",
+  "description"    : "",
+  "main"           : "index.js",
+  "scripts"        : {"test": "echo \"Error: no test specified\" && exit 1"},
+  "keywords"       : [],
+  "author"         : "",
+  "license"        : "ISC",
+  "packageManager" : "pnpm@11.9.0",
+  "type"           : "module",
+  "dependencies"   : {
     "@commander-js/extra-typings": "^15.0.0",
-    "commander": "^15.0.0",
-    "js-yaml": "^5.2.1",
-    "zod": "^4.4.3"
+    "commander"                  : "^15.0.0",
+    "js-yaml"                    : "^5.2.1",
+    "zod"                        : "^4.4.3"
   },
-  "devDependencies": {
-    "@types/node": "^26.1.0",
-    "typescript": "^6.0.3"
+  "devDependencies": {"@types/node": "^26.1.0", "typescript": "^6.0.3"},
+  "prettier"       : {
+    "printWidth": 120,
+    "tabWidth": 2,
+    "singleQuote": true,
+    "arrowParens": "avoid",
+    "bracketSameLine": true,
+    "semi": false,
+    "endOfLine": "lf",
+    "experimentalTernaries": true,
+    "proseWrap": "never",
+    "trailingComma": "es5",
+    "overrides": [
+      { "files": "**/*.ts",                                      "options": {"parser": "typescript"               } },
+      { "files": ["**/*.ts", "**/*.tsx", "**/*.js", "**/*.jsx"], "options": {                        "tabWidth": 4} }
+    ]
   }
 }

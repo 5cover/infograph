@@ -4,7 +4,7 @@ export const importance = ['minor', 'useful', 'major', 'central'] as const
 export type Importance = (typeof importance)[number]
 
 export type EdgeInfo = {
-    complexity?: InfographClaim<Complexity>
+    complexity: InfographClaim<Complexity>
     fact?: string[]
 }
 
@@ -24,7 +24,7 @@ export type InfographNode<Keys extends BaseKeys> = {
     fact?: string[]
     date?: InfographDate
     importance?: InfographClaim<Importance>
-    complexity?: InfographClaim<Complexity>
+    complexity: InfographClaim<Complexity>
     source?: InfographClaim<Keys['source']>[]
     tag?: string[]
 }

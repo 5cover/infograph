@@ -1,7 +1,21 @@
-import type { BaseKeys, Infograph } from './types'
+import type { BaseKeys, Infograph, InfographNodeKey } from './types.js'
 
 export type ToMermaidConfig<Keys extends BaseKeys> = {
     neutralVerb?: Keys['verb']
+}
+
+// The subgraph induced by a set of node keys: those nodes plus every edge whose
+// endpoints are both kept. Domain and info are carried over unchanged.
+export function subgraph<Keys extends BaseKeys>(
+    infograph: Infograph<Keys>,
+    nodeKeys: Iterable<InfographNodeKey<Keys>>,
+): Infograph<Keys> {
+    const keep = new Set(nodeKeys)
+    return {
+        ...infograph,
+        nodes: new Map([...infograph.nodes].filter(([key]) => keep.has(key))),
+        edges: infograph.edges.filter(edge => keep.has(edge.from) && keep.has(edge.to)),
+    }
 }
 
 export function toMermaid<Keys extends BaseKeys>(

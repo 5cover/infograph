@@ -171,6 +171,9 @@ nodes:
     involves:
       actor apprentice:
         with:
+          complexity:
+            is: simple
+            why: The apprentice's involvement in the project is direct and easy to state.
           fact: Main implementer and context reconstructor for the sponsorship work.
     uses:
       tool power_automate:
@@ -192,10 +195,16 @@ nodes:
       # the node is understood as belonging to the scope of this particualar node. In display, we will show something like Sponsorship: Application. The id becomes project sponsorship > product application. This is what allows us to use broad names in context.
       product application:
         with:
+          complexity:
+            is: simple
+            why: Belonging of the application to the Sponsorship scope is obvious.
           fact: Having an application was not initially part of the need.
         info:
           title: Application
           summary: The application serves as a front-end for the product.
+          complexity:
+            is: simple
+            why: The application is a straightforward front-end; its role is easy to state.
           fact: # these should be edges but you get the point.
             - Since it was added, SharePoint is fully treated as a database layer
             - Having a dedicated front-end helped simplify
@@ -233,6 +242,10 @@ nodes:
             - edge_cases
         requires:
           constraint reliability_focus:
+            with:
+              complexity:
+                is: natural
+                why: The dependency on reliability work is clear once the calculation risks are known.
   tool power_automate:
     info:
       title: Power Automate
@@ -381,11 +394,17 @@ nodes:
     involves:
       actor apprentice:
         with:
+          complexity:
+            is: simple
+            why: The apprentice is directly subject to the handover pressure.
           fact:
             - Must reconstruct project context from artifacts and meetings.
             - Experiences the time pressure materially during handover.
       actor indian_power_platform_team:
         with:
+          complexity:
+            is: natural
+            why: Explaining the team's role needs a little context about the transition.
           fact: Receives transferred project responsibilities after the transition.
     illustrates:
       learning autonomy_growth:
@@ -443,12 +462,18 @@ nodes:
     info:
       title: Apprentice
       summary: The apprentice carrying out and reconstructing the apprenticeship work.
+      complexity:
+        is: simple
+        why: The apprentice is the narrator; who they are needs no explanation.
       tag:
         - people
   actor indian_power_platform_team:
     info:
       title: Indian Power Platform team
       summary: Team receiving transferred Power Platform and SharePoint project responsibilities after the transition.
+      complexity:
+        is: natural
+        why: The team's role only makes sense alongside the transition context.
       tag:
         - people
 # Edges. key format: `${source key} ${verb} ${target key}`
@@ -458,4 +483,7 @@ edges:
   # method or resource.
   # all edges are keyed by (source key, verb, target key)
   learning autonomy_growth - event handover_pressure:
+    complexity:
+      is: natural
+      why: The link between autonomy and the handover is intuitive but benefits from a sentence of context.
     fact: These two nodes are related somehow

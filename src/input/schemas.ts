@@ -1,8 +1,7 @@
 import z from 'zod'
 import type { SomeType } from 'zod/v4/core'
-import { type Complexity, importance, type BaseKeys } from '../types'
-import { kdataEdge, kdataNode, type InputOutgoing, type InputInfograph } from './types'
-import { exit } from 'node:process'
+import { type Complexity, importance, type BaseKeys } from '../types.js'
+import { kdataEdge, kdataNode, type InputOutgoing, type InputInfograph } from './types.js'
 
 const slugPattern = '(-|[a-z0-9]+(_[a-z0-9]+)*)'
 export const verbPattern = new RegExp(`^(?!${RegExp.escape(kdataEdge)}$|${RegExp.escape(kdataNode)}$)${slugPattern}$`)
@@ -76,11 +75,9 @@ const zNode = z.looseObject({
             .describe(
                 'Importance of this node in the real experience. Not correlated to complexity or size. Left missing when unknown.',
             ),
-        complexity: zClaim(zComplexity)
-            .optional()
-            .describe(
-                'Estimated explanation cost of this node. Note: this refers to explanation complexity, not node complexity. A node may refer to a very complex task and remain reasonably simple to explain.',
-            ),
+        complexity: zClaim(zComplexity).describe(
+            'Estimated explanation cost of this node. Note: this refers to explanation complexity, not node complexity. A node may refer to a very complex task and remain reasonably simple to explain.',
+        ),
         source: zFlexarray(zClaim(zSourceKey))
             .optional()
             .describe(
@@ -95,14 +92,14 @@ const zNode = z.looseObject({
 })
 
 const zEdge = z.object({
-    complexity: zClaim(zComplexity).optional(),
+    complexity: zClaim(zComplexity),
     fact: zFlexarray(zNaturalLanguage)
         .optional()
         .describe('Some relationships are harder to explain than the things they connect.'),
 })
 
 const zNodeRef = z.looseObject({
-    [kdataEdge]: zEdge.optional().describe('Edge information.'),
+    [kdataEdge]: zEdge.describe('Edge information.'),
 })
 const zExternalNodeRef = zNodeRef.refine(node => !(kdataNode in node), {
     message: `Invalid inline node. '${kdataNode}' must match the inline node schema.`,
@@ -110,7 +107,7 @@ const zExternalNodeRef = zNodeRef.refine(node => !(kdataNode in node), {
 const zOutgoing: z.ZodType<InputOutgoing<BaseKeys>> = z.looseRecord(
     zVerbKey,
     z
-        .record(zNodeKey, z.union([z.null(), zNodeRef.and(zNode).and(z.lazy(() => zOutgoing)), zExternalNodeRef]))
+        .record(zNodeKey, z.union([zNodeRef.and(zNode).and(z.lazy(() => zOutgoing)), zExternalNodeRef]))
         .describe('Outgoing edges.'),
 )
 

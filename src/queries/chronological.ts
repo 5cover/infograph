@@ -1,10 +1,8 @@
-import type { BaseKeys, Complexity, Infograph, InfographNode, InfographNodeKey } from '../types'
+import type { BaseKeys, Complexity, Infograph, InfographNode, InfographNodeKey } from '../types.js'
 
 export type InfographEdge<Keys extends BaseKeys> = Infograph<Keys>['edges'][number]
 
-export type ChronologicalComplexity = Partial<Record<Complexity, number>> & {
-    missing?: number
-}
+export type ChronologicalComplexity = Partial<Record<Complexity, number>>
 
 export type ChronologicalInput = {
     budget: number
@@ -26,7 +24,6 @@ export const defaultChronologicalComplexity: Required<ChronologicalComplexity> =
     natural: 2,
     contextual: 4,
     intertwined: 8,
-    missing: 1,
 }
 
 export function chronological<Keys extends BaseKeys>(
@@ -40,7 +37,7 @@ export function chronological<Keys extends BaseKeys>(
     const output: TraversedEdge<Keys>[] = []
     const edgeOrder = new Map(infograph.edges.map((edge, index) => [edge, index] as const))
 
-    dfs(root, nodeComplexity(infograph.nodes.get(root), complexity))
+    dfs(root, nodeComplexity(infograph.nodes.get(root)!, complexity))
 
     return {
         root,
@@ -57,7 +54,7 @@ export function chronological<Keys extends BaseKeys>(
 
         for (const edge of candidates) {
             const next = otherNode(edge, node)
-            const nextCost = branchCost + cost(infograph.nodes.get(next), edge, complexity)
+            const nextCost = branchCost + cost(infograph.nodes.get(next)!, edge, complexity)
 
             if (nextCost > input.budget) continue
 
@@ -142,22 +139,18 @@ function outgoingCount<Keys extends BaseKeys>(infograph: Infograph<Keys>, node: 
 }
 
 function cost<Keys extends BaseKeys>(
-    node: InfographNode<Keys> | undefined,
+    node: InfographNode<Keys>,
     edge: InfographEdge<Keys>,
     complexity: Required<ChronologicalComplexity>,
 ) {
-    return nodeComplexity(node, complexity) + complexityValue(edge.info.complexity?.is, complexity)
+    return nodeComplexity(node, complexity) + complexity[edge.info.complexity.is]
 }
 
 function nodeComplexity<Keys extends BaseKeys>(
-    node: InfographNode<Keys> | undefined,
+    node: InfographNode<Keys>,
     complexity: Required<ChronologicalComplexity>,
 ) {
-    return complexityValue(node?.complexity?.is, complexity)
-}
-
-function complexityValue(value: Complexity | undefined, complexity: Required<ChronologicalComplexity>) {
-    return value ? complexity[value] : complexity.missing
+    return complexity[node.complexity.is]
 }
 
 function compareDates(a: Date | undefined, b: Date | undefined) {

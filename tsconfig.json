@@ -1,6 +1,7 @@
 {
   "compilerOptions": {
     "target": "esnext",
+    "module": "nodenext",
     "checkJs": false,
     "experimentalDecorators": false,
     "strictNullChecks": true,
@@ -9,6 +10,9 @@
     "sourceMap": true,
     "types": [
       "node"
+    ],
+    "lib": [
+      "ESNext"
     ],
     "verbatimModuleSyntax": true
   },
