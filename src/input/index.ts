@@ -179,7 +179,7 @@ const zInfograph = zInfographInput.pipe(
     }),
 )
 
-export const parseInfograph = (data: unknown) => zInfograph.parse(data)
+export const parseInfograph = (data: unknown) => zInfograph.parse(data, { reportInput: true })
 
 export const getSchema = () =>
     zInfographInput.toJSONSchema({

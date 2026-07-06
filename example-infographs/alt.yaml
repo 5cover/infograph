@@ -29,7 +29,7 @@ info:
 domain:
   source:
     journal:
-    user stories:
+    user_stories:
     documentation:
     url:
       desc: specific url (put url in why)
@@ -163,7 +163,7 @@ nodes:
         role: Main implementer and context reconstructor for the sponsorship work.
       tag:
         - sponsorship
-        - business workflow
+        - business_workflow
         - automation
     # Outgoing edges.
     uses:
@@ -211,7 +211,7 @@ nodes:
           source:
             - is: journal
               why: Journal entries describe the reconstruction and reliability work around this process.
-            - is: user stories
+            - is: user_stories
               why: User stories provide business expectations for the calculation behavior.
           fact:
             - The calculation logic is difficult to understand without sufficient context.
@@ -222,9 +222,9 @@ nodes:
             to: 2026-07
           tag:
             - calculation
-            - business-rules
+            - business_rules
             - reliability
-            - edge-cases
+            - edge_cases
         requires:
           constraint reliability_focus:
   tool power_automate:
@@ -245,10 +245,9 @@ nodes:
         from: 2025-12
         to: 2026-07
       tag:
-        - power automate
-        - low-code
+        - low_code
         - reliability
-        - runtime-errors
+        - runtime_errors
     requires:
       constraint reliability_focus:
         with:
@@ -302,7 +301,7 @@ nodes:
       tag:
         - scope
         - planning
-        - project management
+        - project_management
     explains:
       event handover_pressure:
         with:

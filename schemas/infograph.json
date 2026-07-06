@@ -9,10 +9,10 @@
           "$ref": "#/definitions/__schema0"
         },
         "context": {
-          "$ref": "#/definitions/__schema1"
+          "$ref": "#/definitions/__schema2"
         },
         "author": {
-          "$ref": "#/definitions/__schema2"
+          "$ref": "#/definitions/__schema3"
         }
       },
       "required": [
@@ -27,13 +27,13 @@
       "type": "object",
       "properties": {
         "kind": {
-          "$ref": "#/definitions/__schema3"
+          "$ref": "#/definitions/__schema4"
         },
         "verb": {
-          "$ref": "#/definitions/__schema6"
+          "$ref": "#/definitions/__schema7"
         },
         "source": {
-          "$ref": "#/definitions/__schema8"
+          "$ref": "#/definitions/__schema9"
         }
       },
       "required": [
@@ -58,7 +58,7 @@
       "description": "Use for edges that don't belong to any particular node.",
       "allOf": [
         {
-          "$ref": "#/definitions/__schema48"
+          "$ref": "#/definitions/__schema40"
         }
       ]
     }
@@ -70,77 +70,99 @@
   "additionalProperties": false,
   "definitions": {
     "__schema0": {
-      "type": "string",
-      "description": "Human-readable name for the whole graph."
+      "description": "Human-readable name for the whole graph.",
+      "allOf": [
+        {
+          "$ref": "#/definitions/__schema1"
+        }
+      ]
     },
     "__schema1": {
       "type": "string",
-      "description": "Short description of the real-world context represented by the graph. Gives global orientation without repeating the same context in every node."
+      "minLength": 1,
+      "description": "Information intentionally expressed in natural language rather than a structured value. Use it when meaning is better conveyed through human language than additional schema. Keep it factual, concise and independent from any specific presentation or wording."
     },
     "__schema2": {
-      "type": "string",
-      "description": "Person responsible for validating the graph. This graph is not just extracted text. It is a validated representation. The author field makes that explicit."
+      "description": "Short description of the real-world context represented by the graph. Gives global orientation without repeating the same context in every node.",
+      "allOf": [
+        {
+          "$ref": "#/definitions/__schema1"
+        }
+      ]
     },
     "__schema3": {
+      "description": "Person responsible for validating the graph. This graph is not just extracted text. It is a validated representation. The author field makes that explicit.",
+      "allOf": [
+        {
+          "$ref": "#/definitions/__schema1"
+        }
+      ]
+    },
+    "__schema4": {
       "type": "object",
       "propertyNames": {
-        "$ref": "#/definitions/__schema4"
+        "$ref": "#/definitions/__schema5"
       },
       "additionalProperties": {
-        "$ref": "#/definitions/__schema5"
+        "$ref": "#/definitions/__schema6"
       },
       "description": "Allowed node kinds."
     },
-    "__schema4": {
-      "type": "string",
-      "pattern": "^[-_a-z]+$"
-    },
     "__schema5": {
+      "type": "string",
+      "pattern": "^(-|[a-z0-9]+(_[a-z0-9]+)*)$"
+    },
+    "__schema6": {
       "anyOf": [
-        {
-          "type": "null"
-        },
         {
           "type": "object",
           "properties": {
             "desc": {
-              "type": "string"
+              "description": "Description of this keyword's semantic and intended use.",
+              "allOf": [
+                {
+                  "$ref": "#/definitions/__schema1"
+                }
+              ]
             }
           },
+          "required": [
+            "desc"
+          ],
           "additionalProperties": false
+        },
+        {
+          "type": "null"
         }
       ]
     },
-    "__schema6": {
+    "__schema7": {
       "type": "object",
       "propertyNames": {
-        "$ref": "#/definitions/__schema7"
+        "$ref": "#/definitions/__schema8"
       },
       "additionalProperties": {
-        "$ref": "#/definitions/__schema5"
+        "$ref": "#/definitions/__schema6"
       },
       "description": "What kinds of relationships exists. A verb may leave unanswered questions about the nature of the relationship, but not about the identity of additional participants."
     },
-    "__schema7": {
-      "type": "string",
-      "pattern": "^(?!\\x77ith$|\\x69nfo$)[-_a-z]+$"
-    },
     "__schema8": {
+      "type": "string",
+      "pattern": "^(?!\\x77ith$|\\x69nfo$)(-|[a-z0-9]+(_[a-z0-9]+)*)$"
+    },
+    "__schema9": {
       "type": "object",
       "propertyNames": {
-        "$ref": "#/definitions/__schema9"
+        "$ref": "#/definitions/__schema5"
       },
       "additionalProperties": {
-        "$ref": "#/definitions/__schema5"
+        "$ref": "#/definitions/__schema6"
       },
       "description": "Available materialized sources to verify the node's claims. Memory is not a source, it is a private buffer."
     },
-    "__schema9": {
-      "type": "string"
-    },
     "__schema10": {
       "type": "string",
-      "pattern": "^[-_a-z]+ [-_a-z]+$"
+      "pattern": "^(-|[a-z0-9]+(_[a-z0-9]+)*) (-|[a-z0-9]+(_[a-z0-9]+)*)$"
     },
     "__schema11": {
       "allOf": [
@@ -148,7 +170,7 @@
           "$ref": "#/definitions/__schema12"
         },
         {
-          "$ref": "#/definitions/__schema38"
+          "$ref": "#/definitions/__schema32"
         }
       ]
     },
@@ -159,14 +181,18 @@
           "type": "object",
           "properties": {
             "title": {
-              "type": "string",
-              "description": "Short human label for the node. Makes the graph readable and editable by hand. This is not final artifact wording."
+              "description": "Short human label for the node.",
+              "allOf": [
+                {
+                  "$ref": "#/definitions/__schema1"
+                }
+              ]
             },
             "summary": {
               "description": "Compact factual description of the node. Gives enough context to understand the node without following every edge. It should remain factual, not rhetorical.",
               "allOf": [
                 {
-                  "$ref": "#/definitions/__schema13"
+                  "$ref": "#/definitions/__schema1"
                 }
               ]
             },
@@ -174,15 +200,15 @@
               "description": "Atomic factual claims attached to the node. Keeps facts separated from wording. The same statements can later support slides, reports or oral explanations.",
               "allOf": [
                 {
-                  "$ref": "#/definitions/__schema14"
+                  "$ref": "#/definitions/__schema13"
                 }
               ]
             },
             "date": {
-              "description": "Approximate time range during which this node matters. Allows timeline-oriented queries without forcing every fact into prose. Approximate periods are acceptable for manual writing.",
+              "description": "Time range during which this node matters. Allows timeline-oriented queries without forcing every fact into prose. Approximate periods are acceptable.",
               "allOf": [
                 {
-                  "$ref": "#/definitions/__schema16"
+                  "$ref": "#/definitions/__schema14"
                 }
               ]
             },
@@ -190,7 +216,7 @@
               "description": "Importance of this node in the real experience. Not correlated to complexity or size. Left missing when unknown.",
               "allOf": [
                 {
-                  "$ref": "#/definitions/__schema17"
+                  "$ref": "#/definitions/__schema16"
                 }
               ]
             },
@@ -198,7 +224,7 @@
               "description": "Estimated explanation cost of this node. Note: this refers to explanation complexity, not node complexity. A node may refer to a very complex task and remain reasonably simple to explain.",
               "allOf": [
                 {
-                  "$ref": "#/definitions/__schema20"
+                  "$ref": "#/definitions/__schema18"
                 }
               ]
             },
@@ -206,23 +232,23 @@
               "description": "Where the information comes from. Source can be omitted for common / general knowledge information, like well-known public tools.",
               "allOf": [
                 {
-                  "$ref": "#/definitions/__schema28"
+                  "$ref": "#/definitions/__schema25"
                 }
               ]
             },
             "tag": {
-              "description": "Lightweight labels. Supports simple search and grouping without adding many specialized fields.",
+              "description": "Lowercase kebab-case labels intended for lightweight classification, not prose. Allow for simple search and grouping without adding many specialized fields.",
               "allOf": [
                 {
-                  "$ref": "#/definitions/__schema32"
+                  "$ref": "#/definitions/__schema28"
                 }
               ]
             },
             "actor": {
-              "description": "Physical or organizational entities whose perspective, actions or constraints are materially represented by this node. Optional but encouraged.",
+              "description": "Physical or organizational entities whose perspective, actions or constraints are materially involved in this node. An actor may perform actions, make decisions, impose constraints, receive outcomes, or otherwise have a significant role in the situation represented by the node. Optional but encouraged. Do not invent actors for actorless",
               "allOf": [
                 {
-                  "$ref": "#/definitions/__schema34"
+                  "$ref": "#/definitions/__schema29"
                 }
               ]
             }
@@ -239,34 +265,29 @@
       "additionalProperties": {}
     },
     "__schema13": {
-      "type": "string"
-    },
-    "__schema14": {
       "anyOf": [
         {
-          "$ref": "#/definitions/__schema15"
+          "$ref": "#/definitions/__schema1"
         },
         {
+          "minItems": 1,
           "type": "array",
           "items": {
-            "$ref": "#/definitions/__schema15"
+            "$ref": "#/definitions/__schema1"
           }
         }
       ]
     },
-    "__schema15": {
-      "type": "string"
-    },
-    "__schema16": {
+    "__schema14": {
       "anyOf": [
         {
           "type": "object",
           "properties": {
             "from": {
-              "type": "string"
+              "$ref": "#/definitions/__schema15"
             },
             "to": {
-              "type": "string"
+              "$ref": "#/definitions/__schema15"
             }
           },
           "required": [
@@ -276,11 +297,20 @@
           "additionalProperties": false
         },
         {
-          "type": "string"
+          "description": "One \"on\" date, for punctual events",
+          "allOf": [
+            {
+              "$ref": "#/definitions/__schema15"
+            }
+          ]
         }
       ]
     },
-    "__schema17": {
+    "__schema15": {
+      "type": "string",
+      "description": "YYYY, YYYY-MM, or YYYY-MM-DD"
+    },
+    "__schema16": {
       "type": "object",
       "properties": {
         "is": {
@@ -296,10 +326,10 @@
         "why": {
           "anyOf": [
             {
-              "$ref": "#/definitions/__schema18"
+              "$ref": "#/definitions/__schema1"
             },
             {
-              "$ref": "#/definitions/__schema19"
+              "$ref": "#/definitions/__schema17"
             }
           ],
           "description": "Justification for selecting this value. Why choose this value and not another. Retraces author intent."
@@ -311,30 +341,114 @@
       ],
       "additionalProperties": false
     },
-    "__schema18": {
-      "type": "string"
-    },
-    "__schema19": {
+    "__schema17": {
+      "minItems": 1,
       "type": "array",
       "items": {
-        "$ref": "#/definitions/__schema18"
+        "$ref": "#/definitions/__schema1"
       }
     },
-    "__schema20": {
+    "__schema18": {
       "type": "object",
       "properties": {
         "is": {
           "description": "Selected value.",
           "allOf": [
             {
-              "$ref": "#/definitions/__schema25"
+              "$ref": "#/definitions/__schema23"
             }
           ]
         },
         "why": {
           "anyOf": [
             {
-              "$ref": "#/definitions/__schema26"
+              "$ref": "#/definitions/__schema1"
+            },
+            {
+              "$ref": "#/definitions/__schema24"
+            }
+          ],
+          "description": "Justification for selecting this value. Why choose this value and not another. Retraces author intent."
+        }
+      },
+      "required": [
+        "is",
+        "why"
+      ],
+      "additionalProperties": false
+    },
+    "__schema19": {
+      "type": "string",
+      "const": "simple",
+      "description": "easy to mention"
+    },
+    "__schema20": {
+      "type": "string",
+      "const": "natural",
+      "description": "needs explanation, but self-contained and natural to explain"
+    },
+    "__schema21": {
+      "type": "string",
+      "const": "contextual",
+      "description": "needs context from other nodes not in the relation"
+    },
+    "__schema22": {
+      "type": "string",
+      "const": "intertwined",
+      "description": "needs deep context or demonstration"
+    },
+    "__schema23": {
+      "anyOf": [
+        {
+          "$ref": "#/definitions/__schema19"
+        },
+        {
+          "$ref": "#/definitions/__schema20"
+        },
+        {
+          "$ref": "#/definitions/__schema21"
+        },
+        {
+          "$ref": "#/definitions/__schema22"
+        }
+      ]
+    },
+    "__schema24": {
+      "minItems": 1,
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/__schema1"
+      }
+    },
+    "__schema25": {
+      "anyOf": [
+        {
+          "$ref": "#/definitions/__schema26"
+        },
+        {
+          "minItems": 1,
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/__schema26"
+          }
+        }
+      ]
+    },
+    "__schema26": {
+      "type": "object",
+      "properties": {
+        "is": {
+          "description": "Selected value.",
+          "allOf": [
+            {
+              "$ref": "#/definitions/__schema5"
+            }
+          ]
+        },
+        "why": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/__schema1"
             },
             {
               "$ref": "#/definitions/__schema27"
@@ -349,145 +463,59 @@
       ],
       "additionalProperties": false
     },
-    "__schema21": {
-      "type": "string",
-      "const": "simple",
-      "description": "easy to mention"
-    },
-    "__schema22": {
-      "type": "string",
-      "const": "natural",
-      "description": "needs explanation, but self-contained and natural to explain"
-    },
-    "__schema23": {
-      "type": "string",
-      "const": "contextual",
-      "description": "needs context from other nodes not in the relation"
-    },
-    "__schema24": {
-      "type": "string",
-      "const": "intertwined",
-      "description": "needs deep context or demonstration"
-    },
-    "__schema25": {
-      "anyOf": [
-        {
-          "$ref": "#/definitions/__schema21"
-        },
-        {
-          "$ref": "#/definitions/__schema22"
-        },
-        {
-          "$ref": "#/definitions/__schema23"
-        },
-        {
-          "$ref": "#/definitions/__schema24"
-        }
-      ]
-    },
-    "__schema26": {
-      "type": "string"
-    },
     "__schema27": {
+      "minItems": 1,
       "type": "array",
       "items": {
-        "$ref": "#/definitions/__schema26"
+        "$ref": "#/definitions/__schema1"
       }
     },
     "__schema28": {
       "anyOf": [
         {
-          "$ref": "#/definitions/__schema29"
+          "$ref": "#/definitions/__schema5"
         },
         {
+          "minItems": 1,
           "type": "array",
           "items": {
-            "$ref": "#/definitions/__schema29"
+            "$ref": "#/definitions/__schema5"
           }
         }
       ]
     },
     "__schema29": {
-      "type": "object",
-      "properties": {
-        "is": {
-          "description": "Selected value.",
-          "allOf": [
-            {
-              "$ref": "#/definitions/__schema9"
-            }
-          ]
+      "anyOf": [
+        {
+          "$ref": "#/definitions/__schema30"
         },
-        "why": {
-          "anyOf": [
-            {
-              "$ref": "#/definitions/__schema30"
-            },
-            {
-              "$ref": "#/definitions/__schema31"
-            }
-          ],
-          "description": "Justification for selecting this value. Why choose this value and not another. Retraces author intent."
+        {
+          "minItems": 1,
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/__schema30"
+          }
         }
-      },
-      "required": [
-        "is",
-        "why"
-      ],
-      "additionalProperties": false
+      ]
     },
     "__schema30": {
-      "type": "string"
-    },
-    "__schema31": {
-      "type": "array",
-      "items": {
-        "$ref": "#/definitions/__schema30"
-      }
-    },
-    "__schema32": {
-      "anyOf": [
-        {
-          "$ref": "#/definitions/__schema33"
-        },
-        {
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/__schema33"
-          }
-        }
-      ]
-    },
-    "__schema33": {
-      "type": "string"
-    },
-    "__schema34": {
-      "anyOf": [
-        {
-          "$ref": "#/definitions/__schema35"
-        },
-        {
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/__schema35"
-          }
-        }
-      ]
-    },
-    "__schema35": {
       "type": "object",
       "properties": {
         "name": {
-          "type": "string",
-          "description": "Distinctive handle for a physical or organizational actor whose perspective, actions or constraints are materially represented by this node."
+          "description": "Distinctive handle for a physical or organizational actor whose perspective, actions or constraints are materially represented by this node.",
+          "allOf": [
+            {
+              "$ref": "#/definitions/__schema1"
+            }
+          ]
         },
         "role": {
           "anyOf": [
             {
-              "$ref": "#/definitions/__schema36"
+              "$ref": "#/definitions/__schema1"
             },
             {
-              "$ref": "#/definitions/__schema37"
+              "$ref": "#/definitions/__schema31"
             }
           ],
           "description": "One or more reasons why this actor belongs in this node actor list."
@@ -499,31 +527,29 @@
       ],
       "additionalProperties": false
     },
-    "__schema36": {
-      "type": "string"
-    },
-    "__schema37": {
+    "__schema31": {
+      "minItems": 1,
       "type": "array",
       "items": {
-        "$ref": "#/definitions/__schema36"
+        "$ref": "#/definitions/__schema1"
       }
     },
-    "__schema38": {
+    "__schema32": {
       "type": "object",
       "patternProperties": {
-        "^(?!\\x77ith$|\\x69nfo$)[-_a-z]+$": {
+        "^(?!\\x77ith$|\\x69nfo$)(-|[a-z0-9]+(_[a-z0-9]+)*)$": {
           "type": "object",
           "propertyNames": {
             "$ref": "#/definitions/__schema10"
           },
           "additionalProperties": {
-            "$ref": "#/definitions/__schema39"
+            "$ref": "#/definitions/__schema33"
           },
           "description": "Outgoing edges."
         }
       }
     },
-    "__schema39": {
+    "__schema33": {
       "anyOf": [
         {
           "type": "null"
@@ -531,7 +557,7 @@
         {
           "allOf": [
             {
-              "$ref": "#/definitions/__schema40"
+              "$ref": "#/definitions/__schema34"
             },
             {
               "$ref": "#/definitions/__schema12"
@@ -539,7 +565,7 @@
             {
               "allOf": [
                 {
-                  "$ref": "#/definitions/__schema38"
+                  "$ref": "#/definitions/__schema32"
                 }
               ]
             }
@@ -548,32 +574,32 @@
         {
           "allOf": [
             {
-              "$ref": "#/definitions/__schema40"
+              "$ref": "#/definitions/__schema34"
             }
           ]
         }
       ]
     },
-    "__schema40": {
+    "__schema34": {
       "type": "object",
       "properties": {
         "with": {
-          "$ref": "#/definitions/__schema41"
+          "$ref": "#/definitions/__schema35"
         }
       },
       "additionalProperties": {
-        "$ref": "#/definitions/__schema47"
+        "$ref": "#/definitions/__schema39"
       }
     },
-    "__schema41": {
+    "__schema35": {
       "description": "Edge information.",
       "allOf": [
         {
-          "$ref": "#/definitions/__schema42"
+          "$ref": "#/definitions/__schema36"
         }
       ]
     },
-    "__schema42": {
+    "__schema36": {
       "type": "object",
       "properties": {
         "complexity": {
@@ -583,17 +609,17 @@
               "description": "Selected value.",
               "allOf": [
                 {
-                  "$ref": "#/definitions/__schema25"
+                  "$ref": "#/definitions/__schema23"
                 }
               ]
             },
             "why": {
               "anyOf": [
                 {
-                  "$ref": "#/definitions/__schema43"
+                  "$ref": "#/definitions/__schema1"
                 },
                 {
-                  "$ref": "#/definitions/__schema44"
+                  "$ref": "#/definitions/__schema37"
                 }
               ],
               "description": "Justification for selecting this value. Why choose this value and not another. Retraces author intent."
@@ -609,47 +635,43 @@
           "description": "Some relationships are harder to explain than the things they connect.",
           "allOf": [
             {
-              "$ref": "#/definitions/__schema45"
+              "$ref": "#/definitions/__schema38"
             }
           ]
         }
       },
       "additionalProperties": false
     },
-    "__schema43": {
-      "type": "string"
-    },
-    "__schema44": {
+    "__schema37": {
+      "minItems": 1,
       "type": "array",
       "items": {
-        "$ref": "#/definitions/__schema43"
+        "$ref": "#/definitions/__schema1"
       }
     },
-    "__schema45": {
+    "__schema38": {
       "anyOf": [
         {
-          "$ref": "#/definitions/__schema46"
+          "$ref": "#/definitions/__schema1"
         },
         {
+          "minItems": 1,
           "type": "array",
           "items": {
-            "$ref": "#/definitions/__schema46"
+            "$ref": "#/definitions/__schema1"
           }
         }
       ]
     },
-    "__schema46": {
-      "type": "string"
-    },
-    "__schema47": {},
-    "__schema48": {
+    "__schema39": {},
+    "__schema40": {
       "type": "object",
       "propertyNames": {
         "type": "string",
-        "pattern": "^[-_a-z]+ [-_a-z]+ (?!\\x77ith$|\\x69nfo$)[-_a-z]+ [-_a-z]+ [-_a-z]+$"
+        "pattern": "^(-|[a-z0-9]+(_[a-z0-9]+)*) (-|[a-z0-9]+(_[a-z0-9]+)*) (?!\\x77ith$|\\x69nfo$)(-|[a-z0-9]+(_[a-z0-9]+)*) (-|[a-z0-9]+(_[a-z0-9]+)*) (-|[a-z0-9]+(_[a-z0-9]+)*)$"
       },
       "additionalProperties": {
-        "$ref": "#/definitions/__schema42"
+        "$ref": "#/definitions/__schema36"
       }
     }
   }

@@ -2,13 +2,16 @@ import z from 'zod'
 import type { SomeType } from 'zod/v4/core'
 import { type Complexity, importance, type BaseKeys } from '../types'
 import { kdataEdge, kdataNode, type InputOutgoing, type InputInfograph } from './types'
+import { exit } from 'node:process'
 
-const zKindKey = z.string().regex(/^[-_a-z]+$/)
-const zNodeId = zKindKey
+const slugPattern = '(-|[a-z0-9]+(_[a-z0-9]+)*)'
+export const verbPattern = new RegExp(`^(?!${RegExp.escape(kdataEdge)}$|${RegExp.escape(kdataNode)}$)${slugPattern}$`)
+const zSlug = z.string().regex(new RegExp(`^${slugPattern}$`))
+const zKindKey = zSlug
+const zNodeId = zSlug
+const zSourceKey = zSlug
 const zNodeKey = z.templateLiteral([zKindKey, ' ', zNodeId])
-export const verbPattern = new RegExp(`^(?!${RegExp.escape(kdataEdge)}$|${RegExp.escape(kdataNode)}$)[-_a-z]+$`)
 const zVerbKey = z.string().regex(verbPattern)
-const zSourceKey = z.string()
 
 const zEdgeId = z.templateLiteral([zNodeKey, ' ', zVerbKey, ' ', zNodeKey])
 
@@ -19,59 +22,61 @@ const zComplexity: z.ZodType<Complexity> = z.union([
     z.literal('intertwined').describe('needs deep context or demonstration'),
 ])
 
-const zPlainKeyword = z.null().or(
-    z.object({
-        desc: z.string().optional(),
-    }),
-)
+const zNaturalLanguage = z
+    .string()
+    .nonempty()
+    .describe(
+        'Information intentionally expressed in natural language rather than a structured value. Use it when meaning is better conveyed through human language than additional schema. Keep it factual, concise and independent from any specific presentation or wording.',
+    )
 
-const zFlexarray = <T extends SomeType>(item: T) => z.union([item, z.array(item)])
+const zPlainKeyword = z
+    .object({
+        desc: zNaturalLanguage.describe("Description of this keyword's semantic and intended use."),
+    })
+    .or(z.null())
+
+const zFlexarray = <T extends SomeType>(item: T) => z.union([item, z.array(item).nonempty()])
 
 const zClaim = <T extends z.ZodType<string>>(is: T) =>
     z.object({
         is: is.describe('Selected value.'),
-        why: zFlexarray(z.string()).describe(
+        why: zFlexarray(zNaturalLanguage).describe(
             'Justification for selecting this value. Why choose this value and not another. Retraces author intent.',
         ),
     })
 
 const zActor = z.object({
-    name: z
-        .string()
-        .describe(
-            'Distinctive handle for a physical or organizational actor whose perspective, actions or constraints are materially represented by this node.',
-        ),
-    role: zFlexarray(z.string()).describe('One or more reasons why this actor belongs in this node actor list.'),
+    name: zNaturalLanguage.describe(
+        'Distinctive handle for a physical or organizational actor whose perspective, actions or constraints are materially represented by this node.',
+    ),
+    role: zFlexarray(zNaturalLanguage).describe('One or more reasons why this actor belongs in this node actor list.'),
 })
+
+// normally, dates would be parsed here, but the transforms breaks with looseRecord passing values as-is
+const zDate = z.string().describe('YYYY, YYYY-MM, or YYYY-MM-DD')
 
 const zNode = z.looseObject({
     [kdataNode]: z.object({
-        title: z
-            .string()
-            .describe(
-                'Short human label for the node. Makes the graph readable and editable by hand. This is not final artifact wording.',
-            ),
-        summary: z
-            .string()
+        title: zNaturalLanguage.describe('Short human label for the node.'),
+        summary: zNaturalLanguage
             .optional()
             .describe(
                 'Compact factual description of the node. Gives enough context to understand the node without following every edge. It should remain factual, not rhetorical.',
             ),
-        fact: zFlexarray(z.string())
+        fact: zFlexarray(zNaturalLanguage)
             .optional()
             .describe(
                 'Atomic factual claims attached to the node. Keeps facts separated from wording. The same statements can later support slides, reports or oral explanations.',
             ),
         date: z
-            // normally, dates would be parsed here, but the transforms breaks with looseRecord passing values as-is
             .object({
-                from: z.string(),
-                to: z.string(),
+                from: zDate,
+                to: zDate,
             })
-            .or(z.string())
+            .or(zDate.describe('One "on" date, for punctual events'))
             .optional()
             .describe(
-                'Approximate time range during which this node matters. Allows timeline-oriented queries without forcing every fact into prose. Approximate periods are acceptable for manual writing.',
+                'Time range during which this node matters. Allows timeline-oriented queries without forcing every fact into prose. Approximate periods are acceptable.',
             ),
         importance: zClaim(z.enum(importance))
             .optional()
@@ -88,10 +93,10 @@ const zNode = z.looseObject({
             .describe(
                 'Where the information comes from. Source can be omitted for common / general knowledge information, like well-known public tools.',
             ),
-        tag: zFlexarray(z.string())
+        tag: zFlexarray(zSlug)
             .optional()
             .describe(
-                'Lightweight labels. Supports simple search and grouping without adding many specialized fields.',
+                'Lowercase kebab-case labels intended for lightweight classification, not prose. Allow for simple search and grouping without adding many specialized fields.',
             ),
         actor: zFlexarray(zActor)
             .optional()
@@ -103,7 +108,7 @@ const zNode = z.looseObject({
 
 const zEdge = z.object({
     complexity: zClaim(zComplexity).optional(),
-    fact: zFlexarray(z.string())
+    fact: zFlexarray(zNaturalLanguage)
         .optional()
         .describe('Some relationships are harder to explain than the things they connect.'),
 })
@@ -124,17 +129,13 @@ const zOutgoing: z.ZodType<InputOutgoing<BaseKeys>> = z.looseRecord(
 export const zInfographInput: z.ZodType<InputInfograph<BaseKeys>> = z.object({
     info: z
         .object({
-            title: z.string().describe('Human-readable name for the whole graph.'),
-            context: z
-                .string()
-                .describe(
-                    'Short description of the real-world context represented by the graph. Gives global orientation without repeating the same context in every node.',
-                ),
-            author: z
-                .string()
-                .describe(
-                    'Person responsible for validating the graph. This graph is not just extracted text. It is a validated representation. The author field makes that explicit.',
-                ),
+            title: zNaturalLanguage.describe('Human-readable name for the whole graph.'),
+            context: zNaturalLanguage.describe(
+                'Short description of the real-world context represented by the graph. Gives global orientation without repeating the same context in every node.',
+            ),
+            author: zNaturalLanguage.describe(
+                'Person responsible for validating the graph. This graph is not just extracted text. It is a validated representation. The author field makes that explicit.',
+            ),
         })
         .describe('Infograph metadata.')
         .optional(),
