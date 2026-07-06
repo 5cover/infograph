@@ -45,13 +45,6 @@ const zClaim = <T extends z.ZodType<string>>(is: T) =>
         ),
     })
 
-const zActor = z.object({
-    name: zNaturalLanguage.describe(
-        'Distinctive handle for a physical or organizational actor whose perspective, actions or constraints are materially represented by this node.',
-    ),
-    role: zFlexarray(zNaturalLanguage).describe('One or more reasons why this actor belongs in this node actor list.'),
-})
-
 // normally, dates would be parsed here, but the transforms breaks with looseRecord passing values as-is
 const zDate = z.string().describe('YYYY, YYYY-MM, or YYYY-MM-DD')
 
@@ -97,11 +90,6 @@ const zNode = z.looseObject({
             .optional()
             .describe(
                 'Lowercase kebab-case labels intended for lightweight classification, not prose. Allow for simple search and grouping without adding many specialized fields.',
-            ),
-        actor: zFlexarray(zActor)
-            .optional()
-            .describe(
-                'Physical or organizational entities whose perspective, actions or constraints are materially involved in this node. An actor may perform actions, make decisions, impose constraints, receive outcomes, or otherwise have a significant role in the situation represented by the node. Optional but encouraged. Do not invent actors for actorless',
             ),
     }),
 })

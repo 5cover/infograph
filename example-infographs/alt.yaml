@@ -129,6 +129,11 @@ domain:
         The source takes the place of the target.
         Useful for project direction changes.
         Example: LeanKit replaces Jira in the chosen workflow direction.
+    involves:
+      desc: |
+        The source materially involves the target actor.
+        Links a node to a person, team, support group or institution whose perspective, actions or constraints are part of the situation.
+        Example: Sponsorship involves the apprentice.
     '-':
       desc: |
         Weak fallback relation when a connection matters but is not yet precise.
@@ -158,14 +163,15 @@ nodes:
       source:
         is: journal
         why: (refer to main entries about the project one by one)
-      actor:
-        name: apprentice
-        role: Main implementer and context reconstructor for the sponsorship work.
       tag:
         - sponsorship
         - business_workflow
         - automation
     # Outgoing edges.
+    involves:
+      actor apprentice:
+        with:
+          fact: Main implementer and context reconstructor for the sponsorship work.
     uses:
       tool power_automate:
         # provides additional edge information.
@@ -362,13 +368,6 @@ nodes:
           why: (reference main related entry dates here)
         - is: journal
           why: (reference main related entry dates here)
-      actor:
-        - name: apprentice
-          role:
-            - Must reconstruct project context from artifacts and meetings.
-            - Experiences the time pressure materially during handover.
-        - name: Indian Power Platform team
-          role: Receives transferred project responsibilities after the transition.
       fact:
         - A limited handover period is not enough to fully understand the evolved project.
         - The situation increases the need to reconstruct context from existing artifacts and behavior.
@@ -379,6 +378,15 @@ nodes:
         - handover
         - context
         - planning
+    involves:
+      actor apprentice:
+        with:
+          fact:
+            - Must reconstruct project context from artifacts and meetings.
+            - Experiences the time pressure materially during handover.
+      actor indian_power_platform_team:
+        with:
+          fact: Receives transferred project responsibilities after the transition.
     illustrates:
       learning autonomy_growth:
         with:
@@ -430,6 +438,19 @@ nodes:
         - Fabrice's secondborn daughter # elements not directly related to the work are to be included as well! while some may seem unrelated, they can bring additional context. The point is to represent all information, not just what you believe relevant right now.
         - Future role of the DSI after the Indian team takes over Power Platform and SharePoint developments
       date: 2026-06-26 # A lone date is supported (it is parsed to equal from/to) for punctual events
+  # Actors are ordinary nodes, linked to the situations they take part in with the `involves` verb.
+  actor apprentice:
+    info:
+      title: Apprentice
+      summary: The apprentice carrying out and reconstructing the apprenticeship work.
+      tag:
+        - people
+  actor indian_power_platform_team:
+    info:
+      title: Indian Power Platform team
+      summary: Team receiving transferred Power Platform and SharePoint project responsibilities after the transition.
+      tag:
+        - people
 # Edges. key format: `${source key} ${verb} ${target key}`
 # Use for edges that don't belong to any particular node.
 edges:

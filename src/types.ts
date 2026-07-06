@@ -18,11 +18,6 @@ export type InfographClaim<T> = {
     why: string[]
 }
 
-export type InfographActor = {
-    name: string
-    role: string[]
-}
-
 export type InfographNode<Keys extends BaseKeys> = {
     title: string
     summary?: string
@@ -32,7 +27,6 @@ export type InfographNode<Keys extends BaseKeys> = {
     complexity?: InfographClaim<Complexity>
     source?: InfographClaim<Keys['source']>[]
     tag?: string[]
-    actor?: InfographActor[]
 }
 
 export type InfographInfo = {

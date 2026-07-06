@@ -122,10 +122,6 @@ const zInfograph = zInfographInput.pipe(
                         return buildClaim(source)
                     }),
                     tag: deflex(d.tag),
-                    actor: deflex(d.actor)?.map(actor => ({
-                        ...actor,
-                        role: deflex(actor.role),
-                    })),
                     date:
                         d.date ?
                             typeof d.date === 'string' ?

@@ -3,6 +3,7 @@ import { readFileSync } from 'node:fs'
 import * as YAML from 'js-yaml'
 import { parseInfograph } from './input'
 import { chronological, type ChronologicalComplexity } from './queries/chronological'
+import { metrics } from './queries/metrics'
 import type { BaseKeys, Infograph } from './types'
 import { program } from 'commander'
 
@@ -36,6 +37,15 @@ program
         })
 
         writeJson(thread)
+    })
+
+program
+    .command('metrics')
+    .description('Compute and display statistics about an infograph file')
+    .argument('<file>', 'YAML or JSON infograph file')
+    .action(file => {
+        const infograph = readInfograph(file)
+        writeJson(metrics(infograph))
     })
 
 program.parse()

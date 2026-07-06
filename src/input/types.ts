@@ -6,7 +6,6 @@ import type {
     InfographDomain,
     InfographInfo,
     InfographNodeKey,
-    InfographActor,
 } from '../types'
 
 export const kdataEdge = 'with'
@@ -24,10 +23,6 @@ export type InputClaim<T> = {
     why: Flexarray<string>
 }
 
-export type InputActor = Omit<InfographActor, 'role'> & {
-    role: Flexarray<string>
-}
-
 export type InputNodeInfo<Keys extends BaseKeys> = {
     title: string
     summary?: string
@@ -37,7 +32,6 @@ export type InputNodeInfo<Keys extends BaseKeys> = {
     complexity?: InputClaim<Complexity>
     source?: Flexarray<InputClaim<Keys['source']>>
     tag?: Flexarray<string>
-    actor?: Flexarray<InputActor>
 }
 
 export type InputNodeRef = { [kdataEdge]?: InputEdgeInfo }
