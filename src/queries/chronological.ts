@@ -9,16 +9,17 @@ export type ChronologicalComplexity = Partial<Record<Complexity, number>>
 export type ChronologicalInput = {
     budget: number
     complexity?: ChronologicalComplexity
-}
-
-export type TraversedEdge<Keys extends BaseKeys> = {
-    edge: InfographEdge<Keys>
-    reversed?: boolean
+    // Root selection considers only nodes whose start date is on or after this cutoff
+    // (falling back to all nodes if none qualify).
+    cutoff?: Date
 }
 
 export type ChronologicalThread<Keys extends BaseKeys> = {
     root: InfographNodeKey<Keys>
-    edges: TraversedEdge<Keys>[]
+    // Edges in traversal (presentation) order. The traversal direction is not stored:
+    // one endpoint of each edge is always already visited when it is reached, so the
+    // reading order is recoverable from the sequence alone.
+    edges: InfographEdge<Keys>[]
 }
 
 export const defaultChronologicalComplexity: Required<ChronologicalComplexity> = {
@@ -28,34 +29,37 @@ export const defaultChronologicalComplexity: Required<ChronologicalComplexity> =
     intertwined: 8,
 }
 
-// Render a traversal thread as a Mermaid flowchart with two overlaid link layers:
-// solid links follow traversal order (the DFS backbone, which forms paths through the
-// graph), and dotted links are the semantic edges, carrying the verb. When a traversal
-// step went against the edge's semantic direction the dotted arrow points back against
-// the solid one — showing the reversal visually instead of marking it textually. Node
-// labels are prefixed with their 1-based position in the traversal.
+// Render a traversal thread as a Mermaid flowchart with two overlaid link layers.
+// The thread is a presentation order: a linear narrative read node by node. Solid
+// links are that reading path (each node to the next one discovered — an already-seen
+// node is never revisited), and dotted links are the traversed semantic edges carrying
+// the verb, which reveal how each newly-introduced node actually attaches to one seen
+// earlier. Node labels are prefixed with their 1-based position in the narrative.
 export function threadToMermaid<Keys extends BaseKeys>(thread: ChronologicalThread<Keys>): string {
     const order = new Map<InfographNodeKey<Keys>, number>([[thread.root, 0]])
     const appear = (key: InfographNodeKey<Keys>) => {
         if (!order.has(key)) order.set(key, order.size)
     }
-    for (const { edge, reversed } of thread.edges) {
-        appear(reversed ? edge.to : edge.from)
-        appear(reversed ? edge.from : edge.to)
+    // Nodes are discovered as edges are traversed; one endpoint of each edge is always
+    // already seen, so this yields the visitation (presentation) order.
+    for (const edge of thread.edges) {
+        appear(edge.from)
+        appear(edge.to)
     }
 
+    const sequence = [...order.keys()]
     const flowchart = Flowchart.create('TD')
-    for (const [key, index] of order) {
-        flowchart.addNode(sanitizeId(key), `${index + 1} ${key}`)
+    sequence.forEach((key, index) => flowchart.addNode(sanitizeId(key), `${index + 1} ${key}`))
+
+    // solid: the reading path through nodes in discovery order.
+    for (let i = 0; i + 1 < sequence.length; i++) {
+        flowchart.addLink(sanitizeId(sequence[i]), sanitizeId(sequence[i + 1]), {})
     }
-    for (const { edge, reversed } of thread.edges) {
-        const source = reversed ? edge.to : edge.from
-        const target = reversed ? edge.from : edge.to
-        // solid: traversal order (backbone). dotted: the semantic edge, with its verb.
-        flowchart.addLink(sanitizeId(source), sanitizeId(target), {})
+    // dotted: the semantic edges, with their verbs.
+    for (const edge of thread.edges) {
         flowchart.addLink(sanitizeId(edge.from), sanitizeId(edge.to), { text: edge.verb, stroke: 'dotted' })
     }
-    return render(flowchart, { sortNodes: true })
+    return render(flowchart)
 }
 
 export function chronological<Keys extends BaseKeys>(
@@ -63,10 +67,17 @@ export function chronological<Keys extends BaseKeys>(
     input: ChronologicalInput
 ): ChronologicalThread<Keys> {
     const complexity = { ...defaultChronologicalComplexity, ...input.complexity }
-    const root = chooseRoot(infograph)
+    const root = chooseRoot(infograph, input.cutoff)
+    // Prune nodes dated before the cutoff from the whole traversal. Undated nodes are
+    // timeless context (tools, actors) and are kept.
+    const withinCutoff = (node: InfographNodeKey<Keys>) => {
+        if (!input.cutoff) return true
+        const from = infograph.nodes.get(node)?.date?.from
+        return from === undefined || from.valueOf() >= input.cutoff.valueOf()
+    }
     const visitedGlobal = new Set<InfographNodeKey<Keys>>()
     const currentBranch = new Set<InfographNodeKey<Keys>>()
-    const output: TraversedEdge<Keys>[] = []
+    const output: InfographEdge<Keys>[] = []
     const edgeOrder = new Map(infograph.edges.map((edge, index) => [edge, index] as const))
 
     dfs(root, nodeComplexity(infograph.nodes.get(root)!, complexity))
@@ -82,6 +93,7 @@ export function chronological<Keys extends BaseKeys>(
 
         const candidates = incidentEdges(infograph, node)
             .filter(edge => !currentBranch.has(otherNode(edge, node)))
+            .filter(edge => withinCutoff(otherNode(edge, node)))
             .sort((a, b) => compareCandidates(infograph, node, edgeOrder, a, b))
 
         for (const edge of candidates) {
@@ -92,10 +104,7 @@ export function chronological<Keys extends BaseKeys>(
 
             const alreadyVisited = visitedGlobal.has(next)
 
-            output.push({
-                edge,
-                reversed: node === edge.to ? true : undefined,
-            })
+            output.push(edge)
 
             if (!alreadyVisited) {
                 dfs(next, nextCost)
@@ -106,11 +115,22 @@ export function chronological<Keys extends BaseKeys>(
     }
 }
 
-export function chooseRoot<Keys extends BaseKeys>(infograph: Infograph<Keys>): InfographNodeKey<Keys> {
-    const candidates = [...infograph.nodes.keys()]
+export function chooseRoot<Keys extends BaseKeys>(
+    infograph: Infograph<Keys>,
+    cutoff?: Date
+): InfographNodeKey<Keys> {
+    let candidates = [...infograph.nodes.keys()]
 
     if (candidates.length === 0) {
         throw new Error('Cannot choose chronological root from an empty infograph')
+    }
+
+    if (cutoff) {
+        const eligible = candidates.filter(node => {
+            const from = infograph.nodes.get(node)?.date?.from
+            return from !== undefined && from.valueOf() >= cutoff.valueOf()
+        })
+        if (eligible.length > 0) candidates = eligible
     }
 
     const inputOrder = new Map(candidates.map((node, index) => [node, index] as const))

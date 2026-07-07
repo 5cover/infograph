@@ -5,7 +5,9 @@ import type { Flowchart, RenderOptions } from 'mermaid-ast'
 
 // consistent across diagrams.
 export function sanitizeId(key: string): string {
-    return key.replaceAll(/\W/g, '-')
+    // Collapse each run of non-word chars to a single dash: a lone '-' is a safe id
+    // char, but '--'/'---' are Mermaid link operators and would be parsed as edges.
+    return key.replaceAll(/\W+/g, '-')
 }
 
 export function render(flowchart: Flowchart, options?: RenderOptions) {

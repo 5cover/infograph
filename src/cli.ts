@@ -45,12 +45,14 @@ program
     .addOption(new Option('--natural <number>', 'cost of natural complexity').argParser(parseNumber))
     .addOption(new Option('--contextual <number>', 'cost of contextual complexity').argParser(parseNumber))
     .addOption(new Option('--intertwined <number>', 'cost of intertwined complexity').argParser(parseNumber))
+    .addOption(new Option('--cutoff <date>', 'only root at a node dated on or after this date').argParser(parseDate))
     .action((file, options) => {
         const infograph = readInfograph(file)
         const complexity = getComplexityOptions(options)
         const thread = chronological(infograph, {
             budget: options.budget,
             complexity,
+            cutoff: options.cutoff,
         })
 
         emit(globalFormat(), thread, {
@@ -147,4 +149,12 @@ function parseNumber(value: string) {
         throw new InvalidArgumentError(`Expected a number, got '${value}'`)
     }
     return number
+}
+
+function parseDate(value: string) {
+    const date = new Date(value)
+    if (Number.isNaN(date.valueOf())) {
+        throw new InvalidArgumentError(`Expected a date, got '${value}'`)
+    }
+    return date
 }
