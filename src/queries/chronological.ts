@@ -1,5 +1,5 @@
 import { Flowchart } from 'mermaid-ast'
-import type { BaseKeys, Complexity, Infograph, InfographNode, InfographNodeKey } from '../types.js'
+import type { BaseKeys, Complexity, Infograph, InfographDate, InfographNode, InfographNodeKey } from '../types.js'
 import { render, sanitizeId } from '../mermaid.js'
 
 export type InfographEdge<Keys extends BaseKeys> = Infograph<Keys>['edges'][number]
@@ -14,51 +14,98 @@ export type ChronologicalInput = {
     cutoff?: Date
 }
 
+// A selected node with the graph quantities used/produced by the traversal. `parent`
+// is the DFS-tree parent — the tree is pure traversal structure (the solid layer) and
+// carries no verb; relationships live on the semantic edges below.
+export type ThreadStep<Keys extends BaseKeys> = {
+    node: InfographNodeKey<Keys>
+    date?: InfographDate
+    cost: number // cumulative path-cost (node + edge complexity) from the root
+    depth: number // depth in the DFS tree (root = 0)
+    parent?: InfographNodeKey<Keys> // DFS-tree parent (absent for the root)
+}
+
+// A relationship among selected nodes, in its true semantic direction.
+export type ThreadEdge<Keys extends BaseKeys> = {
+    from: InfographNodeKey<Keys>
+    to: InfographNodeKey<Keys>
+    verb: Keys['verb']
+}
+
+// A frontier edge: exactly one endpoint is in the thread. The excluded endpoint is a
+// Q/A handle — a place the presentation can branch into on demand.
+export type BoundaryHandle<Keys extends BaseKeys> = {
+    from: InfographNodeKey<Keys>
+    to: InfographNodeKey<Keys>
+    verb: Keys['verb']
+    external: InfographNodeKey<Keys> // the endpoint outside the thread
+    date?: InfographDate // date of the external node
+    reason: 'budget' | 'cutoff' // why it is outside: unaffordable, or dated before the cutoff
+    cost: number // marginal cost to include the external node
+}
+
 export type ChronologicalThread<Keys extends BaseKeys> = {
     root: InfographNodeKey<Keys>
-    // Edges in traversal (presentation) order. The traversal direction is not stored:
-    // one endpoint of each edge is always already visited when it is reached, so the
-    // reading order is recoverable from the sequence alone.
-    edges: InfographEdge<Keys>[]
+    budget: number
+    // Selected nodes in chronological presentation order (by date; undated last). The
+    // DFS discovery structure is preserved in each step's parent/depth, not the order.
+    steps: ThreadStep<Keys>[]
+    // Every relationship among selected nodes, in semantic direction (the dotted layer).
+    edges: ThreadEdge<Keys>[]
+    // Frontier edges to excluded nodes — the Q/A handles.
+    boundary: BoundaryHandle<Keys>[]
 }
 
 export const defaultChronologicalComplexity: Required<ChronologicalComplexity> = {
     simple: 1,
     natural: 2,
-    contextual: 4,
-    intertwined: 8,
+    contextual: 3,
+    intertwined: 4,
 }
 
-// Render a traversal thread as a Mermaid flowchart with two overlaid link layers.
-// The thread is a presentation order: a linear narrative read node by node. Solid
-// links are that reading path (each node to the next one discovered — an already-seen
-// node is never revisited), and dotted links are the traversed semantic edges carrying
-// the verb, which reveal how each newly-introduced node actually attaches to one seen
-// earlier. Node labels are prefixed with their 1-based position in the narrative.
+// Render a thread as a Mermaid flowchart with two link layers:
+//   • solid links  = the DFS tree (parent → child) — pure traversal structure, no verb,
+//     so the discovery hierarchy and backtracking are legible as tree shape;
+//   • dotted links = every relationship, in semantic direction with its verb (a tree
+//     edge appears both solid, for structure, and dotted, for its relationship);
+//   • node numbers = chronological presentation order (§3), with date and cumulative
+//     path-cost on the label (§5); boundary handles are external nodes reached by
+//     dotted edges labelled verb + reason + marginal cost.
 export function threadToMermaid<Keys extends BaseKeys>(thread: ChronologicalThread<Keys>): string {
-    const order = new Map<InfographNodeKey<Keys>, number>([[thread.root, 0]])
-    const appear = (key: InfographNodeKey<Keys>) => {
-        if (!order.has(key)) order.set(key, order.size)
-    }
-    // Nodes are discovered as edges are traversed; one endpoint of each edge is always
-    // already seen, so this yields the visitation (presentation) order.
-    for (const edge of thread.edges) {
-        appear(edge.from)
-        appear(edge.to)
-    }
-
-    const sequence = [...order.keys()]
     const flowchart = Flowchart.create('TD')
-    sequence.forEach((key, index) => flowchart.addNode(sanitizeId(key), `${index + 1} ${key}`))
-
-    // solid: the reading path through nodes in discovery order.
-    for (let i = 0; i + 1 < sequence.length; i++) {
-        flowchart.addLink(sanitizeId(sequence[i]), sanitizeId(sequence[i + 1]), {})
+    const day = (date?: InfographDate) => date?.from?.toISOString().split('T', 1)[0]
+    const detail = (parts: (string | undefined)[]) => {
+        const line = parts.filter(Boolean).join(' · ')
+        return line ? `<br>${line}` : ''
     }
-    // dotted: the semantic edges, with their verbs.
+
+    // Selected nodes, numbered in chronological order.
+    thread.steps.forEach((step, index) => {
+        flowchart.addNode(sanitizeId(step.node), `${index + 1} ${step.node}${detail([day(step.date), `c${step.cost}`])}`)
+    })
+
+    // solid: DFS tree edges (parent → child), unlabelled — traversal structure only.
+    for (const step of thread.steps) {
+        if (step.parent) flowchart.addLink(sanitizeId(step.parent), sanitizeId(step.node), {})
+    }
+
+    // dotted: every relationship among selected nodes, in semantic direction.
     for (const edge of thread.edges) {
         flowchart.addLink(sanitizeId(edge.from), sanitizeId(edge.to), { text: edge.verb, stroke: 'dotted' })
     }
+
+    // boundary: external handle nodes (round) reached by dotted edges.
+    const handles = new Map(thread.boundary.map(handle => [handle.external, handle.date]))
+    for (const [external, date] of handles) {
+        flowchart.addNode(sanitizeId(external), `${external}${detail([day(date)])}`, { shape: 'stadium' })
+    }
+    for (const handle of thread.boundary) {
+        flowchart.addLink(sanitizeId(handle.from), sanitizeId(handle.to), {
+            text: `${handle.verb} · +${handle.cost} ${handle.reason}`,
+            stroke: 'dotted',
+        })
+    }
+
     return render(flowchart)
 }
 
@@ -68,28 +115,69 @@ export function chronological<Keys extends BaseKeys>(
 ): ChronologicalThread<Keys> {
     const complexity = { ...defaultChronologicalComplexity, ...input.complexity }
     const root = chooseRoot(infograph, input.cutoff)
-    // Prune nodes dated before the cutoff from the whole traversal. Undated nodes are
-    // timeless context (tools, actors) and are kept.
+    // Prune only nodes whose range ends before the cutoff. A node that straddles the
+    // cutoff (starts before, ends on/after) overlaps the period and is kept, as are
+    // undated (timeless) nodes.
     const withinCutoff = (node: InfographNodeKey<Keys>) => {
         if (!input.cutoff) return true
-        const from = infograph.nodes.get(node)?.date?.from
-        return from === undefined || from.valueOf() >= input.cutoff.valueOf()
+        const date = infograph.nodes.get(node)?.date
+        return date === undefined || date.to.valueOf() >= input.cutoff.valueOf()
     }
-    const visitedGlobal = new Set<InfographNodeKey<Keys>>()
     const currentBranch = new Set<InfographNodeKey<Keys>>()
-    const output: InfographEdge<Keys>[] = []
     const edgeOrder = new Map(infograph.edges.map((edge, index) => [edge, index] as const))
 
-    dfs(root, nodeComplexity(infograph.nodes.get(root)!, complexity))
+    // Per selected node: cumulative path-cost, DFS depth, and DFS-tree parent. Map
+    // insertion order is the DFS discovery (pre-)order.
+    type Meta = { cost: number; depth: number; parent?: InfographNodeKey<Keys> }
+    const meta = new Map<InfographNodeKey<Keys>, Meta>()
 
-    return {
-        root,
-        edges: output,
-    }
+    meta.set(root, { cost: nodeComplexity(infograph.nodes.get(root)!, complexity), depth: 0 })
+    dfs(root)
 
-    function dfs(node: InfographNodeKey<Keys>, branchCost: number) {
-        visitedGlobal.add(node)
+    const selected = meta
+    const discovery = new Map([...meta.keys()].map((node, index) => [node, index] as const))
+
+    // §3: present the selected nodes in chronological order; the DFS structure lives in
+    // each step's parent/depth, not the ordering. Undated nodes sort last.
+    const steps: ThreadStep<Keys>[] = [...meta.entries()]
+        .map(([node, m]) => ({ node, date: infograph.nodes.get(node)?.date, ...m }))
+        .sort(
+            (a, b) =>
+                compareDates(a.date?.from, b.date?.from) ||
+                compareNumbers(discovery.get(a.node)!, discovery.get(b.node)!)
+        )
+
+    // Every relationship among selected nodes (the dotted layer).
+    const edges: ThreadEdge<Keys>[] = infograph.edges
+        .filter(edge => selected.has(edge.from) && selected.has(edge.to))
+        .map(edge => ({ from: edge.from, to: edge.to, verb: edge.verb }))
+
+    // §4: the edge boundary of the selected set — the Q/A handles.
+    const boundary: BoundaryHandle<Keys>[] = infograph.edges
+        .filter(edge => selected.has(edge.from) !== selected.has(edge.to))
+        .map(edge => {
+            const external = selected.has(edge.from) ? edge.to : edge.from
+            const node = infograph.nodes.get(external)!
+            const prunedByCutoff =
+                input.cutoff !== undefined &&
+                node.date !== undefined &&
+                node.date.to.valueOf() < input.cutoff.valueOf()
+            return {
+                from: edge.from,
+                to: edge.to,
+                verb: edge.verb,
+                external,
+                date: node.date,
+                reason: prunedByCutoff ? ('cutoff' as const) : ('budget' as const),
+                cost: cost(node, edge, complexity),
+            }
+        })
+
+    return { root, budget: input.budget, steps, edges, boundary }
+
+    function dfs(node: InfographNodeKey<Keys>) {
         currentBranch.add(node)
+        const branchCost = meta.get(node)!.cost
 
         const candidates = incidentEdges(infograph, node)
             .filter(edge => !currentBranch.has(otherNode(edge, node)))
@@ -101,14 +189,10 @@ export function chronological<Keys extends BaseKeys>(
             const nextCost = branchCost + cost(infograph.nodes.get(next)!, edge, complexity)
 
             if (nextCost > input.budget) continue
+            if (meta.has(next)) continue
 
-            const alreadyVisited = visitedGlobal.has(next)
-
-            output.push(edge)
-
-            if (!alreadyVisited) {
-                dfs(next, nextCost)
-            }
+            meta.set(next, { cost: nextCost, depth: meta.get(node)!.depth + 1, parent: node })
+            dfs(next)
         }
 
         currentBranch.delete(node)
