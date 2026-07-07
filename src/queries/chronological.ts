@@ -1,6 +1,6 @@
 import { Flowchart } from 'mermaid-ast'
 import type { BaseKeys, Complexity, Infograph, InfographNode, InfographNodeKey } from '../types.js'
-import { sanitizeId } from '../mermaid.js'
+import { render, sanitizeId } from '../mermaid.js'
 
 export type InfographEdge<Keys extends BaseKeys> = Infograph<Keys>['edges'][number]
 
@@ -28,10 +28,12 @@ export const defaultChronologicalComplexity: Required<ChronologicalComplexity> =
     intertwined: 8,
 }
 
-// Render a traversal thread as a Mermaid flowchart. Link arrows follow traversal
-// order (the DFS is bidirectional, so this can differ from the edge's semantic
-// direction); a semantically reversed relation is marked by prefixing its verb with
-// '<'. Node labels are prefixed with their 1-based position in the traversal.
+// Render a traversal thread as a Mermaid flowchart with two overlaid link layers:
+// solid links follow traversal order (the DFS backbone, which forms paths through the
+// graph), and dotted links are the semantic edges, carrying the verb. When a traversal
+// step went against the edge's semantic direction the dotted arrow points back against
+// the solid one — showing the reversal visually instead of marking it textually. Node
+// labels are prefixed with their 1-based position in the traversal.
 export function threadToMermaid<Keys extends BaseKeys>(thread: ChronologicalThread<Keys>): string {
     const order = new Map<InfographNodeKey<Keys>, number>([[thread.root, 0]])
     const appear = (key: InfographNodeKey<Keys>) => {
@@ -49,9 +51,11 @@ export function threadToMermaid<Keys extends BaseKeys>(thread: ChronologicalThre
     for (const { edge, reversed } of thread.edges) {
         const source = reversed ? edge.to : edge.from
         const target = reversed ? edge.from : edge.to
-        flowchart.addLink(sanitizeId(source), sanitizeId(target), { text: (reversed ? '<' : '') + edge.verb })
+        // solid: traversal order (backbone). dotted: the semantic edge, with its verb.
+        flowchart.addLink(sanitizeId(source), sanitizeId(target), {})
+        flowchart.addLink(sanitizeId(edge.from), sanitizeId(edge.to), { text: edge.verb, stroke: 'dotted' })
     }
-    return flowchart.render()
+    return render(flowchart, { sortNodes: true })
 }
 
 export function chronological<Keys extends BaseKeys>(

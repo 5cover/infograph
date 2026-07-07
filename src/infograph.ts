@@ -1,6 +1,6 @@
 import { Flowchart } from 'mermaid-ast'
 import type { BaseKeys, Infograph, InfographNodeKey } from './types.js'
-import { sanitizeId } from './mermaid.js'
+import { render, sanitizeId } from './mermaid.js'
 
 export type ToMermaidConfig<Keys extends BaseKeys> = {
     neutralVerb?: Keys['verb']
@@ -26,7 +26,7 @@ export function toMermaid<Keys extends BaseKeys>(
 ): string {
     const flowchart = Flowchart.create('TD')
     addInfograph(flowchart, infograph, config)
-    return flowchart.render()
+    return render(flowchart)
 }
 
 // Render several node groups as one flowchart, each group wrapped in its own Mermaid
@@ -42,7 +42,7 @@ export function toMermaidGrouped<Keys extends BaseKeys>(
         addInfograph(flowchart, subgraph(infograph, group.nodes), config)
         flowchart.createSubgraph(`scc_${index + 1}`, group.nodes.map(sanitizeId), group.title)
     })
-    return flowchart.render()
+    return render(flowchart)
 }
 
 function addInfograph<Keys extends BaseKeys>(
