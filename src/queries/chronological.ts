@@ -20,7 +20,8 @@ export type ChronologicalInput = {
 export type ThreadStep<Keys extends BaseKeys> = {
     node: InfographNodeKey<Keys>
     date?: InfographDate
-    cost: number // cumulative path-cost (node + edge complexity) from the root
+    nodeCost: number // complexity weight of this node
+    edgeCost?: number // complexity weight of the tree edge from the parent (absent for the root)
     depth: number // depth in the DFS tree (root = 0)
     parent?: InfographNodeKey<Keys> // DFS-tree parent (absent for the root)
 }
@@ -41,7 +42,8 @@ export type BoundaryHandle<Keys extends BaseKeys> = {
     external: InfographNodeKey<Keys> // the endpoint outside the thread
     date?: InfographDate // date of the external node
     reason: 'budget' | 'cutoff' // why it is outside: unaffordable, or dated before the cutoff
-    cost: number // marginal cost to include the external node
+    nodeCost: number // complexity weight of the external node
+    edgeCost: number // complexity weight of the boundary edge
 }
 
 export type ChronologicalThread<Keys extends BaseKeys> = {
@@ -78,10 +80,15 @@ export function threadToMermaid<Keys extends BaseKeys>(thread: ChronologicalThre
         const line = parts.filter(Boolean).join(' · ')
         return line ? `<br>${line}` : ''
     }
+    const weight = (nodeCost: number, edgeCost?: number) =>
+        `n${nodeCost}${edgeCost === undefined ? '' : ` e${edgeCost}`}`
 
     // Selected nodes, numbered in chronological order.
     thread.steps.forEach((step, index) => {
-        flowchart.addNode(sanitizeId(step.node), `${index + 1} ${step.node}${detail([day(step.date), `c${step.cost}`])}`)
+        flowchart.addNode(
+            sanitizeId(step.node),
+            `${index + 1} ${step.node}${detail([day(step.date), weight(step.nodeCost, step.edgeCost)])}`
+        )
     })
 
     // solid: DFS tree edges (parent → child), unlabelled — traversal structure only.
@@ -101,7 +108,7 @@ export function threadToMermaid<Keys extends BaseKeys>(thread: ChronologicalThre
     }
     for (const handle of thread.boundary) {
         flowchart.addLink(sanitizeId(handle.from), sanitizeId(handle.to), {
-            text: `${handle.verb} · +${handle.cost} ${handle.reason}`,
+            text: `${handle.verb} · ${weight(handle.nodeCost, handle.edgeCost)} ${handle.reason}`,
             stroke: 'dotted',
         })
     }
@@ -126,13 +133,16 @@ export function chronological<Keys extends BaseKeys>(
     const currentBranch = new Set<InfographNodeKey<Keys>>()
     const edgeOrder = new Map(infograph.edges.map((edge, index) => [edge, index] as const))
 
-    // Per selected node: cumulative path-cost, DFS depth, and DFS-tree parent. Map
-    // insertion order is the DFS discovery (pre-)order.
-    type Meta = { cost: number; depth: number; parent?: InfographNodeKey<Keys> }
+    // Per selected node: this node's weight, the weight of its tree edge (absent for the
+    // root), DFS depth, and DFS-tree parent. Map insertion order is the DFS discovery
+    // (pre-)order. The running path-total used for the budget is threaded through dfs(),
+    // not stored.
+    type Meta = { nodeCost: number; edgeCost?: number; depth: number; parent?: InfographNodeKey<Keys> }
     const meta = new Map<InfographNodeKey<Keys>, Meta>()
 
-    meta.set(root, { cost: nodeComplexity(infograph.nodes.get(root)!, complexity), depth: 0 })
-    dfs(root)
+    const rootCost = nodeComplexity(infograph.nodes.get(root)!, complexity)
+    meta.set(root, { nodeCost: rootCost, depth: 0 })
+    dfs(root, rootCost)
 
     const selected = meta
     const discovery = new Map([...meta.keys()].map((node, index) => [node, index] as const))
@@ -169,15 +179,16 @@ export function chronological<Keys extends BaseKeys>(
                 external,
                 date: node.date,
                 reason: prunedByCutoff ? ('cutoff' as const) : ('budget' as const),
-                cost: cost(node, edge, complexity),
+                nodeCost: nodeComplexity(node, complexity),
+                edgeCost: edgeComplexity(edge, complexity),
             }
         })
 
     return { root, budget: input.budget, steps, edges, boundary }
 
-    function dfs(node: InfographNodeKey<Keys>) {
+    function dfs(node: InfographNodeKey<Keys>, pathCost: number) {
         currentBranch.add(node)
-        const branchCost = meta.get(node)!.cost
+        const depth = meta.get(node)!.depth
 
         const candidates = incidentEdges(infograph, node)
             .filter(edge => !currentBranch.has(otherNode(edge, node)))
@@ -186,13 +197,14 @@ export function chronological<Keys extends BaseKeys>(
 
         for (const edge of candidates) {
             const next = otherNode(edge, node)
-            const nextCost = branchCost + cost(infograph.nodes.get(next)!, edge, complexity)
+            const nodeCost = nodeComplexity(infograph.nodes.get(next)!, complexity)
+            const edgeCost = edgeComplexity(edge, complexity)
 
-            if (nextCost > input.budget) continue
+            if (pathCost + nodeCost + edgeCost > input.budget) continue
             if (meta.has(next)) continue
 
-            meta.set(next, { cost: nextCost, depth: meta.get(node)!.depth + 1, parent: node })
-            dfs(next)
+            meta.set(next, { nodeCost, edgeCost, depth: depth + 1, parent: node })
+            dfs(next, pathCost + nodeCost + edgeCost)
         }
 
         currentBranch.delete(node)
@@ -274,19 +286,18 @@ function outgoingCount<Keys extends BaseKeys>(infograph: Infograph<Keys>, node: 
     return infograph.edges.filter(edge => edge.from === node).length
 }
 
-function cost<Keys extends BaseKeys>(
-    node: InfographNode<Keys>,
-    edge: InfographEdge<Keys>,
-    complexity: Required<ChronologicalComplexity>
-) {
-    return nodeComplexity(node, complexity) + complexity[edge.info.complexity.is]
-}
-
 function nodeComplexity<Keys extends BaseKeys>(
     node: InfographNode<Keys>,
     complexity: Required<ChronologicalComplexity>
 ) {
     return complexity[node.complexity.is]
+}
+
+function edgeComplexity<Keys extends BaseKeys>(
+    edge: InfographEdge<Keys>,
+    complexity: Required<ChronologicalComplexity>
+) {
+    return complexity[edge.info.complexity.is]
 }
 
 function compareDates(a: Date | undefined, b: Date | undefined) {
