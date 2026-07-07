@@ -1,23 +1,39 @@
-import { InvalidArgumentError, Option } from '@commander-js/extra-typings'
+import { InvalidArgumentError, Option, program } from '@commander-js/extra-typings'
 import { readFileSync } from 'node:fs'
 import * as YAML from 'js-yaml'
 import { parseInfograph } from './input/index.js'
-import { chronological, type ChronologicalComplexity } from './queries/chronological.js'
+import { chronological, threadToMermaid, type ChronologicalComplexity } from './queries/chronological.js'
 import { metrics } from './queries/metrics.js'
-import { stronglyConnectedComponents } from './queries/scc.js'
-import { subgraph, toMermaid } from './infograph.js'
+import { nonTrivialComponents, stronglyConnectedComponents } from './queries/scc.js'
+import { toMermaid, toMermaidGrouped } from './infograph.js'
 import type { BaseKeys, Infograph } from './types.js'
-import { program } from 'commander'
 
-program.name('infograph').description('Manipulate parsed infographs').version('1.0.0')
+type Format = 'json' | 'yaml' | 'mermaid'
+
+const asJson = (value: unknown) => JSON.stringify(value, null, 2)
+const asYaml = (value: unknown) => YAML.dump(value)
+
+program
+    .name('infograph')
+    .description('Manipulate parsed infographs')
+    .version('1.0.0')
+    .addOption(
+        new Option('-f, --format <format>', 'output format (pass before the subcommand)')
+            .choices(['json', 'yaml', 'mermaid'])
+            .default('json')
+    )
 
 program
     .command('parse')
-    .description('Parse an infograph file and output the flattened graph as JSON')
+    .description('Parse an infograph file and output the flattened graph')
     .argument('<file>', 'YAML or JSON infograph file')
     .action(file => {
         const infograph = readInfograph(file)
-        writeJson(toJsonInfograph(infograph))
+        emit(globalFormat(), infograph, {
+            json: g => asJson(toJsonInfograph(g)),
+            yaml: g => asYaml(toJsonInfograph(g)),
+            mermaid: g => toMermaid(g),
+        })
     })
 
 program
@@ -37,7 +53,11 @@ program
             complexity,
         })
 
-        writeJson(thread)
+        emit(globalFormat(), thread, {
+            json: asJson,
+            yaml: asYaml,
+            mermaid: threadToMermaid,
+        })
     })
 
 program
@@ -46,28 +66,53 @@ program
     .argument('<file>', 'YAML or JSON infograph file')
     .action(file => {
         const infograph = readInfograph(file)
-        writeJson(metrics(infograph))
+        emit(globalFormat(), metrics(infograph), { json: asJson, yaml: asYaml }, asJson)
     })
 
 program
     .command('scc')
-    .description('Render each strongly connected component as a Mermaid subgraph')
+    .description('Display the non-trivial strongly connected components of an infograph')
     .argument('<file>', 'YAML or JSON infograph file')
     .action(file => {
         const infograph = readInfograph(file)
-        const components = stronglyConnectedComponents(infograph)
-            .filter(c => c.length > 1)
-            .sort((a, b) => b.length - a.length)
+        const groups = nonTrivialComponents(infograph, stronglyConnectedComponents(infograph)).sort(
+            (a, b) => b.length - a.length
+        )
 
-        components.forEach((component, index) => {
-            console.log(`\n### SCC ${index + 1} — ${component.length} node${component.length === 1 ? '' : 's'}\n`)
-            console.log('```mermaid')
-            console.log(toMermaid(subgraph(infograph, component)))
-            console.log('```')
+        emit(globalFormat(), groups, {
+            json: asJson,
+            yaml: asYaml,
+            mermaid: g =>
+                toMermaidGrouped(
+                    infograph,
+                    g.map((component, index) => ({
+                        title: `SCC ${index + 1} — ${component.length} nodes`,
+                        nodes: component,
+                    }))
+                ),
         })
     })
 
 program.parse()
+
+function globalFormat(): Format {
+    return (program.opts() as { format: Format }).format
+}
+
+function emit<T>(
+    format: Format,
+    value: T,
+    handlers: Partial<Record<Format, (value: T) => string>>,
+    fallback?: (value: T) => string
+): void {
+    const handler = handlers[format] ?? fallback
+    if (!handler) {
+        throw new InvalidArgumentError(
+            `--format ${format} is not supported by this command (supported: ${Object.keys(handlers).join(', ')})`
+        )
+    }
+    console.log(handler(value))
+}
 
 function readInfograph(file: string) {
     return parseInfograph(YAML.load(readFileSync(file, 'utf8')))
@@ -102,8 +147,4 @@ function parseNumber(value: string) {
         throw new InvalidArgumentError(`Expected a number, got '${value}'`)
     }
     return number
-}
-
-function writeJson(value: unknown) {
-    console.log(JSON.stringify(value, null, 2))
 }

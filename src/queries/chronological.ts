@@ -1,4 +1,6 @@
+import { Flowchart } from 'mermaid-ast'
 import type { BaseKeys, Complexity, Infograph, InfographNode, InfographNodeKey } from '../types.js'
+import { sanitizeId } from '../mermaid.js'
 
 export type InfographEdge<Keys extends BaseKeys> = Infograph<Keys>['edges'][number]
 
@@ -24,6 +26,32 @@ export const defaultChronologicalComplexity: Required<ChronologicalComplexity> =
     natural: 2,
     contextual: 4,
     intertwined: 8,
+}
+
+// Render a traversal thread as a Mermaid flowchart. Link arrows follow traversal
+// order (the DFS is bidirectional, so this can differ from the edge's semantic
+// direction); a semantically reversed relation is marked by prefixing its verb with
+// '<'. Node labels are prefixed with their 1-based position in the traversal.
+export function threadToMermaid<Keys extends BaseKeys>(thread: ChronologicalThread<Keys>): string {
+    const order = new Map<InfographNodeKey<Keys>, number>([[thread.root, 0]])
+    const appear = (key: InfographNodeKey<Keys>) => {
+        if (!order.has(key)) order.set(key, order.size)
+    }
+    for (const { edge, reversed } of thread.edges) {
+        appear(reversed ? edge.to : edge.from)
+        appear(reversed ? edge.from : edge.to)
+    }
+
+    const flowchart = Flowchart.create('TD')
+    for (const [key, index] of order) {
+        flowchart.addNode(sanitizeId(key), `${index + 1} ${key}`)
+    }
+    for (const { edge, reversed } of thread.edges) {
+        const source = reversed ? edge.to : edge.from
+        const target = reversed ? edge.from : edge.to
+        flowchart.addLink(sanitizeId(source), sanitizeId(target), { text: (reversed ? '<' : '') + edge.verb })
+    }
+    return flowchart.render()
 }
 
 export function chronological<Keys extends BaseKeys>(

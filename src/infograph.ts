@@ -1,4 +1,6 @@
+import { Flowchart } from 'mermaid-ast'
 import type { BaseKeys, Infograph, InfographNodeKey } from './types.js'
+import { sanitizeId } from './mermaid.js'
 
 export type ToMermaidConfig<Keys extends BaseKeys> = {
     neutralVerb?: Keys['verb']
@@ -22,26 +24,38 @@ export function toMermaid<Keys extends BaseKeys>(
     infograph: Infograph<Keys>,
     config: ToMermaidConfig<BaseKeys> = {}
 ): string {
-    const lines = ['flowchart TD']
+    const flowchart = Flowchart.create('TD')
+    addInfograph(flowchart, infograph, config)
+    return flowchart.render()
+}
 
+// Render several node groups as one flowchart, each group wrapped in its own Mermaid
+// subgraph showing only the edges induced within that group. Groups are expected to be
+// disjoint (e.g. strongly connected components), so no node is added twice.
+export function toMermaidGrouped<Keys extends BaseKeys>(
+    infograph: Infograph<Keys>,
+    groups: { title: string; nodes: InfographNodeKey<Keys>[] }[],
+    config: ToMermaidConfig<BaseKeys> = {}
+): string {
+    const flowchart = Flowchart.create('TD')
+    groups.forEach((group, index) => {
+        addInfograph(flowchart, subgraph(infograph, group.nodes), config)
+        flowchart.createSubgraph(`scc_${index + 1}`, group.nodes.map(sanitizeId), group.title)
+    })
+    return flowchart.render()
+}
+
+function addInfograph<Keys extends BaseKeys>(
+    flowchart: Flowchart,
+    infograph: Infograph<Keys>,
+    config: ToMermaidConfig<BaseKeys>
+) {
     for (const [key, node] of infograph.nodes.entries()) {
-        lines.push(
-            `${nodeId(key)}["${escapeMermaidText(key + (node.date?.from ? '<br>' + node.date?.from.toISOString().split('T', 1)[0] : ''))}"]`
-        )
+        const date = node.date?.from ? '<br>' + node.date.from.toISOString().split('T', 1)[0] : ''
+        flowchart.addNode(sanitizeId(key), key + date)
     }
 
     for (const edge of infograph.edges) {
-        const label = edge.verb === config.neutralVerb ? '' : `--"${escapeMermaidText(edge.verb)}"`
-        lines.push(`${nodeId(edge.from)}${label}-->${nodeId(edge.to)}`)
+        flowchart.addLink(sanitizeId(edge.from), sanitizeId(edge.to), edge.verb === config.neutralVerb ? {} : { text: edge.verb })
     }
-
-    return lines.join('\n')
-}
-
-function nodeId(key: string) {
-    return key.replace(/[^\w]/g, '_')
-}
-
-function escapeMermaidText(text: string) {
-    return text.replace(/\\/g, '\\\\').replace(/"/g, '\\"')
 }

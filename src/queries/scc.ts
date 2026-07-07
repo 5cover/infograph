@@ -1,4 +1,4 @@
-import type { BaseKeys, Infograph, InfographNodeKey } from '../types'
+import type { BaseKeys, Infograph, InfographNodeKey } from '../types.js'
 
 // Strongly connected components via Tarjan's algorithm. Edges are followed by
 // direction, so an SCC of more than one node means those nodes are mutually
@@ -53,4 +53,17 @@ export function stronglyConnectedComponents<Keys extends BaseKeys>(
         }
         components.push(component)
     }
+}
+
+// Keep only components that contain a cycle: more than one node, or a single node
+// with a self-loop. Matches the "non-trivial" notion reported by the metrics query.
+export function nonTrivialComponents<Keys extends BaseKeys>(
+    infograph: Infograph<Keys>,
+    components: InfographNodeKey<Keys>[][]
+): InfographNodeKey<Keys>[][] {
+    const selfLooped = new Set<InfographNodeKey<Keys>>()
+    for (const edge of infograph.edges) {
+        if (edge.from === edge.to) selfLooped.add(edge.from)
+    }
+    return components.filter(component => component.length > 1 || selfLooped.has(component[0]))
 }
