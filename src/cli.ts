@@ -1,8 +1,8 @@
 import { InvalidArgumentError, Option, program } from '@commander-js/extra-typings'
 import { readFileSync } from 'node:fs'
-import * as YAML from 'js-yaml'
+import * as YAML from 'yaml'
 import { parseInfograph } from './input/index.js'
-import { chronological, threadToMermaid, type ChronologicalComplexity } from './queries/chronological.js'
+import { chronological, threadToMermaid, threadToNotes, type ChronologicalComplexity } from './queries/chronological.js'
 import { metrics } from './queries/metrics.js'
 import { nonTrivialComponents, stronglyConnectedComponents } from './queries/scc.js'
 import { toMermaid, toMermaidGrouped } from './infograph.js'
@@ -11,7 +11,7 @@ import type { BaseKeys, Infograph } from './types.js'
 type Format = 'json' | 'yaml' | 'mermaid'
 
 const asJson = (value: unknown) => JSON.stringify(value, null, 2)
-const asYaml = (value: unknown) => YAML.dump(value)
+const asYaml = (value: unknown) => new YAML.Document(value).toString({ nullStr: '', lineWidth: 0, singleQuote: true })
 
 program
     .name('infograph')
@@ -46,6 +46,7 @@ program
     .addOption(new Option('--contextual <number>', 'cost of contextual complexity').argParser(parseNumber))
     .addOption(new Option('--intertwined <number>', 'cost of intertwined complexity').argParser(parseNumber))
     .addOption(new Option('--cutoff <date>', 'only root at a node dated on or after this date').argParser(parseDate))
+    .addOption(new Option('--notes', 'render json/yaml as a readable presentation-notes document'))
     .action((file, options) => {
         const infograph = readInfograph(file)
         const complexity = getComplexityOptions(options)
@@ -56,8 +57,8 @@ program
         })
 
         emit(globalFormat(), thread, {
-            json: asJson,
-            yaml: asYaml,
+            json: t => asJson(options.notes ? threadToNotes(infograph, t) : t),
+            yaml: t => asYaml(options.notes ? threadToNotes(infograph, t) : t),
             mermaid: threadToMermaid,
         })
     })
@@ -117,7 +118,7 @@ function emit<T>(
 }
 
 function readInfograph(file: string) {
-    return parseInfograph(YAML.load(readFileSync(file, 'utf8')))
+    return parseInfograph(YAML.parse(readFileSync(file, 'utf8')))
 }
 
 function toJsonInfograph<Keys extends BaseKeys>(infograph: Infograph<Keys>) {

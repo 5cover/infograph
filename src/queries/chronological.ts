@@ -116,6 +116,159 @@ export function threadToMermaid<Keys extends BaseKeys>(thread: ChronologicalThre
     return render(flowchart)
 }
 
+// Format a cost as "<after>=<before>+<edge>+<node>" — a terse, locally-readable decomposition
+// of the running path total (after = before + incoming edge + node). Single source for the
+// notation documented in the notes' `format.cost`.
+function formatCost(before: number, edge: number, node: number): string {
+    return `${before + edge + node}=${before}+${edge}+${node}`
+}
+
+// Render a thread as a presentation-notes document (for json/yaml) — a deeply nested,
+// read-only structure meant for reading, not parsing back. One section per numbered step,
+// nested by the DFS tree, each with its node info and `departures`/`arrivals` (every semantic
+// edge, grouped by verb) plus boundary handles. Follows the traversal-first 1-explanation rule:
+// a traversal node's info appears only at its own step; a boundary node's info and each edge's
+// info appear once, at first appearance in document order. Needs the infograph for the node and
+// edge payloads the thread does not carry.
+export function threadToNotes<Keys extends BaseKeys>(
+    infograph: Infograph<Keys>,
+    thread: ChronologicalThread<Keys>
+): Record<string, unknown> {
+    const numberOf = new Map(thread.steps.map((step, index) => [step.node, index + 1] as const))
+    const stepByNode = new Map(thread.steps.map(step => [step.node, step] as const))
+    const label = (node: InfographNodeKey<Keys>) => `${numberOf.get(node)} ${node}`
+
+    // Cumulative path-cost, memoized over the DFS-tree parent chain (steps are date-sorted, not
+    // parent-before-child, so recurse). Root: just its node weight; else parent's total + edge + node.
+    const cumulativeCache = new Map<InfographNodeKey<Keys>, number>()
+    const cumulative = (node: InfographNodeKey<Keys>): number => {
+        const cached = cumulativeCache.get(node)
+        if (cached !== undefined) return cached
+        const step = stepByNode.get(node)!
+        const value =
+            step.parent === undefined ? step.nodeCost : cumulative(step.parent) + (step.edgeCost ?? 0) + step.nodeCost
+        cumulativeCache.set(node, value)
+        return value
+    }
+
+    const verbOrder = new Map(Object.keys(infograph.domain.verb).map((verb, index) => [verb, index] as const))
+    const edgeInfoOf = (from: InfographNodeKey<Keys>, verb: Keys['verb'], to: InfographNodeKey<Keys>) =>
+        infograph.edges.find(edge => edge.from === from && edge.verb === verb && edge.to === to)?.info
+
+    // First-appearance bookkeeping, consumed strictly in document order (see emitStep's key order).
+    const seenEdges = new Set<string>()
+    const explainedBoundary = new Set<InfographNodeKey<Keys>>()
+    const edgeKey = (from: string, verb: string, to: string) => `${from} ${verb} ${to}`
+
+    const children = (node: InfographNodeKey<Keys>) =>
+        thread.steps.filter(step => step.parent === node).sort((a, b) => numberOf.get(a.node)! - numberOf.get(b.node)!)
+
+    type Item =
+        | {
+              kind: 'internal'
+              from: InfographNodeKey<Keys>
+              to: InfographNodeKey<Keys>
+              verb: Keys['verb']
+              other: InfographNodeKey<Keys>
+          }
+        | { kind: 'boundary'; handle: BoundaryHandle<Keys> }
+
+    // Within a verb group: traversal entries first (by step number), then boundary (by date, key).
+    const compareItems = (a: Item, b: Item): number => {
+        const rank = (item: Item) => (item.kind === 'internal' ? 0 : 1)
+        if (rank(a) !== rank(b)) return rank(a) - rank(b)
+        if (a.kind === 'internal' && b.kind === 'internal') return numberOf.get(a.other)! - numberOf.get(b.other)!
+        if (a.kind === 'boundary' && b.kind === 'boundary') {
+            return (
+                compareDates(a.handle.date?.from, b.handle.date?.from) ||
+                (a.handle.external < b.handle.external ? -1 : a.handle.external > b.handle.external ? 1 : 0)
+            )
+        }
+        return 0
+    }
+
+    // Outgoing (dir='out') or incoming (dir='in') edges of a node: every internal edge + boundary
+    // handle in that direction, grouped by verb, verb groups in domain-declaration order.
+    const edgeSection = (node: InfographNodeKey<Keys>, dir: 'out' | 'in') => {
+        const items: Item[] = []
+        for (const edge of thread.edges) {
+            if (dir === 'out' ? edge.from === node : edge.to === node) {
+                items.push({ kind: 'internal', from: edge.from, to: edge.to, verb: edge.verb, other: dir === 'out' ? edge.to : edge.from })
+            }
+        }
+        for (const handle of thread.boundary) {
+            if (dir === 'out' ? handle.from === node : handle.to === node) items.push({ kind: 'boundary', handle })
+        }
+        if (items.length === 0) return undefined
+
+        const byVerb = new Map<Keys['verb'], Item[]>()
+        for (const item of items) {
+            const verb = item.kind === 'internal' ? item.verb : item.handle.verb
+            const group = byVerb.get(verb)
+            if (group) group.push(item)
+            else byVerb.set(verb, [item])
+        }
+
+        const section: Record<string, unknown> = {}
+        for (const verb of [...byVerb.keys()].sort((a, b) => (verbOrder.get(a) ?? 0) - (verbOrder.get(b) ?? 0))) {
+            const entries: Record<string, unknown> = {}
+            for (const item of byVerb.get(verb)!.sort(compareItems)) {
+                if (item.kind === 'internal') {
+                    const body: Record<string, unknown> = {}
+                    const key = edgeKey(item.from, item.verb, item.to)
+                    if (!seenEdges.has(key)) {
+                        seenEdges.add(key)
+                        const info = edgeInfoOf(item.from, item.verb, item.to)
+                        if (info) body.with = info
+                    }
+                    // Traversal node: never explained here — referenced by number, body empty if the edge was seen.
+                    entries[label(item.other)] = Object.keys(body).length ? body : null
+                } else {
+                    const handle = item.handle
+                    const body: Record<string, unknown> = {
+                        boundary: { for: handle.reason, cost: formatCost(cumulative(node), handle.edgeCost, handle.nodeCost) },
+                    }
+                    const key = edgeKey(handle.from, handle.verb, handle.to)
+                    if (!seenEdges.has(key)) {
+                        seenEdges.add(key)
+                        const info = edgeInfoOf(handle.from, handle.verb, handle.to)
+                        if (info) body.with = info
+                    }
+                    if (!explainedBoundary.has(handle.external)) {
+                        explainedBoundary.add(handle.external)
+                        const payload = infograph.nodes.get(handle.external)
+                        if (payload) body.info = payload
+                    }
+                    entries[handle.external] = body
+                }
+            }
+            section[verb] = entries
+        }
+        return section
+    }
+
+    const emitStep = (node: InfographNodeKey<Keys>): Record<string, unknown> => {
+        const step = stepByNode.get(node)!
+        const obj: Record<string, unknown> = {
+            with: { cost: formatCost(step.parent ? cumulative(step.parent) : 0, step.edgeCost ?? 0, step.nodeCost) },
+        }
+        const payload = infograph.nodes.get(node)
+        if (payload) obj.info = payload
+        const departures = edgeSection(node, 'out')
+        if (departures) obj.departures = departures
+        const arrivals = edgeSection(node, 'in')
+        if (arrivals) obj.arrivals = arrivals
+        for (const child of children(node)) obj[label(child.node)] = emitStep(child.node)
+        return obj
+    }
+
+    return {
+        info: { root: thread.root, budget: thread.budget },
+        format: { cost: '(cost after)=(cost before)+(cost of incoming edge)+(cost of node)' },
+        [label(thread.root)]: emitStep(thread.root),
+    }
+}
+
 export function chronological<Keys extends BaseKeys>(
     infograph: Infograph<Keys>,
     input: ChronologicalInput
