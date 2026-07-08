@@ -125,14 +125,17 @@ function formatCost(before: number, edge: number, node: number): string {
 
 // Render a thread as a presentation-notes document (for json/yaml) — a deeply nested,
 // read-only structure meant for reading, not parsing back. One section per numbered step,
-// nested by the DFS tree, each with its node info and `departures`/`arrivals` (every semantic
+// nested by the DFS tree, each with its node info and `->` for outgoing/`<-` for incoming (every semantic
 // edge, grouped by verb) plus boundary handles. Follows the traversal-first 1-explanation rule:
 // a traversal node's info appears only at its own step; a boundary node's info and each edge's
 // info appear once, at first appearance in document order. Needs the infograph for the node and
 // edge payloads the thread does not carry.
 export function threadToNotes<Keys extends BaseKeys>(
     infograph: Infograph<Keys>,
-    thread: ChronologicalThread<Keys>
+    thread: ChronologicalThread<Keys>,
+    config?: {
+        copyNodeEdgesInfos?: boolean
+    }
 ): Record<string, unknown> {
     const numberOf = new Map(thread.steps.map((step, index) => [step.node, index + 1] as const))
     const stepByNode = new Map(thread.steps.map(step => [step.node, step] as const))
@@ -181,7 +184,9 @@ export function threadToNotes<Keys extends BaseKeys>(
         if (a.kind === 'boundary' && b.kind === 'boundary') {
             return (
                 compareDates(a.handle.date?.from, b.handle.date?.from) ||
-                (a.handle.external < b.handle.external ? -1 : a.handle.external > b.handle.external ? 1 : 0)
+                (a.handle.external < b.handle.external ? -1
+                : a.handle.external > b.handle.external ? 1
+                : 0)
             )
         }
         return 0
@@ -193,7 +198,13 @@ export function threadToNotes<Keys extends BaseKeys>(
         const items: Item[] = []
         for (const edge of thread.edges) {
             if (dir === 'out' ? edge.from === node : edge.to === node) {
-                items.push({ kind: 'internal', from: edge.from, to: edge.to, verb: edge.verb, other: dir === 'out' ? edge.to : edge.from })
+                items.push({
+                    kind: 'internal',
+                    from: edge.from,
+                    to: edge.to,
+                    verb: edge.verb,
+                    other: dir === 'out' ? edge.to : edge.from,
+                })
             }
         }
         for (const handle of thread.boundary) {
@@ -216,7 +227,7 @@ export function threadToNotes<Keys extends BaseKeys>(
                 if (item.kind === 'internal') {
                     const body: Record<string, unknown> = {}
                     const key = edgeKey(item.from, item.verb, item.to)
-                    if (!seenEdges.has(key)) {
+                    if (config?.copyNodeEdgesInfos && !seenEdges.has(key)) {
                         seenEdges.add(key)
                         const info = edgeInfoOf(item.from, item.verb, item.to)
                         if (info) body.with = info
@@ -226,15 +237,18 @@ export function threadToNotes<Keys extends BaseKeys>(
                 } else {
                     const handle = item.handle
                     const body: Record<string, unknown> = {
-                        boundary: { for: handle.reason, cost: formatCost(cumulative(node), handle.edgeCost, handle.nodeCost) },
+                        boundary: {
+                            for: handle.reason,
+                            cost: formatCost(cumulative(node), handle.edgeCost, handle.nodeCost),
+                        },
                     }
                     const key = edgeKey(handle.from, handle.verb, handle.to)
-                    if (!seenEdges.has(key)) {
+                    if (config?.copyNodeEdgesInfos && !seenEdges.has(key)) {
                         seenEdges.add(key)
                         const info = edgeInfoOf(handle.from, handle.verb, handle.to)
                         if (info) body.with = info
                     }
-                    if (!explainedBoundary.has(handle.external)) {
+                    if (config?.copyNodeEdgesInfos && !explainedBoundary.has(handle.external)) {
                         explainedBoundary.add(handle.external)
                         const payload = infograph.nodes.get(handle.external)
                         if (payload) body.info = payload
@@ -253,19 +267,47 @@ export function threadToNotes<Keys extends BaseKeys>(
             with: { cost: formatCost(step.parent ? cumulative(step.parent) : 0, step.edgeCost ?? 0, step.nodeCost) },
         }
         const payload = infograph.nodes.get(node)
-        if (payload) obj.info = payload
-        const departures = edgeSection(node, 'out')
-        if (departures) obj.departures = departures
-        const arrivals = edgeSection(node, 'in')
-        if (arrivals) obj.arrivals = arrivals
+        if (config?.copyNodeEdgesInfos && payload) obj.info = payload
+        const outgoing = edgeSection(node, 'out')
+        if (outgoing) obj['->'] = outgoing
+        const incoming = edgeSection(node, 'in')
+        if (incoming) obj['<-'] = incoming
         for (const child of children(node)) obj[label(child.node)] = emitStep(child.node)
         return obj
     }
 
     return {
         info: { root: thread.root, budget: thread.budget },
-        format: { cost: '(cost after)=(cost before)+(cost of incoming edge)+(cost of node)' },
+        format: {
+            cost: '(cost after)=(cost before)+(cost of incoming edge)+(cost of node)',
+            '->': 'outgoing edges',
+            '<-': 'incoming edges',
+        },
         [label(thread.root)]: emitStep(thread.root),
+    }
+}
+
+// Summary statistics of a thread, for comparing projections of the same infograph across
+// budgets. Derived entirely from the thread.
+export type ThreadStats = {
+    nodes: number // traversed node count
+    edges: number // internal relationships among traversed nodes
+    boundaryNodes: number // distinct external handle nodes
+    boundaryEdges: number // frontier edges
+    maxDepth: number // deepest DFS depth reached (root = 0)
+    reasons: { budget: number; cutoff: number } // frontier edges split by why they're outside
+}
+
+export function threadStats<Keys extends BaseKeys>(thread: ChronologicalThread<Keys>): ThreadStats {
+    const reasons = { budget: 0, cutoff: 0 }
+    for (const handle of thread.boundary) reasons[handle.reason]++
+    return {
+        nodes: thread.steps.length,
+        edges: thread.edges.length,
+        boundaryNodes: new Set(thread.boundary.map(handle => handle.external)).size,
+        boundaryEdges: thread.boundary.length,
+        maxDepth: thread.steps.reduce((max, step) => Math.max(max, step.depth), 0),
+        reasons,
     }
 }
 
@@ -322,9 +364,7 @@ export function chronological<Keys extends BaseKeys>(
             const external = selected.has(edge.from) ? edge.to : edge.from
             const node = infograph.nodes.get(external)!
             const prunedByCutoff =
-                input.cutoff !== undefined &&
-                node.date !== undefined &&
-                node.date.to.valueOf() < input.cutoff.valueOf()
+                input.cutoff !== undefined && node.date !== undefined && node.date.to.valueOf() < input.cutoff.valueOf()
             return {
                 from: edge.from,
                 to: edge.to,
@@ -364,10 +404,7 @@ export function chronological<Keys extends BaseKeys>(
     }
 }
 
-export function chooseRoot<Keys extends BaseKeys>(
-    infograph: Infograph<Keys>,
-    cutoff?: Date
-): InfographNodeKey<Keys> {
+export function chooseRoot<Keys extends BaseKeys>(infograph: Infograph<Keys>, cutoff?: Date): InfographNodeKey<Keys> {
     let candidates = [...infograph.nodes.keys()]
 
     if (candidates.length === 0) {

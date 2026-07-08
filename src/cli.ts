@@ -2,7 +2,14 @@ import { InvalidArgumentError, Option, program } from '@commander-js/extra-typin
 import { readFileSync } from 'node:fs'
 import * as YAML from 'yaml'
 import { parseInfograph } from './input/index.js'
-import { chronological, threadToMermaid, threadToNotes, type ChronologicalComplexity } from './queries/chronological.js'
+import {
+    chronological,
+    threadStats,
+    threadToMermaid,
+    threadToNotes,
+    type ChronologicalComplexity,
+    type ChronologicalThread,
+} from './queries/chronological.js'
 import { metrics } from './queries/metrics.js'
 import { nonTrivialComponents, stronglyConnectedComponents } from './queries/scc.js'
 import { toMermaid, toMermaidGrouped } from './infograph.js'
@@ -41,8 +48,12 @@ program
         })
     })
 
-program
+const chronologicalCmd = program
     .command('chronological')
+    .description('Chronological query profiles (see the run and stats subcommands)')
+
+chronologicalCmd
+    .command('run')
     .description('Run the chronological query profile on an infograph file')
     .argument('<file>', 'YAML or JSON infograph file')
     .addOption(new Option('-b, --budget <number>', 'branch complexity budget').default(20).argParser(parseNumber))
@@ -61,11 +72,41 @@ program
             cutoff: options.cutoff,
         })
 
+        const notes = (t: ChronologicalThread<BaseKeys>) => (options.notes ? threadToNotes(infograph, t) : t)
+
         emit(globalFormat(), thread, {
-            json: t => asJson(options.notes ? threadToNotes(infograph, t) : t),
-            yaml: t => asYaml(options.notes ? threadToNotes(infograph, t) : t),
+            json: t => asJson(notes(t)),
+            yaml: t => asYaml(notes(t)),
             mermaid: threadToMermaid,
         })
+    })
+
+chronologicalCmd
+    .command('stats')
+    .description('Compare chronological projections across multiple budgets')
+    .argument('<file>', 'YAML or JSON infograph file')
+    .addOption(
+        new Option('-b, --budget <number>', 'branch complexity budget (repeatable)')
+            .argParser(collectNumber)
+            .default([] as number[])
+    )
+    .addOption(new Option('--simple <number>', 'cost of simple complexity').argParser(parseNumber))
+    .addOption(new Option('--natural <number>', 'cost of natural complexity').argParser(parseNumber))
+    .addOption(new Option('--contextual <number>', 'cost of contextual complexity').argParser(parseNumber))
+    .addOption(new Option('--intertwined <number>', 'cost of intertwined complexity').argParser(parseNumber))
+    .addOption(new Option('--cutoff <date>', 'only root at a node dated on or after this date').argParser(parseDate))
+    .action((file, options) => {
+        const infograph = readInfograph(file)
+        const complexity = getComplexityOptions(options)
+        const budgets = options.budget.length ? options.budget : [20]
+
+        const rows = budgets.map(budget => {
+            const thread = chronological(infograph, { budget, complexity, cutoff: options.cutoff })
+            const stats = threadStats(thread)
+            return { budget, ...stats, coverage: round(stats.nodes / infograph.nodes.size) }
+        })
+
+        emit(globalFormat(), rows, { json: asJson, yaml: asYaml }, asJson)
     })
 
 program
@@ -155,6 +196,14 @@ function parseNumber(value: string) {
         throw new InvalidArgumentError(`Expected a number, got '${value}'`)
     }
     return number
+}
+
+function collectNumber(value: string, previous: number[]) {
+    return [...previous, parseNumber(value)]
+}
+
+function round(value: number) {
+    return Number.isFinite(value) ? Math.round(value * 100) / 100 : 0
 }
 
 function parseDate(value: string) {
