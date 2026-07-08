@@ -7,7 +7,6 @@
     "strictNullChecks": true,
     "strictFunctionTypes": true,
     "strict": true,
-    "sourceMap": true,
     "types": ["node"],
     "lib": ["ESNext"],
     "verbatimModuleSyntax": true

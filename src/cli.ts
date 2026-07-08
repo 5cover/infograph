@@ -11,7 +11,12 @@ import type { BaseKeys, Infograph } from './types.js'
 type Format = 'json' | 'yaml' | 'mermaid'
 
 const asJson = (value: unknown) => JSON.stringify(value, null, 2)
-const asYaml = (value: unknown) => new YAML.Document(value).toString({ nullStr: '', lineWidth: 0, singleQuote: true })
+const asYaml = (value: unknown) =>
+    new YAML.Document(value, { aliasDuplicateObjects: false }).toString({
+        nullStr: '',
+        lineWidth: 0,
+        singleQuote: true,
+    })
 
 program
     .name('infograph')
