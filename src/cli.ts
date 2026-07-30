@@ -14,12 +14,17 @@ import { metrics } from './queries/metrics.js'
 import { nonTrivialComponents, stronglyConnectedComponents } from './queries/scc.js'
 import { toMermaid, toMermaidGrouped } from './infograph.js'
 import type { BaseKeys, Infograph } from './types.js'
+import { terseDate } from './terseDate.js';
 
 type Format = 'json' | 'yaml' | 'mermaid'
 
 const asJson = (value: unknown) => JSON.stringify(value, null, 2)
 const asYaml = (value: unknown) =>
-    new YAML.Document(value, { aliasDuplicateObjects: false }).toString({
+    new YAML.Document(
+        value,
+        (key: unknown, value: unknown) => (value instanceof Date ? terseDate(value) : value),
+        { aliasDuplicateObjects: false }
+    ).toString({
         nullStr: '',
         lineWidth: 0,
         singleQuote: true,
