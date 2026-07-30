@@ -183,7 +183,7 @@ export function threadToNotes<Keys extends BaseKeys>(
         if (a.kind === 'internal' && b.kind === 'internal') return numberOf.get(a.other)! - numberOf.get(b.other)!
         if (a.kind === 'boundary' && b.kind === 'boundary') {
             return (
-                compareDates(a.handle.date?.from, b.handle.date?.from) ||
+                compareDates(a.handle.date, b.handle.date) ||
                 (a.handle.external < b.handle.external ? -1
                 : a.handle.external > b.handle.external ? 1
                 : 0)
@@ -346,11 +346,7 @@ export function chronological<Keys extends BaseKeys>(
     // each step's parent/depth, not the ordering. Undated nodes sort last.
     const steps: ThreadStep<Keys>[] = [...meta.entries()]
         .map(([node, m]) => ({ node, date: infograph.nodes.get(node)?.date, ...m }))
-        .sort(
-            (a, b) =>
-                compareDates(a.date?.from, b.date?.from) ||
-                compareNumbers(discovery.get(a.node)!, discovery.get(b.node)!)
-        )
+        .sort((a, b) => compareDates(a.date, b.date) || compareNumbers(discovery.get(a.node)!, discovery.get(b.node)!))
 
     // Every relationship among selected nodes (the dotted layer).
     const edges: ThreadEdge<Keys>[] = infograph.edges
@@ -426,8 +422,8 @@ export function chooseRoot<Keys extends BaseKeys>(infograph: Infograph<Keys>, cu
         const bNode = infograph.nodes.get(b)
 
         return (
-            compareDates(aNode?.date?.from, bNode?.date?.from) ||
-            compareDates(aNode?.date?.to, bNode?.date?.to) ||
+            compareDates(aNode?.date, bNode?.date) ||
+            compareDates(aNode?.date, bNode?.date) ||
             compareNumbers(outgoingCount(infograph, b), outgoingCount(infograph, a)) ||
             compareNumbers(inputOrder.get(a) ?? 0, inputOrder.get(b) ?? 0)
         )
@@ -461,8 +457,7 @@ function compareCandidates<Keys extends BaseKeys>(
     const bOther = infograph.nodes.get(otherNode(b, currentNode))
 
     return (
-        compareDates(aOther?.date?.from, bOther?.date?.from) ||
-        compareDates(aOther?.date?.to, bOther?.date?.to) ||
+        compareDates(aOther?.date, bOther?.date) ||
         compareNumbers(directionPriority(a, currentNode), directionPriority(b, currentNode)) ||
         compareNumbers(edgeOrder.get(a) ?? 0, edgeOrder.get(b) ?? 0)
     )
@@ -490,8 +485,8 @@ function edgeComplexity<Keys extends BaseKeys>(
     return complexity[edge.info.complexity.is]
 }
 
-function compareDates(a: Date | undefined, b: Date | undefined) {
-    return compareNumbers(dateValue(a), dateValue(b))
+function compareDates(a: InfographDate | undefined, b: InfographDate | undefined) {
+    return compareNumbers(dateValue(a?.from), dateValue(b?.from)) || compareNumbers(dateValue(a?.to), dateValue(b?.to))
 }
 
 function dateValue(date: Date | undefined) {
