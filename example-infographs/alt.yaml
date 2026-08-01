@@ -147,9 +147,12 @@ nodes:
     info:
       title: Sponsorship
       summary: Business project involving sponsorship-related workflows, follow-up, data handling and automation.
-      fact:
-        - The project becomes one of the main active missions of the apprenticeship.
-        - The project evolves over time instead of remaining a fixed implementation task.
+      claim:
+        - fact: The project becomes one of the main active missions of the apprenticeship.
+        - fact: The project evolves over time instead of remaining a fixed implementation task.
+        - hypothesis: The project may have evolved partly because its initial framing did not expose all operational constraints.
+        - opinion: The project is a useful example for presenting progression during the apprenticeship.
+        - counterfactual: With a more stable initial scope, less work would have been needed to reconstruct context later.
       date:
         from: 2025-12
         to: 2026-07
@@ -173,7 +176,8 @@ nodes:
           complexity:
             is: simple
             why: The apprentice's involvement in the project is direct and easy to state.
-          fact: Main implementer and context reconstructor for the sponsorship work.
+          claim:
+            - fact: Main implementer and context reconstructor for the sponsorship work.
     uses:
       tool power_automate:
         # provides additional edge information.
@@ -182,14 +186,16 @@ nodes:
           complexity:
             is: natural
             why: Power Automate usage evolves throughout the project, changing from a pure authoring to a partially generated surface due to the need for reliabilty guarantees provided by tooling.
-          fact: Power Automate was used to implement automation aspects of Sponsorship.
+          claim:
+            - fact: Power Automate was used to implement automation aspects of Sponsorship.
         # no info, so power_automate must exist at a level above
       tool sharepoint:
         with:
           complexity:
             is: simple
             why: SharePoint is used as a database; repeatable provisioning challenges remain unsolved
-          fact: SharePoint was part of the project environment.
+          claim:
+            - fact: SharePoint was part of the project environment.
     contains:
       # the node is understood as belonging to the scope of this particualar node. In display, we will show something like Sponsorship: Application. The id becomes project sponsorship > product application. This is what allows us to use broad names in context.
       product application:
@@ -197,22 +203,24 @@ nodes:
           complexity:
             is: simple
             why: Belonging of the application to the Sponsorship scope is obvious.
-          fact: Having an application was not initially part of the need.
+          claim:
+            - fact: Having an application was not initially part of the need.
         info:
           title: Application
           summary: The application serves as a front-end for the product.
           complexity:
             is: simple
             why: The application is a straightforward front-end; its role is easy to state.
-          fact: # these should be edges but you get the point.
-            - Since it was added, SharePoint is fully treated as a database layer
-            - Having a dedicated front-end helped simplify
+          claim: # these should be edges but you get the point.
+            - fact: Since it was added, SharePoint is fully treated as a database layer
+            - fact: Having a dedicated front-end helped simplify
       process amount_calculation:
         with:
           complexity:
             is: contextual
             why: The process includes a rolling time window and has evolved
-          fact: Sponsorship reliability depends partly on understanding amount calculation behavior.
+          claim:
+            - fact: Sponsorship reliability depends partly on understanding amount calculation behavior.
         info:
           title: Amount calculation
           summary: Business calculation logic that requires reconstruction, understanding and reliable handling.
@@ -227,10 +235,10 @@ nodes:
               why: Journal entries describe the reconstruction and reliability work around this process.
             - is: user_stories
               why: User stories provide business expectations for the calculation behavior.
-          fact:
-            - The calculation logic is difficult to understand without sufficient context.
-            - A short handover is not enough to fully absorb the calculation behavior.
-            - Reliability depended on understanding edge cases and implicit rules.
+          claim:
+            - fact: The calculation logic is difficult to understand without sufficient context.
+            - fact: A short handover is not enough to fully absorb the calculation behavior.
+            - fact: Reliability depended on understanding edge cases and implicit rules.
           date:
             from: 2026-05
             to: 2026-07
@@ -255,10 +263,10 @@ nodes:
       complexity:
         is: simple
         why: The basics and general information are simple. Advanced features are more complex to explain.
-      fact:
-        - Power Automate is central to the implementation work.
-        - The platform introduces recurring reliability and maintainability concerns.
-        - Some issues are difficult to prevent because errors often appear at runtime.
+      claim:
+        - fact: Power Automate is central to the implementation work.
+        - fact: The platform introduces recurring reliability and maintainability concerns.
+        - fact: Some issues are difficult to prevent because errors often appear at runtime.
       date:
         from: 2025-12
         to: 2026-07
@@ -272,7 +280,8 @@ nodes:
           complexity:
             is: natural
             why: The concept is clear, the implementation is less clear
-          fact: Power Automate constraints and pitfalls make reliability and maintainability more important.
+          claim:
+            - fact: Power Automate constraints and pitfalls make reliability and maintainability more important.
   tool sharepoint:
     info:
       title: SharePoint
@@ -283,9 +292,9 @@ nodes:
       complexity:
         is: natural
         why: SharePoint is widely known and used.
-      fact:
-        - SharePoint is part of the technical environment.
-        - The structure of stored data affects automation behavior.
+      claim:
+        - fact: SharePoint is part of the technical environment.
+        - fact: The structure of stored data affects automation behavior.
       date:
         from: 2025-12
         to: 2026-07
@@ -308,11 +317,11 @@ nodes:
           why: (reference main related entry dates here)
         - is: journal
           why: (reference main related entry dates here)
-      fact:
-        - The project does not remain stable from its initial framing.
-        - New expectations and constraints appear as the work progresses.
-        - The evolution of the project increases the need for context rebuilding.
-        - The project is a moving system; increasing the number of parts increases complexity nonlinearily.
+      claim:
+        - fact: The project does not remain stable from its initial framing.
+        - fact: New expectations and constraints appear as the work progresses.
+        - fact: The evolution of the project increases the need for context rebuilding.
+        - fact: The project is a moving system; increasing the number of parts increases complexity nonlinearily.
       date:
         from: 2025-12
         to: 2026-07
@@ -326,7 +335,8 @@ nodes:
           complexity:
             is: natural
             why: The transition are simple officially, however there are remaining concerns and unanswered questions in practice
-          fact: A changing project made short handover harder.
+          claim:
+            - fact: A changing project made short handover harder.
     constrains:
       project sponsorship:
         with:
@@ -346,10 +356,10 @@ nodes:
       source:
         is: journal
         why: Main focus, pretty much from the very first day
-      fact:
-        - A working automation is not sufficient by itself.
-        - The project requires attention to maintainability, traceability and edge cases.
-        - This becomes a major learning axis of the apprenticeship.
+      claim:
+        - fact: A working automation is not sufficient by itself.
+        - fact: The project requires attention to maintainability, traceability and edge cases.
+        - fact: This becomes a major learning axis of the apprenticeship.
       date:
         from: 2026-04
         to: 2026-07
@@ -364,7 +374,8 @@ nodes:
           complexity:
             is: natural
             why: Required overview of the system; still simple to explain
-          fact: Working on reliability requirsd more independent judgment.
+          claim:
+            - fact: Working on reliability requirsd more independent judgment.
   event handover_pressure:
     info:
       title: Handover under time pressure
@@ -380,9 +391,9 @@ nodes:
           why: (reference main related entry dates here)
         - is: journal
           why: (reference main related entry dates here)
-      fact:
-        - A limited handover period is not enough to fully understand the evolved project.
-        - The situation increases the need to reconstruct context from existing artifacts and behavior.
+      claim:
+        - fact: A limited handover period is not enough to fully understand the evolved project.
+        - fact: The situation increases the need to reconstruct context from existing artifacts and behavior.
       date:
         from: 2026-06
         to: 2026-06
@@ -396,22 +407,24 @@ nodes:
           complexity:
             is: simple
             why: The apprentice is directly subject to the handover pressure.
-          fact:
-            - Must reconstruct project context from artifacts and meetings.
-            - Experiences the time pressure materially during handover.
+          claim:
+            - fact: Must reconstruct project context from artifacts and meetings.
+            - fact: Experiences the time pressure materially during handover.
       actor indian_power_platform_team:
         with:
           complexity:
             is: natural
             why: Explaining the team's role needs a little context about the transition.
-          fact: Receives transferred project responsibilities after the transition.
+          claim:
+            - fact: Receives transferred project responsibilities after the transition.
     illustrates:
       learning autonomy_growth:
         with:
           complexity:
             is: natural
             why: Prepared of Knowledge Transfers by myself, "surprise English" meetings over lunchtime, little official information
-          fact: The handover situation illustrates the need to reconstruct context autonomously.
+          claim:
+            - fact: The handover situation illustrates the need to reconstruct context autonomously.
   learning autonomy_growth:
     info:
       title: Autonomy growth
@@ -427,10 +440,10 @@ nodes:
           why: distributed
         - is: journal
           why: (you could refer an entry with a specific major instance of autonomy here)
-      fact:
-        - The apprenticeship requires increasing autonomy over time.
-        - Autonomy involves understanding unclear systems, not only implementing requested changes.
-        - The work develops stronger judgment around complexity and reliability.
+      claim:
+        - fact: The apprenticeship requires increasing autonomy over time.
+        - fact: Autonomy involves understanding unclear systems, not only implementing requested changes.
+        - fact: The work develops stronger judgment around complexity and reliability.
       date:
         from: 2026-01
         to: 2026-07
@@ -451,10 +464,10 @@ nodes:
       source:
         - is: journal
           why: entry 2026-06-26
-      fact:
-        - Covers the finaliaztion the transition of projects to the Indian Power Platform development team
-        - Fabrice's secondborn daughter # elements not directly related to the work are to be included as well! while some may seem unrelated, they can bring additional context. The point is to represent all information, not just what you believe relevant right now.
-        - Future role of the DSI after the Indian team takes over Power Platform and SharePoint developments
+      claim:
+        - fact: Covers the finaliaztion the transition of projects to the Indian Power Platform development team
+        - fact: Fabrice's secondborn daughter # elements not directly related to the work are to be included as well! while some may seem unrelated, they can bring additional context. The point is to represent all information, not just what you believe relevant right now.
+        - fact: Future role of the DSI after the Indian team takes over Power Platform and SharePoint developments
       date: 2026-06-26 # A lone date is supported (it is parsed to equal from/to) for punctual events
   # Actors are ordinary nodes, linked to the situations they take part in with the `involves` verb.
   actor apprentice:
@@ -485,4 +498,5 @@ edges:
     complexity:
       is: natural
       why: The link between autonomy and the handover is intuitive but benefits from a sentence of context.
-    fact: These two nodes are related somehow
+    claim:
+      - fact: These two nodes are related somehow
