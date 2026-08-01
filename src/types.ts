@@ -2,10 +2,24 @@ export const complexity = ['simple', 'natural', 'contextual', 'intertwined'] as 
 export type Complexity = (typeof complexity)[number]
 export const importance = ['minor', 'useful', 'major', 'central'] as const
 export type Importance = (typeof importance)[number]
+export const claimTypes = {
+    fact: 'affirmation held to be true in the infographic, because observed or sufficiently supported by sources. It can include a reasonable inference, without imposing an additional distinction.',
+    hypothesis: 'possible explanation whose sources do not yet allow establishing the truth.',
+    opinion:
+        'judgment, appreciation, preference or position of the author. It is not intended to become true or false by accumulation of evidence.',
+    counterfactual: 'affirmation about what could have, should have, or might occur in a different situation.',
+} as const
+
+export type ClaimType = keyof typeof claimTypes
+
+export type Claim = {
+    type: ClaimType
+    content: string
+}
 
 export type EdgeInfo = {
-    complexity: InfographClaim<Complexity>
-    fact?: string[]
+    complexity: InfographReason<Complexity>
+    claim?: Claim[]
 }
 
 export type InfographDate<T = Date> = {
@@ -13,7 +27,7 @@ export type InfographDate<T = Date> = {
     to: T
 }
 
-export type InfographClaim<T> = {
+export type InfographReason<T> = {
     is: T
     why: string[]
 }
@@ -21,11 +35,11 @@ export type InfographClaim<T> = {
 export type InfographNode<Keys extends BaseKeys> = {
     title: string
     summary?: string
-    fact?: string[]
+    claim?: Claim[]
     date?: InfographDate
-    importance?: InfographClaim<Importance>
-    complexity: InfographClaim<Complexity>
-    source?: InfographClaim<Keys['source']>[]
+    importance?: InfographReason<Importance>
+    complexity: InfographReason<Complexity>
+    source?: InfographReason<Keys['source']>[]
     tag?: string[]
 }
 

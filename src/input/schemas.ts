@@ -1,6 +1,6 @@
 import z from 'zod'
 import type { SomeType } from 'zod/v4/core'
-import { type Complexity, importance, type BaseKeys } from '../types.js'
+import { type Complexity, importance, type BaseKeys, claimTypes, type Claim, type ClaimType } from '../types.js'
 import { kdataEdge, kdataNode, type InputOutgoing, type InputInfograph } from './types.js'
 
 const slugPattern = '(-|[a-z0-9]+(_[a-z0-9]+)*)'
@@ -36,7 +36,7 @@ const zPlainKeyword = z
 
 const zFlexarray = <T extends SomeType>(item: T) => z.union([item, z.array(item).nonempty()])
 
-const zClaim = <T extends z.ZodType<string>>(is: T) =>
+const zReason = <T extends z.ZodType<string>>(is: T) =>
     z.object({
         is: is.describe('Selected value.'),
         why: zFlexarray(zNaturalLanguage).describe(
@@ -47,6 +47,15 @@ const zClaim = <T extends z.ZodType<string>>(is: T) =>
 // normally, dates would be parsed here, but the transforms breaks with looseRecord passing values as-is
 const zDate = z.string().describe('YYYY, YYYY-MM, or YYYY-MM-DD')
 
+const zClaim: z.ZodType<Claim> = z.union(
+    Object.entries(claimTypes).map(([t, desc]) =>
+        z
+            .record(z.literal(t), zNaturalLanguage)
+            .describe(desc)
+            .transform((x): Claim => ({ type: t as ClaimType, content: x[t] }))
+    )
+)
+
 const zNode = z.looseObject({
     [kdataNode]: z.object({
         title: zNaturalLanguage.describe('Short human label for the node.'),
@@ -55,10 +64,11 @@ const zNode = z.looseObject({
             .describe(
                 'Compact factual description of the node. Gives enough context to understand the node without following every edge. It should remain factual, not rhetorical.'
             ),
-        fact: zFlexarray(zNaturalLanguage)
+        claim: z
+            .array(zClaim)
             .optional()
             .describe(
-                'Atomic factual claims attached to the node. Keeps facts separated from wording. The same statements can later support slides, reports or oral explanations.'
+                'Atomic claims attached to the node. The same statements can later support slides, reports or oral explanations.'
             ),
         date: z
             .object({
@@ -68,17 +78,17 @@ const zNode = z.looseObject({
             .or(zDate.describe('One "on" date, for punctual events'))
             .optional()
             .describe(
-                'Time range during which this node matters. Allows timeline-oriented queries without forcing every fact into prose. Approximate periods are acceptable.'
+                'Time range during which this node matters. Allows timeline-oriented queries. Approximate periods are acceptable.'
             ),
-        importance: zClaim(z.enum(importance))
+        importance: zReason(z.enum(importance))
             .optional()
             .describe(
                 'Importance of this node in the real experience. Not correlated to complexity or size. Left missing when unknown.'
             ),
-        complexity: zClaim(zComplexity).describe(
+        complexity: zReason(zComplexity).describe(
             'Estimated explanation cost of this node. Note: this refers to explanation complexity, not node complexity. A node may refer to a very complex task and remain reasonably simple to explain.'
         ),
-        source: zFlexarray(zClaim(zSourceKey))
+        source: zFlexarray(zReason(zSourceKey))
             .optional()
             .describe(
                 'Where the information comes from. Source can be omitted for common / general knowledge information, like well-known public tools.'
@@ -92,8 +102,9 @@ const zNode = z.looseObject({
 })
 
 const zEdge = z.object({
-    complexity: zClaim(zComplexity),
-    fact: zFlexarray(zNaturalLanguage)
+    complexity: zReason(zComplexity),
+    claim: z
+        .array(zClaim)
         .optional()
         .describe('Some relationships are harder to explain than the things they connect.'),
 })

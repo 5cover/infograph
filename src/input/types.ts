@@ -1,5 +1,6 @@
 import type {
     BaseKeys,
+    Claim,
     Complexity,
     Importance,
     InfographDate,
@@ -14,11 +15,11 @@ export const kdataNode = 'info'
 export type Flexarray<T> = T | T[]
 
 export type InputEdgeInfo = {
-    complexity: InputClaim<Complexity>
-    fact?: Flexarray<string>
+    complexity: InputReason<Complexity>
+    claim?: Claim[]
 }
 
-export type InputClaim<T> = {
+export type InputReason<T> = {
     is: T
     why: Flexarray<string>
 }
@@ -26,11 +27,11 @@ export type InputClaim<T> = {
 export type InputNodeInfo<Keys extends BaseKeys> = {
     title: string
     summary?: string
-    fact?: Flexarray<string>
+    claim?: Claim[]
     date?: string | InfographDate<string>
-    importance?: InputClaim<Importance>
-    complexity: InputClaim<Complexity>
-    source?: Flexarray<InputClaim<Keys['source']>>
+    importance?: InputReason<Importance>
+    complexity: InputReason<Complexity>
+    source?: Flexarray<InputReason<Keys['source']>>
     tag?: Flexarray<string>
 }
 

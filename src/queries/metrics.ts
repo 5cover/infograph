@@ -54,7 +54,7 @@ export type Metrics = {
     undated: string[]
 }
 
-const coverageFields = ['summary', 'fact', 'date', 'importance', 'complexity', 'source', 'tag'] as const
+const coverageFields = ['summary', 'claim', 'date', 'importance', 'complexity', 'source', 'tag'] as const
 
 export function metrics<Keys extends BaseKeys>(infograph: Infograph<Keys>): Metrics {
     const nodeKeys = [...infograph.nodes.keys()]
