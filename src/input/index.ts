@@ -179,11 +179,22 @@ const zInfograph = zInfographInput.transform((g, ctx): Infograph<BaseKeys> => {
 
 export const parseInfograph = (data: unknown) => zInfograph.parse(data, { reportInput: true })
 
-export const getSchema = () =>
+export const getSchema = (options?: { additionalProperties?: boolean }) =>
     zInfographInput.toJSONSchema({
         target: 'draft-07',
         reused: 'ref',
         io: 'input',
+        override:
+            options?.additionalProperties ? undefined : (
+                ctx => {
+                    if (
+                        undefined !== ctx.jsonSchema.properties &&
+                        undefined === ctx.jsonSchema.propertyNames &&
+                        undefined === ctx.jsonSchema.additionalProperties
+                    )
+                        ctx.jsonSchema.additionalProperties = false
+                }
+            ),
     })
 
 function buildReason<T>(c: InputReason<T>): InfographReason<T> {

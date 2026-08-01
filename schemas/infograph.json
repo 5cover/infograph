@@ -20,7 +20,8 @@
         "context",
         "author"
       ],
-      "description": "Infograph metadata."
+      "description": "Infograph metadata.",
+      "additionalProperties": false
     },
     "domain": {
       "type": "object",
@@ -40,7 +41,8 @@
         "verb",
         "source"
       ],
-      "description": "Definitions of the infograph's vocabulary."
+      "description": "Definitions of the infograph's vocabulary.",
+      "additionalProperties": false
     },
     "nodes": {
       "type": "object",
@@ -65,6 +67,7 @@
     "domain",
     "nodes"
   ],
+  "additionalProperties": false,
   "definitions": {
     "__schema0": {
       "description": "Human-readable name for the whole graph.",
@@ -125,7 +128,8 @@
           },
           "required": [
             "desc"
-          ]
+          ],
+          "additionalProperties": false
         },
         {
           "type": "null"
@@ -230,7 +234,8 @@
                 "is",
                 "why"
               ],
-              "description": "Estimated explanation cost of this node. Note: this refers to explanation complexity, not node complexity. A node may refer to a very complex task and remain reasonably simple to explain."
+              "description": "Estimated explanation cost of this node. Note: this refers to explanation complexity, not node complexity. A node may refer to a very complex task and remain reasonably simple to explain.",
+              "additionalProperties": false
             },
             "source": {
               "description": "Where the information comes from. Source can be omitted for common / general knowledge information, like well-known public tools.",
@@ -252,7 +257,8 @@
           "required": [
             "title",
             "complexity"
-          ]
+          ],
+          "additionalProperties": false
         }
       },
       "required": [
@@ -353,7 +359,8 @@
           "required": [
             "from",
             "to"
-          ]
+          ],
+          "additionalProperties": false
         },
         {
           "description": "One \"on\" date, for punctual events",
@@ -397,7 +404,8 @@
       "required": [
         "is",
         "why"
-      ]
+      ],
+      "additionalProperties": false
     },
     "__schema22": {
       "minItems": 1,
@@ -508,7 +516,8 @@
       "required": [
         "is",
         "why"
-      ]
+      ],
+      "additionalProperties": false
     },
     "__schema33": {
       "minItems": 1,
@@ -622,7 +631,8 @@
       "required": [
         "is",
         "why"
-      ]
+      ],
+      "additionalProperties": false
     },
     "__schema40": {
       "minItems": 1,
@@ -657,7 +667,8 @@
       },
       "required": [
         "complexity"
-      ]
+      ],
+      "additionalProperties": false
     },
     "__schema44": {},
     "__schema45": {
