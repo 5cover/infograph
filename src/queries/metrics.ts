@@ -51,6 +51,7 @@ export type Metrics = {
     stronglyConnected: StronglyConnectedStats
     feedbackArcSetSize: number
     fieldCoverage: Record<string, FieldCoverage>
+    undated: string[]
 }
 
 const coverageFields = ['summary', 'fact', 'date', 'importance', 'complexity', 'source', 'tag'] as const
@@ -63,6 +64,7 @@ export function metrics<Keys extends BaseKeys>(infograph: Infograph<Keys>): Metr
     const inDegree = new Map<InfographNodeKey<Keys>, number>(nodeKeys.map(key => [key, 0]))
     const outDegree = new Map<InfographNodeKey<Keys>, number>(nodeKeys.map(key => [key, 0]))
     const selfLooped = new Set<InfographNodeKey<Keys>>()
+
     for (const edge of infograph.edges) {
         bump(outDegree, edge.from)
         bump(inDegree, edge.to)
@@ -111,6 +113,10 @@ export function metrics<Keys extends BaseKeys>(infograph: Infograph<Keys>): Metr
         },
         feedbackArcSetSize: feedbackArcSetSize(nodeKeys, infograph.edges),
         fieldCoverage: fieldCoverage(nodes, nodeCount),
+        undated: Array.from(
+            infograph.nodes.entries().filter(([, node]) => undefined === node.date),
+            ([key]) => key
+        ),
     }
 }
 
