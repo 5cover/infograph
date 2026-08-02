@@ -39,7 +39,7 @@ The conversion between the two layers is the heart of the codebase, in `src/inpu
 - Verifies references against the closed vocabulary (`kind`, `verb`, `source`) and validates date strings. Node-existence checks are **deferred** (collected in `deferredChecks`, run after all nodes are built) because an edge may reference a node defined later.
 - Reserved keys distinguish structure from data: `kdataNode = 'info'` (node payload) and `kdataEdge = 'with'` (edge payload). The `verbPattern` regex explicitly excludes these two words, so any other key on a node is treated as a verb / outgoing-edge group.
 
-`src/queries/chronological.ts` is a query profile: a DFS from a chosen root that accumulates a per-branch "explanation complexity" cost (node + edge complexity, with a configurable cost per `Complexity` level and a `missing` default) and stops descending a branch once the budget is exceeded. Root selection and candidate ordering are date-first. Add new query profiles as sibling files here.
+`src/queries/chronological.ts` is a query profile: minimum-cost reachability from a chosen root under a per-path "explanation complexity" budget (node + edge complexity, with a configurable cost per `Complexity` level). It uses Dijkstra-style relaxation so a later cheaper path can replace an earlier route. Root selection and equal-cost candidate ordering are date-first. Add new query profiles as sibling files here.
 
 `src/infograph.ts` renders a canonical `Infograph` to a Mermaid `flowchart`.
 
