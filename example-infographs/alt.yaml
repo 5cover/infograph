@@ -24,7 +24,7 @@
 # or deeper explanation paths.
 info:
   title: Alternance 2ème partie
-  context: ENGIE apprenticeship
+  context: Apprenticeship
   author: me
 domain:
   source:
@@ -130,9 +130,17 @@ domain:
         Example: LeanKit replaces Jira in the chosen workflow direction.
     involves:
       desc: |
-        The source materially involves the target actor.
-        Links a node to a person, team, support group or institution whose perspective, actions or constraints are part of the situation.
-        Example: Sponsorship involves the apprentice.
+        The source inherently involves the target as a stakeholder, contributor or responsible party.
+        Describes structural or organizational participation rather than a single occurrence.
+        Target's perspective, input, actions or constraints are part of the situation.
+        Example: Sponsorship involves Antoine.
+    participates:
+      desc: |
+        The source takes part in the target.
+        Describes participation from the participant's point of view, without implying ownership or responsibility.
+        Useful for actors participating in projects, events, processes or tasks.
+        Example: Antoine participates in the June 9 demo.
+
     '-':
       desc: |
         Weak fallback relation when a connection matters but is not yet precise.
@@ -143,15 +151,42 @@ nodes:
   # Node category.
   # Queries may treat projects, tools, constraints, decisions and learnings
   # differently without needing complex inference.
+  actor me:
+    info:
+      title: Me
+      summary: The apprentice whose work, reasoning and experience form the main perspective of the infograph.
+      claim:
+        - fact: I carried out apprenticeship work represented in this public example infograph.
+        - opinion: I care strongly about work that remains understandable after project scope and tooling constraints grow.
+      complexity:
+        is: simple
+        why: The author perspective is central to the graph and should be explicit.
+      tag:
+        - people
+    participates:
+      project sponsorship:
+        with:
+          complexity:
+            is: simple
+            why: I directly worked on the project over the apprenticeship period.
+          claim:
+            - fact: I participated in the Sponsorship project as one of my main apprenticeship missions.
+      event quarterly_meeting:
+        with:
+          complexity:
+            is: simple
+            why: Attending the meeting is a direct participation relation, without implying responsibility for the event.
+          claim:
+            - fact: I attended the quarterly meeting.
   project sponsorship:
     info:
       title: Sponsorship
       summary: Business project involving sponsorship-related workflows, follow-up, data handling and automation.
       claim:
-        - fact: The project becomes one of the main active missions of the apprenticeship.
+        - fact: I worked on Sponsorship as one of the main active missions of the apprenticeship.
         - fact: The project evolves over time instead of remaining a fixed implementation task.
         - hypothesis: The project may have evolved partly because its initial framing did not expose all operational constraints.
-        - opinion: The project is a useful example for presenting progression during the apprenticeship.
+        - opinion: I see the project as a useful example for presenting progression during the apprenticeship.
         - counterfactual: With a more stable initial scope, less work would have been needed to reconstruct context later.
       date:
         from: 2025-12
@@ -171,13 +206,13 @@ nodes:
         - automation
     # Outgoing edges.
     involves:
-      actor apprentice:
+      actor me:
         with:
           complexity:
             is: simple
-            why: The apprentice's involvement in the project is direct and easy to state.
+            why: My involvement in the project is direct and easy to state.
           claim:
-            - fact: Main implementer and context reconstructor for the sponsorship work.
+            - fact: I was the main implementer and context reconstructor for the sponsorship work.
     uses:
       tool power_automate:
         # provides additional edge information.
@@ -187,7 +222,7 @@ nodes:
             is: natural
             why: Power Automate usage evolves throughout the project, changing from a pure authoring to a partially generated surface due to the need for reliabilty guarantees provided by tooling.
           claim:
-            - fact: Power Automate was used to implement automation aspects of Sponsorship.
+            - fact: I used Power Automate to implement automation aspects of Sponsorship.
         # no info, so power_automate must exist at a level above
       tool sharepoint:
         with:
@@ -197,14 +232,14 @@ nodes:
           claim:
             - fact: SharePoint was part of the project environment.
     contains:
-      # the node is understood as belonging to the scope of this particualar node. In display, we will show something like Sponsorship: Application. The id becomes project sponsorship > product application. This is what allows us to use broad names in context.
+      # the node is understood as belonging to the scope of this particular node. In display, we will show something like Sponsorship: Application. The id becomes project sponsorship > product application. This is what allows us to use broad names in context.
       product application:
         with:
           complexity:
             is: simple
             why: Belonging of the application to the Sponsorship scope is obvious.
           claim:
-            - fact: Having an application was not initially part of the need.
+            - fact: I worked on an application that was not initially part of the need.
         info:
           title: Application
           summary: The application serves as a front-end for the product.
@@ -213,14 +248,22 @@ nodes:
             why: The application is a straightforward front-end; its role is easy to state.
           claim: # these should be edges but you get the point.
             - fact: Since it was added, SharePoint is fully treated as a database layer
-            - fact: Having a dedicated front-end helped simplify
+            - fact: I used a dedicated front-end to simplify part of the interaction with the underlying data and workflow.
+        involves:
+          actor me:
+            with:
+              complexity:
+                is: simple
+                why: I worked directly on the application.
+              claim:
+                - fact: I contributed directly to the Sponsorship application.
       process amount_calculation:
         with:
           complexity:
             is: contextual
             why: The process includes a rolling time window and has evolved
           claim:
-            - fact: Sponsorship reliability depends partly on understanding amount calculation behavior.
+            - fact: I had to understand amount calculation behavior to improve Sponsorship reliability.
         info:
           title: Amount calculation
           summary: Business calculation logic that requires reconstruction, understanding and reliable handling.
@@ -238,7 +281,7 @@ nodes:
           claim:
             - fact: The calculation logic is difficult to understand without sufficient context.
             - fact: A short handover is not enough to fully absorb the calculation behavior.
-            - fact: Reliability depended on understanding edge cases and implicit rules.
+            - fact: I worked on reliability by reconstructing edge cases and implicit rules.
           date:
             from: 2026-05
             to: 2026-07
@@ -253,6 +296,14 @@ nodes:
               complexity:
                 is: natural
                 why: The dependency on reliability work is clear once the calculation risks are known.
+        involves:
+          actor me:
+            with:
+              complexity:
+                is: natural
+                why: My reconstruction work is part of why this process matters in the graph.
+              claim:
+                - fact: I reconstructed part of the calculation behavior from available context, artifacts and project discussions.
   tool power_automate:
     info:
       title: Power Automate
@@ -264,7 +315,7 @@ nodes:
         is: simple
         why: The basics and general information are simple. Advanced features are more complex to explain.
       claim:
-        - fact: Power Automate is central to the implementation work.
+        - fact: I used Power Automate as a central implementation platform.
         - fact: The platform introduces recurring reliability and maintainability concerns.
         - fact: Some issues are difficult to prevent because errors often appear at runtime.
       date:
@@ -281,7 +332,7 @@ nodes:
             is: natural
             why: The concept is clear, the implementation is less clear
           claim:
-            - fact: Power Automate constraints and pitfalls make reliability and maintainability more important.
+            - fact: Power Automate constraints and pitfalls made reliability and maintainability more important in my work.
   tool sharepoint:
     info:
       title: SharePoint
@@ -294,7 +345,7 @@ nodes:
         why: SharePoint is widely known and used.
       claim:
         - fact: SharePoint is part of the technical environment.
-        - fact: The structure of stored data affects automation behavior.
+        - fact: I had to account for how the structure of stored data affects automation behavior.
       date:
         from: 2025-12
         to: 2026-07
@@ -320,7 +371,7 @@ nodes:
       claim:
         - fact: The project does not remain stable from its initial framing.
         - fact: New expectations and constraints appear as the work progresses.
-        - fact: The evolution of the project increases the need for context rebuilding.
+        - fact: The evolution of the project increased my need to rebuild context.
         - fact: The project is a moving system; increasing the number of parts increases complexity nonlinearily.
       date:
         from: 2025-12
@@ -336,13 +387,21 @@ nodes:
             is: natural
             why: The transition are simple officially, however there are remaining concerns and unanswered questions in practice
           claim:
-            - fact: A changing project made short handover harder.
+            - fact: The changing project scope made my short handover harder.
     constrains:
       project sponsorship:
         with:
           complexity:
             is: natural
             why: The evolving scope affected how the Sponsorship work had to be understood and presented.
+    involves:
+      actor me:
+        with:
+          complexity:
+            is: natural
+            why: My planning and context reconstruction were directly shaped by the evolving scope.
+          claim:
+            - fact: I had to adapt my understanding and work priorities as the project scope changed.
   constraint reliability_focus:
     info:
       title: Reliability focus
@@ -358,8 +417,8 @@ nodes:
         why: Main focus, pretty much from the very first day
       claim:
         - fact: A working automation is not sufficient by itself.
-        - fact: The project requires attention to maintainability, traceability and edge cases.
-        - fact: This becomes a major learning axis of the apprenticeship.
+        - fact: I had to pay attention to maintainability, traceability and edge cases.
+        - fact: Reliability became a major learning axis of my apprenticeship.
       date:
         from: 2026-04
         to: 2026-07
@@ -375,7 +434,15 @@ nodes:
             is: natural
             why: Required overview of the system; still simple to explain
           claim:
-            - fact: Working on reliability requirsd more independent judgment.
+            - fact: Working on reliability required more independent judgment from me.
+    involves:
+      actor me:
+        with:
+          complexity:
+            is: natural
+            why: This learning axis describes my work and judgment, not only an external project property.
+          claim:
+            - fact: I worked on making automations more understandable, maintainable and reliable.
   event handover_pressure:
     info:
       title: Handover under time pressure
@@ -393,7 +460,7 @@ nodes:
           why: (reference main related entry dates here)
       claim:
         - fact: A limited handover period is not enough to fully understand the evolved project.
-        - fact: The situation increases the need to reconstruct context from existing artifacts and behavior.
+        - fact: I had to reconstruct context from existing artifacts and behavior during the handover situation.
       date:
         from: 2026-06
         to: 2026-06
@@ -402,14 +469,14 @@ nodes:
         - context
         - planning
     involves:
-      actor apprentice:
+      actor me:
         with:
           complexity:
             is: simple
-            why: The apprentice is directly subject to the handover pressure.
+            why: I was directly subject to the handover pressure.
           claim:
-            - fact: Must reconstruct project context from artifacts and meetings.
-            - fact: Experiences the time pressure materially during handover.
+            - fact: I had to reconstruct project context from artifacts and meetings.
+            - fact: I experienced the time pressure materially during handover.
       actor indian_power_platform_team:
         with:
           complexity:
@@ -424,7 +491,7 @@ nodes:
             is: natural
             why: Prepared of Knowledge Transfers by myself, "surprise English" meetings over lunchtime, little official information
           claim:
-            - fact: The handover situation illustrates the need to reconstruct context autonomously.
+            - fact: The handover situation illustrates why I needed to reconstruct context autonomously.
   learning autonomy_growth:
     info:
       title: Autonomy growth
@@ -441,9 +508,9 @@ nodes:
         - is: journal
           why: (you could refer an entry with a specific major instance of autonomy here)
       claim:
-        - fact: The apprenticeship requires increasing autonomy over time.
-        - fact: Autonomy involves understanding unclear systems, not only implementing requested changes.
-        - fact: The work develops stronger judgment around complexity and reliability.
+        - fact: My apprenticeship required increasing autonomy over time.
+        - fact: I had to understand unclear systems, not only implement requested changes.
+        - fact: I developed stronger judgment around complexity and reliability.
       date:
         from: 2026-01
         to: 2026-07
@@ -451,6 +518,14 @@ nodes:
         - autonomy
         - learning
         - progression
+    involves:
+      actor me:
+        with:
+          complexity:
+            is: simple
+            why: This node describes my progression.
+          claim:
+            - fact: I am the actor whose autonomy growth is represented by this node.
   event quarterly_meeting:
     info:
       title: Quarterly Meeting
@@ -465,20 +540,11 @@ nodes:
         - is: journal
           why: entry 2026-06-26
       claim:
-        - fact: Covers the finaliaztion the transition of projects to the Indian Power Platform development team
+        - fact: The meeting covers the finaliaztion the transition of projects to the Indian Power Platform development team
         - fact: Fabrice's secondborn daughter # elements not directly related to the work are to be included as well! while some may seem unrelated, they can bring additional context. The point is to represent all information, not just what you believe relevant right now.
-        - fact: Future role of the DSI after the Indian team takes over Power Platform and SharePoint developments
+        - fact: The meeting covers the future role of the DSI after the Indian team takes over Power Platform and SharePoint developments
       date: 2026-06-26 # A lone date is supported (it is parsed to equal from/to) for punctual events
   # Actors are ordinary nodes, linked to the situations they take part in with the `involves` verb.
-  actor apprentice:
-    info:
-      title: Apprentice
-      summary: The apprentice carrying out and reconstructing the apprenticeship work.
-      complexity:
-        is: simple
-        why: The apprentice is the narrator; who they are needs no explanation.
-      tag:
-        - people
   actor indian_power_platform_team:
     info:
       title: Indian Power Platform team

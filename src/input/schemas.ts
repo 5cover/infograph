@@ -130,7 +130,7 @@ export const zInfographInput: z.ZodType<InputInfograph<BaseKeys>> = z.object({
                 'Short description of the real-world context represented by the graph. Gives global orientation without repeating the same context in every node.'
             ),
             author: zNaturalLanguage.describe(
-                'Person responsible for validating the graph. This graph is not just extracted text. It is a validated representation. The author field makes that explicit.'
+                'Person responsible for validating the graph. This graph is not just extracted text. It is a validated representation. The author field makes that explicit. When "I" is used in natural language, this is the person referred to.'
             ),
         })
         .describe('Infograph metadata.')
