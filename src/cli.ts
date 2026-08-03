@@ -1,4 +1,4 @@
-import { InvalidArgumentError, Option, program } from '@commander-js/extra-typings'
+import { Argument, InvalidArgumentError, Option, program } from '@commander-js/extra-typings'
 import { readFileSync } from 'node:fs'
 import * as YAML from 'yaml'
 import { parseInfograph } from './input/index.js'
@@ -17,6 +17,10 @@ import type { BaseKeys, Infograph } from './types.js'
 import { terseDate } from './terseDate.js'
 
 type Format = 'json' | 'yaml' | 'mermaid'
+
+const args = {
+    infograph: new Argument('<file>', 'YAML or JSON infograph file'),
+}
 
 const asJson = (value: unknown) => JSON.stringify(value, null, 2)
 const asYaml = (value: unknown) =>
@@ -41,24 +45,27 @@ program
 program
     .command('parse')
     .description('Parse an infograph file and output the flattened graph')
-    .argument('<file>', 'YAML or JSON infograph file')
+    .addArgument(args.infograph)
     .action(file => {
         const infograph = readInfograph(file)
-        emit(globalFormat(), infograph, {
+        emit(infograph, {
             json: g => asJson(toJsonInfograph(g)),
             yaml: g => asYaml(toJsonInfograph(g)),
             mermaid: g => toMermaid(g),
         })
     })
 
-const chronologicalCmd = program
+const queryCommand = program.command('query').description('run a query on the infograph')
+
+const chronologicalCmd = queryCommand
     .command('chronological')
     .description('Chronological query profiles (see the run and stats subcommands)')
 
 chronologicalCmd
     .command('run')
+    .addArgument(args.infograph)
     .description('Run the chronological query profile on an infograph file')
-    .argument('<file>', 'YAML or JSON infograph file')
+
     .addOption(new Option('-b, --budget <number>', 'branch complexity budget').default(20).argParser(parseNumber))
     .addOption(new Option('--simple <number>', 'cost of simple complexity').argParser(parseNumber))
     .addOption(new Option('--natural <number>', 'cost of natural complexity').argParser(parseNumber))
@@ -77,7 +84,7 @@ chronologicalCmd
 
         const notes = (t: ChronologicalThread<BaseKeys>) => (options.notes ? threadToNotes(infograph, t) : t)
 
-        emit(globalFormat(), thread, {
+        emit(thread, {
             json: t => asJson(notes(t)),
             yaml: t => asYaml(notes(t)),
             mermaid: threadToMermaid,
@@ -87,7 +94,7 @@ chronologicalCmd
 chronologicalCmd
     .command('stats')
     .description('Compare chronological projections across multiple budgets')
-    .argument('<file>', 'YAML or JSON infograph file')
+    .addArgument(args.infograph)
     .addOption(
         new Option('-b, --budget <number>', 'branch complexity budget (repeatable)')
             .argParser(collectNumber)
@@ -109,31 +116,29 @@ chronologicalCmd
             return { budget, ...stats, coverage: round(stats.nodes / infograph.nodes.size) }
         })
 
-        emit(globalFormat(), rows, { json: asJson, yaml: asYaml }, asJson)
+        emit(rows)
     })
 
-program
+queryCommand
     .command('metrics')
     .description('Compute and display statistics about an infograph file')
-    .argument('<file>', 'YAML or JSON infograph file')
+    .addArgument(args.infograph)
     .action(file => {
         const infograph = readInfograph(file)
-        emit(globalFormat(), metrics(infograph), { json: asJson, yaml: asYaml }, asJson)
+        emit(metrics(infograph))
     })
 
-program
+queryCommand
     .command('scc')
     .description('Display the non-trivial strongly connected components of an infograph')
-    .argument('<file>', 'YAML or JSON infograph file')
+    .addArgument(args.infograph)
     .action(file => {
         const infograph = readInfograph(file)
         const groups = nonTrivialComponents(infograph, stronglyConnectedComponents(infograph)).sort(
             (a, b) => b.length - a.length
         )
 
-        emit(globalFormat(), groups, {
-            json: asJson,
-            yaml: asYaml,
+        emit(groups, {
             mermaid: g =>
                 toMermaidGrouped(
                     infograph,
@@ -145,6 +150,35 @@ program
         })
     })
 
+queryCommand
+    .command('edgespace')
+    .description('show possible kind/verb/kind 3-uples in a table')
+    .addArgument(args.infograph)
+    .action(file => {
+        const domain = readInfograph(file).domain
+        const verbs = Object.keys(domain.verb).sort()
+        const kinds = Object.keys(domain.kind).sort()
+        const result: { from: string; verb: string; to: string }[] = []
+        for (const from of kinds) {
+            for (const to of kinds) {
+                for (const verb of verbs) {
+                    result.push({ from, to, verb })
+                }
+            }
+        }
+        console.table(result)
+    })
+
+queryCommand
+    .command('keywords')
+    .description('show keywords')
+    .addArgument(args.infograph)
+    .action(file =>
+        emit(
+            Object.fromEntries(Object.entries(readInfograph(file).domain).map(([k, v]) => [k, Object.keys(v).sort()] as const))
+        )
+    )
+
 program.parse()
 
 function globalFormat(): Format {
@@ -152,11 +186,12 @@ function globalFormat(): Format {
 }
 
 function emit<T>(
-    format: Format,
     value: T,
-    handlers: Partial<Record<Format, (value: T) => string>>,
+    handlers?: Partial<Record<Format, (value: T) => string>>,
     fallback?: (value: T) => string
 ): void {
+    const format = globalFormat()
+    handlers = { json: asJson, yaml: asYaml, ...handlers }
     const handler = handlers[format] ?? fallback
     if (!handler) {
         throw new InvalidArgumentError(

@@ -33,7 +33,6 @@ domain:
     documentation:
     url:
       desc: specific url (put url in why)
-
   kind:
     project:
       desc: |
@@ -61,7 +60,7 @@ domain:
         Example: short handover, runtime errors, support restrictions, changing scope.
     event:
       desc: |
-        A dated or period-bound occurrence that changed the situation.
+        A dated or period-bound occurrence, milestone or point in time. Events represent happenings that influence, illustrate or punctuate the chronology of the infograph.
         Some nodes are important because they happened at a specific time. Example: return from leave, demo on June 9, abandonment of a tool direction.
     decision:
       desc: |
@@ -75,16 +74,41 @@ domain:
     actor:
       desc: |
         A person, team, support group or institution involved in the situation.
-        Some constraints and decisions are organizational. Keeping actors explicit avoids hiding social/project context in prose.
+        Some constraints and decisions are organizational. 
+        Provide name, function and position relative to the author.
+        Keeping actors explicit avoids hiding social/project context in prose.
         Example: IUT, support team, Indian team, project owner, Mahmoud, Fabrice.
     jargon:
       desc: |
-        A domain-specific term.
-        Example: cumulated amount
+        A named technical term, expression or shorthand used within this corpus to refer to a recurring concept.
+        Use it when introducing vocabulary that deserves its own identity and can be referenced by multiple graph elements.
+        It acts as a shared designation rather than as a project, tool or process.
+        Example: `maker_compiler` refers to the observed distinction between Power Platform maker-time and runtime behavior.
     process:
       desc: |
         An executable recipe for actions actors with visibility rules over time.
         Example: request analysis
+    problem:
+      desc: |
+        An unsatisfactory existing state, gap, deficiency or recurring issue that justifies intervention.
+        Use it to represent what is wrong or missing before a solution is introduced, rather than a limitation imposed on that solution.
+        Example: The informal processing of sponsorship requests creates a lack of traceability and visibility.
+    objective:
+      desc: |
+        A desired future state or outcome that a project, actor or organization seeks to achieve.
+        Use it when the intended result has an identity of its own, may evolve over time, or receives contributions from several projects, tasks or methods.
+        Example: Centralized visibility into sponsorship funding is an objective of the Sponsorship project.
+    challenge:
+      desc: |
+        A difficulty that makes an objective, task or project harder to accomplish.
+        Use it for expected or encountered difficulties that require a deliberate response, rather than for an unsatisfactory state in the existing environment.
+        Example: Reliably testing Power Automate flows is a challenge because much of their behavior depends on remote services and runtime configuration.
+    method:
+      desc: |
+        A reusable approach, technique, pattern or disciplined way of performing work.
+        Use it to represent how work is carried out when the approach can be explained, reused or applied independently of a single task.
+        It differs from a process, which represents a sequence of business or system activities.
+        Example: Fixture-based flow testing is a method for testing Power Automate flows against controlled SharePoint data.
     '-':
       desc: Free-form fallback for information that does not fit the graph cleanly yet. Prevents schema pressure. If something is important but hard to model, it can enter the graph first and be structured later.
   verb:
@@ -122,7 +146,7 @@ domain:
     prevents:
       desc: |
         Useful for representing tradeoffs. Example: limited available team capacity prevents additional staffing.
-        The source prevents the target
+        The source prevents the target.
     replaces:
       desc: |
         The source takes the place of the target.
@@ -140,7 +164,23 @@ domain:
         Describes participation from the participant's point of view, without implying ownership or responsibility.
         Useful for actors participating in projects, events, processes or tasks.
         Example: Antoine participates in the June 9 demo.
-
+    anticipates:
+      desc: |
+        The source is created, chosen or performed in preparation for the target.
+        Use it when an action, method, decision or tool addresses a difficulty, event or condition before it fully occurs.
+        It does not imply that the target is completely prevented.
+        Example: Migrating connections to environment variables anticipates production deployment.
+    systematizes:
+      desc: |
+        The source turns the target into a more explicit, repeatable, organized or verifiable practice.
+        Use it when something is made systematic without necessarily being fully automated.
+        Example: The Sponsorship application systematizes the instruction of sponsorship requests.
+    contributes:
+      desc: |
+        The source partially helps produce, achieve or shape the target.
+        Use it for causal or enabling relationships where the source matters but does not fully explain or determine the target.
+        Prefer a more precise verb such as `explains`, `produces` or `prevents` when that stronger relationship is justified.
+        Example: Unit-testing methods contribute to the reliability objective.
     '-':
       desc: |
         Weak fallback relation when a connection matters but is not yet precise.
