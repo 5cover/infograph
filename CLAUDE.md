@@ -21,7 +21,9 @@ There is no build/lint/test setup. TypeScript runs directly via **tsx** (not ins
 - Typecheck: `npx tsc --noEmit`. Note tsx runs code by stripping types without checking them, so run `tsc` explicitly to catch type errors.
 - Package manager is **pnpm** (`pnpm@11.9.0`).
 
-Example input lives in `example-infographs/alt.yaml`; its first line references `schemas/infograph.json` for editor validation.
+Domains live under `doc/domains/<name>/`. Each holds `example-infograph.yaml` (the canonical `kind`/`verb`/`source` vocabulary with definitions in `desc`, plus an illustrative graph) and `modeling.md` (prose guidance: keyword disambiguations, modeling patterns, rating scales). The only domain so far is `experiential`, for representing lived professional experience.
+
+Example input lives in `doc/domains/experiential/example-infograph.yaml`; its first line references `schemas/infograph.json` for editor validation.
 
 ## Architecture
 

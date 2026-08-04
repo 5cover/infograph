@@ -1,0 +1,1076 @@
+# yaml-language-server: $schema=../../../schemas/infograph.json
+#
+# Example infograph for the `experiential` domain.
+#
+# This file is the canonical declaration of the experiential domain: the `domain`
+# block below is the authoritative kind, verb and source vocabulary, and each
+# keyword carries its definition in `desc`.
+#
+# Prose guidance for the domain lives next to this file in `modeling.md`:
+# what the domain is for, how to choose between nearby keywords, recurring
+# modeling patterns, and the meaning of the rating scales.
+#
+# The nodes below are a small illustrative subset drawn from a real
+# apprenticeship. They demonstrate structure and keyword usage. They are not a
+# complete graph.
+#
+# A query or projection returns:
+# - active nodes: the selected presentation surface
+# - active edges: relationships inside that surface
+# - boundary edges: relationships from active nodes to inactive nodes
+#
+# Boundary edges can later become discussion openings, Q/A paths, annex material,
+# or deeper explanation paths.
+#
+# Query profiles are intentionally not stored here. They are procedural
+# strategies: depth limits, complexity limits, edge filtering, boundary
+# detection, ordering.
+info:
+  title: Alternance 2ème partie
+  context: Apprenticeship
+  author: me
+domain:
+  # Domain name: experiential.
+  # Kinds and verbs for representing lived professional experience: work, the
+  # conditions it happened under, what was discovered, decided and learned.
+  source:
+    journal:
+      desc: Dated day-to-day log written by the author during the period.
+    user_stories:
+      desc: Requirement records held in a tracker.
+    documentation:
+      desc: Project or product documentation, including wikis.
+    repo:
+      desc: Source repository or exported solution artifacts.
+    chat:
+      desc: Dated AI conversation export in which the author works through a subject.
+    url:
+      desc: specific url (put url in why)
+
+  kind:
+    project:
+      desc: |
+        A named mission, initiative or structured work area.
+        Work is organized around missions, not only isolated tasks.
+        Example: Sponsorship.
+    task:
+      desc: |
+        Work performed: an implementation effort, an investigation, a coarse activity or a sub-part of a project.
+        The grain is free. A task may be as small as a bug fix or as broad as a period of context reconstruction, may carry a date range, and may contain other tasks.
+        Use coarse tasks with dates to represent the shape of a mission over time, and `contains` to nest the finer work inside them. There is no separate kind for periods.
+        Example: amount calculation reconstruction, view bug fixes, context reconstruction after an absence.
+    product:
+      desc: |
+        A user-facing artifact: application, presentation, site, document.
+        Separates work from its outputs. Useful when explaining what was actually delivered.
+    tool:
+      desc: |
+        A technical platform, software, framework or environment used in the work.
+        Tracks the technical environment.
+        Example: Power Automate, SharePoint, LeanKit, Jira, Confluence.
+    constraint:
+      desc: |
+        A condition imposed on the work from outside: an organizational rule, a limitation, a pressure, an instability or an external circumstance.
+        The important fact is often not what was done, but what shaped the available choices.
+        Route discovered platform behavior to `finding`, unsatisfactory existing states to `problem`, and difficulties that received a deliberate response to `challenge`.
+        Example: short handover, support restrictions, changing scope, a policy forbidding two connectors in one flow.
+    finding:
+      desc: |
+        A verified proposition about how a system, tool or platform actually behaves, established by investigation rather than supplied by documentation.
+        Use it for behavior that was discovered: reverse engineering, deliberate experiment, bisection, reading exported artifacts, or a diagnosed incident. State the behavior, not the appraisal of it.
+        It differs from a constraint, which is a condition imposed on the work, and from a model, which interprets why a system is the way it is.
+        If nothing else in the graph explains, verifies, mitigates or is constrained by it, keep it as a claim on the relevant tool instead of creating a node.
+        Example: Cloning an unmanaged solution creates a new version of the same solution rather than a copy.
+    event:
+      desc: |
+        A dated occurrence, milestone or incident that punctuates the chronology.
+        An event is a point of articulation: the graph arrives at it rather than traversing into it. It may span a period when what matters about that period happens at its boundaries.
+        Example: return from leave, demo on June 9, an overnight runaway loop, abandonment of a tool direction.
+    decision:
+      desc: |
+        A choice, explicit or implicit, that changed direction or reduced uncertainty.
+        Decisions explain why the work followed one path instead of another. Use `rejects` to record the alternatives that were weighed and set aside.
+        Example: abandoning Confluence, returning to LeanKit, not implementing NJFlow early.
+    requirement:
+      desc: |
+        A specific expectation on the system, expressed by a stakeholder or a specification, which the delivered work is answerable to.
+        Use it when the expectation has its own identity: it can be attributed to someone, verified, contested, misimplemented, or changed over time. Requirements are the natural target of `verifies`.
+        It differs from an objective, which is a desired future state that may evolve and receive contributions from many sources, and from a task, which is the work performed.
+        Do not create one node per user story. A requirement earns a node when several graph elements point at it or when its interpretation was itself at stake.
+        Example: A cumulative amount above a configured threshold requires additional validation.
+    objective:
+      desc: |
+        A desired future state or outcome that a project, actor or organization seeks to achieve.
+        Use it when the intended result has an identity of its own, may evolve over time, or receives contributions from several projects, tasks or methods.
+        Example: Centralized visibility into sponsorship funding is an objective of the Sponsorship project.
+    problem:
+      desc: |
+        An unsatisfactory existing state, gap, deficiency or recurring issue that justifies intervention.
+        Use it to represent what is wrong or missing before a solution is introduced, rather than a limitation imposed on that solution.
+        Example: The informal processing of sponsorship requests creates a lack of traceability and visibility.
+    challenge:
+      desc: |
+        A difficulty that makes an objective, task or project harder to accomplish, and that received or requires a deliberate response.
+        A challenge earns a node when something in the graph responds to it through `mitigates` or `anticipates`. If nothing responds, it is a constraint or a claim on the affected node.
+        Example: Reliably testing Power Automate flows is a challenge because much of their behavior depends on remote services and runtime configuration.
+    method:
+      desc: |
+        A reusable approach, technique, pattern, convention, invariant or disciplined way of performing work.
+        Use it to represent how work is carried out when the approach can be explained, reused or applied independently of a single task. It covers naming conventions, architectural invariants and rules of thumb as well as techniques.
+        It differs from a process, which represents a sequence of business or system activities.
+        Example: Fixture-based flow testing is a method for testing flows against controlled data.
+    process:
+      desc: |
+        An executable recipe for actions, actors and visibility rules over time.
+        Use one node for a whole lifecycle: its states, transitions and authority rules belong in its summary and claims, not in a node per state.
+        A process recurs for every case that passes through the system, which distinguishes it from a task performed once.
+        Example: request analysis.
+    model:
+      desc: |
+        A structural interpretation that explains or connects several graph elements: a theory about why a system, organization or situation behaves as it does.
+        Use it when an interpretation supports its own relations or is referenced by several elements. Keep it as a `hypothesis` claim on a single node when it only qualifies that node.
+        It differs from a finding, which states verified behavior rather than explaining it, and from a learning, which records a change in the author's judgment rather than a property of the world.
+        Example: A platform assembled by accumulation rather than replacement produces inconsistencies where its layers meet.
+    learning:
+      desc: |
+        A change in the author's capability, judgment or posture over time.
+        Evidence of progression. Example: moving from implementation to reliability reasoning.
+    actor:
+      desc: |
+        A person, team, support group, role or institution involved in the situation.
+        Some constraints and decisions are organizational. Keeping actors explicit avoids hiding social and project context in prose.
+        Create separate nodes for a person and for a role or body only when both carry edges.
+        Example: IUT, support team, Indian team, project owner, Mahmoud, Fabrice, CODIR.
+    jargon:
+      desc: |
+        A named technical or business term used within this corpus to refer to a recurring concept, including terms coined by the author.
+        Use it when vocabulary deserves its own identity and can be referenced by multiple graph elements. It acts as a shared designation rather than as a project, tool or process.
+        When the point is that a platform word's real meaning contradicts its conventional meaning, that belongs in `finding`; add a jargon node only if the term itself needs referencing.
+        Example: `maker_compiler` refers to the observed distinction between maker-time and runtime behavior.
+    '-':
+      desc: |
+        Free-form fallback for information that does not fit the graph cleanly yet.
+        Prevents schema pressure. If something is important but hard to model, it can enter the graph first and be structured later.
+        A fallback is a debt marker: state in a claim what remains unresolved. Prefer it over stretching another kind past its definition.
+  verb:
+    contains:
+      desc: |
+        The source includes the target as a sub-part.
+        Basic structure relation. Analogy: UML composition. The target is only relevant within the source.
+        Example: Sponsorship contains amount calculation work.
+    uses:
+      desc: |
+        The source uses the target as a tool, platform, method or resource.
+        Essential for technical environment projections. Analogy: UML aggregation.
+        Example: Sponsorship uses Power Automate.
+    produces:
+      desc: |
+        The source creates, modifies, generates or results in the target.
+        Connects work to concrete outputs. Generation, compilation and derivation count.
+        Example: work item produces demo artifact.
+    requires:
+      desc: |
+        The source cannot be understood, completed or validated without the target.
+        Prerequisite only. For entailment or demand use `explains`, `constrains` or `contributes`; for checking use `verifies`.
+        Captures hidden depth. These edges often become discussion openings when outside the active surface.
+    verifies:
+      desc: |
+        The source checks that the target holds: by test, lint, review, experiment, measurement or human validation.
+        It asserts that a check exists and what it covers, not that the check passed. Put outcomes in claims.
+        Use it to make coverage visible: requirements and processes with no incoming `verifies` edge are the unchecked surface.
+        Example: A lint rule verifies that child flow calls disable automatic retries.
+    explains:
+      desc: |
+        The source explains, triggers or makes the target more likely.
+        Captures chronology and causality without writing a full narrative.
+    illustrates:
+      desc: |
+        The source is an example of the target.
+        Lets concrete events support broader claims. Example: handover pressure illustrates autonomy growth.
+    constrains:
+      desc: |
+        The source limits, shapes, pressures or hinders the target.
+        Work is repeatedly shaped by tool limits, support constraints, planning pressure and changing scope.
+    anticipates:
+      desc: |
+        The source is created, chosen or performed in preparation for the target.
+        Use it when an action, method, decision or tool addresses a difficulty, event or condition before it fully occurs.
+        It does not imply that the target is completely prevented.
+        Example: Migrating connections to environment variables anticipates production deployment.
+    mitigates:
+      desc: |
+        The source reduces the effect of a difficulty that already exists or has already occurred, without necessarily removing it.
+        Use it for a deliberate response to an encountered problem, constraint, challenge or finding.
+        It differs from `anticipates`, which addresses a difficulty before it fully occurs, and from `prevents`, which claims the difficulty is eliminated. The target must be an identifiable difficulty, not an objective; use `contributes` for that.
+        Example: A lint rule mitigates the silent removal of a retry policy.
+    prevents:
+      desc: |
+        The source prevents the target: it is eliminated or made impossible.
+        For partial responses use `mitigates`.
+        Useful for representing tradeoffs. Example: limited available team capacity prevents additional staffing.
+    rejects:
+      desc: |
+        The source considered the target as a viable candidate and set it aside.
+        Use it to record alternatives that were genuinely weighed, so a projection can present a choice against what it was chosen over. Put the reasoning in claims, typically as `counterfactual`.
+        It differs from `replaces`, which requires the target to have been previously in place, and from `prevents`, which describes causal blocking rather than deliberate non-selection. A rejection can later be undone; record both edges with their dates.
+        Example: Continuing on the current platform rejects adopting an existing workflow engine.
+    replaces:
+      desc: |
+        The source takes the place of the target, which was previously in place.
+        Useful for project direction changes.
+        Example: LeanKit replaces Jira in the chosen workflow direction.
+    contributes:
+      desc: |
+        The source partially helps produce, achieve or shape the target.
+        Use it for causal or enabling relationships where the source matters but does not fully explain or determine the target.
+        Prefer a more precise verb such as `explains`, `produces`, `mitigates` or `prevents` when that stronger relationship is justified.
+        Example: Unit-testing methods contribute to the reliability objective.
+    systematizes:
+      desc: |
+        The source turns the target into a more explicit, repeatable, organized or verifiable practice.
+        Use it when something is made systematic without necessarily being fully automated.
+        Example: The Sponsorship application systematizes the instruction of sponsorship requests.
+    involves:
+      desc: |
+        The source inherently involves the target as a stakeholder, contributor or responsible party.
+        Describes structural or organizational participation rather than a single occurrence.
+        The target's perspective, input, actions or constraints are part of the situation.
+        Example: Sponsorship involves Antoine.
+    participates:
+      desc: |
+        The source takes part in the target.
+        Describes participation from the participant's point of view, without implying ownership or responsibility.
+        Useful for actors participating in projects, events, processes or tasks.
+        Example: Antoine participates in the June 9 demo.
+    '-':
+      desc: |
+        Weak fallback relation when a connection matters but is not yet precise.
+        Prevents premature modeling. Better to store an imperfect relation than to lose the connection.
+        State in a claim what remains unresolved.
+# Stable keys. Edges need stable references. Keys: /${kind} [-_a-z ]+/. The kind is part of the node key identity, and always provided in references. So "project sponsorship" and "tool sponsorship" are different nodes.
+# The key should not depend on the exact wording of the title.
+nodes:
+  actor me:
+    info:
+      title: Me
+      summary: The apprentice whose work, reasoning and experience form the main perspective of the infograph.
+      claim:
+        - fact: I carried out the apprenticeship work represented in this infograph.
+        - opinion: I care strongly about work that remains understandable after project scope and tooling constraints grow.
+      complexity:
+        is: simple
+        why: The author perspective is central to the graph and should be explicit.
+      tag:
+        - people
+    participates:
+      project sponsorship:
+        with:
+          complexity:
+            is: simple
+            why: I directly worked on the project over the apprenticeship period.
+          claim:
+            - fact: I participated in the Sponsorship project as one of my main apprenticeship missions.
+      event quarterly_meeting:
+        with:
+          complexity:
+            is: simple
+            why: Attending the meeting is a direct participation relation, without implying responsibility for the event.
+          claim:
+            - fact: I attended the quarterly meeting.
+  project sponsorship:
+    info:
+      title: Sponsorship
+      summary: Business project involving sponsorship-related workflows, follow-up, data handling and automation.
+      claim:
+        - fact: I worked on Sponsorship as one of the main active missions of the apprenticeship.
+        - fact: The project evolves over time instead of remaining a fixed implementation task.
+        - hypothesis: The project may have evolved partly because its initial framing did not expose all operational constraints.
+        - opinion: I see the project as a useful example for presenting progression during the apprenticeship.
+        - counterfactual: With a more stable initial scope, less work would have been needed to reconstruct context later.
+      date:
+        from: 2025-12
+        to: 2026-07
+      importance:
+        is: central
+        why: Major project, aggregating many learnings, strategic opportunities, and catalyzing personal growth.
+      complexity:
+        is: natural
+        why: The purpose of the application and the main features of the sponsorship analysis and approval flow are natural to explain.
+      technicality:
+        is: none
+        why: The business purpose stands on its own; the technical substrate is carried by the nodes below it.
+      source:
+        is: journal
+        why: (refer to main entries about the project one by one)
+      tag:
+        - sponsorship
+        - business_workflow
+        - automation
+    # Outgoing edges.
+    involves:
+      actor me:
+        with:
+          complexity:
+            is: simple
+            why: My involvement in the project is direct and easy to state.
+          claim:
+            - fact: I was the main implementer and context reconstructor for the sponsorship work.
+      actor antoine:
+        with:
+          complexity:
+            is: natural
+            why: The business owner's role needs a sentence about the requesting service.
+          claim:
+            - fact: Antoine specifies the need, tests the system with real requests, and arbitrates functional questions.
+    uses:
+      tool power_automate:
+        # provides additional edge information.
+        with:
+          # Some relationships are harder to explain than the things they connect.
+          complexity:
+            is: natural
+            why: Power Automate usage evolves throughout the project, changing from a pure authoring to a partially generated surface due to the need for reliability guarantees provided by tooling.
+          claim:
+            - fact: I used Power Automate to implement automation aspects of Sponsorship.
+        # no info, so power_automate must exist at a level above
+      tool sharepoint:
+        with:
+          complexity:
+            is: simple
+            why: SharePoint is used as a database; repeatable provisioning challenges remain unsolved.
+          claim:
+            - fact: SharePoint was part of the project environment.
+    contains:
+      # the node is understood as belonging to the scope of this particular node. In display, we will show something like Sponsorship: Application. The id becomes project sponsorship > product application. This is what allows us to use broad names in context.
+      product application:
+        with:
+          complexity:
+            is: simple
+            why: Belonging of the application to the Sponsorship scope is obvious.
+          claim:
+            - fact: I worked on an application that was not initially part of the need.
+        info:
+          title: Application
+          summary: The application serves as a front-end for the product.
+          complexity:
+            is: simple
+            why: The application is a straightforward front-end; its role is easy to state.
+          claim: # these should be edges but you get the point.
+            - fact: Since it was added, SharePoint is fully treated as a database layer.
+            - fact: I used a dedicated front-end to simplify part of the interaction with the underlying data and workflow.
+        involves:
+          actor me:
+            with:
+              complexity:
+                is: simple
+                why: I worked directly on the application.
+              claim:
+                - fact: I contributed directly to the Sponsorship application.
+      process amount_calculation:
+        with:
+          complexity:
+            is: contextual
+            why: The process includes a rolling time window and has evolved.
+          claim:
+            - fact: I had to understand amount calculation behavior to improve Sponsorship reliability.
+        info:
+          title: Amount calculation
+          summary: Business calculation logic that requires reconstruction, understanding and reliable handling.
+          importance:
+            is: central
+            why: The amount calculation is one of the core reliability risks in the Sponsorship work.
+          complexity:
+            is: intertwined
+            why: Explaining it requires business rules, date windows, edge cases, and implementation context.
+          technicality:
+            # Rated because it defies the default for a business process: the
+            # rolling window and beneficiary normalization cannot be conveyed
+            # without some technical grounding.
+            is: most
+            why: The rolling twelve month window and the normalization of beneficiary spellings need technical grounding, though the purpose remains statable in a sentence.
+          source:
+            - is: journal
+              why: Journal entries describe the reconstruction and reliability work around this process.
+            - is: user_stories
+              why: User stories provide business expectations for the calculation behavior.
+          claim:
+            - fact: The calculation logic is difficult to understand without sufficient context.
+            - fact: A short handover is not enough to fully absorb the calculation behavior.
+            - fact: I worked on reliability by reconstructing edge cases and implicit rules.
+          date:
+            from: 2026-05
+            to: 2026-07
+          tag:
+            - calculation
+            - business_rules
+            - reliability
+            - edge_cases
+        requires:
+          constraint reliability_focus:
+            with:
+              complexity:
+                is: natural
+                why: The dependency on reliability work is clear once the calculation risks are known.
+        involves:
+          actor me:
+            with:
+              complexity:
+                is: natural
+                why: My reconstruction work is part of why this process matters in the graph.
+              claim:
+                - fact: I reconstructed part of the calculation behavior from available context, artifacts and project discussions.
+  # A coarse task with a date range, containing the finer work it groups. This is
+  # how the shape of a mission over time is represented; see modeling.md,
+  # "Periods are tasks, not a kind of their own".
+  task context_reconstruction:
+    info:
+      title: Context reconstruction
+      summary: Rebuilding an understanding of a system that grew during an absence, before functional work could resume safely.
+      importance:
+        is: major
+        why: It accounts for most of the visible slowness of the period and for the stabilization work that followed.
+      complexity:
+        is: natural
+        why: The situation is easy to state; its cost is what needs explaining.
+      date:
+        from: 2026-04
+        to: 2026-05
+      source:
+        is: journal
+        why: (reference the April and May entries describing the review and stabilization work)
+      claim:
+        - fact: I became the curator and archaeologist of the original intent behind existing artifacts.
+        - opinion: I underestimated how much this work also reduced future risk, rather than merely enabling functional progress.
+      tag:
+        - context
+        - maintainability
+    contains:
+      task flow_stabilization:
+        with:
+          complexity:
+            is: simple
+            why: The stabilization work is one part of the reconstruction effort.
+        info:
+          title: Flow stabilization
+          summary: Reorganizing flows into clear responsibilities, removing duplicated logic, and making failures visible.
+          complexity:
+            is: natural
+            why: The goal is simple to state; the individual corrections are numerous.
+          technicality:
+            is: most
+            why: Error propagation, idempotence and trigger conditions need technical grounding.
+          claim:
+            - fact: Most flows were deleted and recreated rather than repaired, because their intent could not be recovered reliably.
+    mitigates:
+      problem dispersed_business_logic:
+        with:
+          complexity:
+            is: natural
+            why: The link between the reconstruction effort and the dispersion it addressed is direct.
+          claim:
+            - fact: The reconstruction reduced duplicated and contradictory logic without fully eliminating it.
+  problem dispersed_business_logic:
+    info:
+      title: Dispersed business logic
+      summary: The same business rules exist in several places at once, so no single location can be trusted as the truth.
+      importance:
+        is: central
+        why: It is the recurring cause of fragility across the project and the reason a formal process definition became attractive.
+      complexity:
+        is: natural
+        why: The situation is intuitive; its consequences take a sentence to establish.
+      technicality:
+        is: some
+        why: The problem is graspable without technical background, though its examples are technical.
+      source:
+        is: journal
+        why: (reference the May entries on duplicated calculation logic and the June entries on where business truth should live)
+      claim:
+        - fact: Amount calculation logic is duplicated across several flows and inside single flows.
+        - fact: Notification bodies exist in several slightly different versions.
+        - opinion: The difficulty is not untidiness but the impossibility of reasoning about the system as a whole.
+      tag:
+        - maintainability
+        - truth
+    illustrates:
+      model truth_location:
+        with:
+          complexity:
+            is: natural
+            why: The dispersion is the concrete case that motivates the broader question.
+  model truth_location:
+    info:
+      title: Where business truth lives
+      summary: A business process can be defined in an external service, a formal machine-readable document, informal prose, the flows, the application, configuration data, a generator, lint rules, or only in the developers' heads. When several are true at once, the truth is distributed and becomes hard to evolve.
+      importance:
+        is: central
+        why: It reframes the project's central difficulty from implementation to governance of the process definition.
+      complexity:
+        is: contextual
+        why: The model only becomes convincing once several concrete dispersions have been seen.
+      technicality:
+        is: some
+        why: The question is organizational; only its options are technical.
+      source:
+        - is: journal
+          why: (reference the June entry enumerating the possible locations of business truth)
+        - is: chat
+          why: Discussion refining the model and its consequences for tooling.
+      claim:
+        - fact: The current definition of the process is spread across informal documentation, the flows, the application and personal knowledge.
+        - opinion: A machine-readable process definition is the most durable option, because the runtime and the interface should not be the source of truth.
+        - hypothesis: Coupling the process to the application would be a sophisticated form of lock-in.
+      tag:
+        - governance
+        - documentation
+    explains:
+      decision continue_power_platform:
+        with:
+          complexity:
+            is: contextual
+            why: The model clarifies what the decision does and does not settle.
+  decision continue_power_platform:
+    info:
+      title: Continue on the current platform
+      summary: Keeping the existing platform for the delivery, while treating the process definition as the thing that must eventually move out of it.
+      complexity:
+        is: natural
+        why: The choice is easy to state once the institutional context is known.
+      date: 2026-06
+      source:
+        is: journal
+        why: (reference the June entries listing the realistic paths for the project)
+      claim:
+        - fact: The path of least institutional friction was to continue with the existing platform.
+        - counterfactual: Adopting an existing workflow engine would have reduced the risk of reinventing a case management system, at the cost of a large organizational change.
+      tag:
+        - governance
+    rejects:
+      tool jira:
+        with:
+          complexity:
+            is: natural
+            why: The alternative was assessed with explicit advantages and disadvantages.
+          claim:
+            - counterfactual: A preconfigured workflow tool would have made the process visible and reduced maintenance, but would have recontextualized the work already delivered as exploratory.
+  tool jira:
+    info:
+      title: Jira
+      summary: Workflow and issue tracking tool already standardized in parts of the group, evaluated twice as an alternative to building the workflow directly.
+      complexity:
+        is: simple
+        why: The tool is widely known.
+      tag:
+        - tooling
+  requirement cumulative_threshold:
+    info:
+      title: Cumulative amount threshold
+      summary: When the total granted to one beneficiary over a rolling twelve month window exceeds a configured threshold, the request must receive additional validation instead of being approved automatically.
+      importance:
+        is: central
+        why: It is the rule that gives the project its purpose, and the one whose misapplication has the highest consequence.
+      complexity:
+        is: natural
+        why: The rule is simple; its edge cases are not.
+      technicality:
+        is: some
+        why: The rule is a business rule; only its evaluation is technical.
+      date:
+        from: 2026-01
+        to: 2026-07
+      source:
+        - is: journal
+          why: (reference the January and February entries defining the thresholds and the validation circuit)
+        - is: user_stories
+          why: The threshold and validation circuit are specified as user stories.
+      claim:
+        - fact: The threshold is configurable rather than hardcoded, because its value was still under discussion.
+        - fact: A false positive on beneficiary identity is preferable to a false negative, because a false positive only triggers human validation.
+      tag:
+        - business_rules
+        - validation
+    involves:
+      actor antoine:
+        with:
+          complexity:
+            is: simple
+            why: The requirement is attributable to the business owner.
+    contributes:
+      objective funding_visibility:
+        with:
+          complexity:
+            is: natural
+            why: The rule is one of the mechanisms through which visibility is obtained.
+  objective funding_visibility:
+    info:
+      title: Visibility over funding
+      summary: Knowing who receives money, how much, and how often, across the entities that can grant it.
+      importance:
+        is: central
+        why: It is the value the business actually sought, as the June 9 demo made clear.
+      complexity:
+        is: simple
+        why: The objective is immediately intelligible.
+      source:
+        is: journal
+        why: (reference the entry noting that the demo revealed visibility as the sought value)
+      claim:
+        - fact: The value sought was primarily visibility over requests and amounts rather than automation.
+      tag:
+        - visibility
+  actor antoine:
+    info:
+      title: Antoine
+      summary: Business owner for the sponsorship process, from the requesting service. Specifies the need, tests with real requests, and arbitrates functional questions.
+      complexity:
+        is: natural
+        why: The role only makes sense alongside the requesting service and the validation circuit.
+      tag:
+        - people
+  tool power_automate:
+    info:
+      title: Power Automate
+      summary: Main automation platform used in the project, with significant practical constraints around reliability, debugging and maintainability.
+      importance:
+        is: central
+        why: Main, "default" automation and business logic execution substrate for Studio projects.
+      complexity:
+        is: simple
+        why: The basics and general information are simple. Advanced features are more complex to explain.
+      technicality:
+        is: some
+        why: What the platform is for is accessible; the behaviors that matter here are not.
+      claim:
+        - fact: I used Power Automate as a central implementation platform.
+        - fact: The platform introduces recurring reliability and maintainability concerns.
+        - fact: Several classes of errors are validated only when a flow is published or executed.
+        - opinion: I find the resulting authoring experience unnecessarily exhausting.
+      date:
+        from: 2025-12
+        to: 2026-07
+      tag:
+        - low_code
+        - reliability
+        - runtime_errors
+    requires:
+      constraint reliability_focus:
+        with:
+          complexity:
+            is: natural
+            why: The concept is clear, the implementation is less clear.
+          claim:
+            - fact: Power Automate constraints and pitfalls made reliability and maintainability more important in my work.
+  finding clone_is_not_copy:
+    info:
+      title: Clone does not copy
+      summary: Cloning an unmanaged solution creates a new version of the same solution rather than a separate copy, so deleting the clone deletes the original container.
+      importance:
+        is: useful
+        why: It is the clearest single illustration of an interface that suggests a workflow the engine does not implement.
+      complexity:
+        is: simple
+        why: One sentence establishes both the expectation and the outcome.
+      technicality:
+        # Rated because it defies the default for a finding: this one carries no
+        # technical prerequisite and is therefore useful in an accessible passage.
+        is: some
+        why: A button labelled Clone that does not clone is intelligible without technical background; only the recovery workaround is technical.
+      date: 2026-04
+      source:
+        is: journal
+        why: (reference the April entry recording the incident and the export workaround)
+      claim:
+        - fact: The label, the icon and the shown version all suggest a copy operation.
+        - fact: The original solution disappeared and had to be recreated with a new identity.
+        - fact: The platform treats solutions as lifecycle artifacts rather than workspaces, and offers no snapshot, fork or review copy.
+      tag:
+        - alm
+        - semantics
+    illustrates:
+      model layered_product_history:
+        with:
+          complexity:
+            is: natural
+            why: The case is a direct manifestation of the layering the model describes.
+  model layered_product_history:
+    info:
+      title: Layered product history
+      summary: A platform assembled by accumulation rather than replacement produces inconsistencies where its layers meet, because each layer brought its own terminology, assumptions and intended user.
+      importance:
+        is: major
+        why: It converts a long list of individual surprises into one explanation, which is what makes the experience presentable.
+      complexity:
+        is: contextual
+        why: The model is convincing only after several concrete inconsistencies have been shown.
+      technicality:
+        is: some
+        why: The explanation is about product history and organization; only its examples are technical.
+      source:
+        - is: journal
+          why: (reference the April entry analyzing why these inconsistencies recur)
+        - is: chat
+          why: Discussion structuring the explanation into distinct causes.
+      claim:
+        - fact: Lifecycle concepts designed for experts are exposed through an interface designed for non-experts.
+        - fact: Backward compatibility is preferred over correcting terminology.
+        - fact: Documentation describes mechanics rather than user intent, which leaves non-standard paths uncovered.
+        - opinion: These are not bad tradeoffs so much as an incomplete model presented as a complete one.
+      tag:
+        - platform
+        - documentation
+  finding silent_retry_policy_drop:
+    info:
+      title: Retry policy silently removed on save
+      summary: Saving a flow in the legacy designer can remove an explicitly configured retry policy from child flow calls, without warning and without any visible change in the interface.
+      importance:
+        is: major
+        why: It caused an incident before a client demonstration, and it is the reason a static check became mandatory rather than advisory.
+      complexity:
+        is: natural
+        why: The behavior is simple; its consequences require the call chain to be explained.
+      technicality:
+        is: most
+        why: Understanding why it matters requires nested calls, timeouts and retry composition, though the shape is statable as an editor quietly changing a setting.
+      date: 2026-06
+      source:
+        - is: journal
+          why: (reference the June postmortem)
+        - is: repo
+          why: The exported solution shows the property present and then absent between revisions.
+      claim:
+        - fact: The property lives in the exported definition and is not surfaced prominently in the designer.
+        - fact: Retries do not simply add up across nesting levels; they compose, so a locally reasonable policy becomes damaging in a chain.
+        - fact: The cause is far from the symptom. The failure appears later, when an external service is slow.
+        - opinion: The visual designer is not a sufficient source of truth for a project that must be relied upon.
+      tag:
+        - reliability
+        - tooling
+    explains:
+      event june5_retry_cascade:
+        with:
+          complexity:
+            is: natural
+            why: The removed property is the direct cause of the observed cascade.
+  event june5_retry_cascade:
+    info:
+      title: Retry cascade before the demo
+      summary: A request submitted by the business owner never finished processing, because an external analysis failure was replayed at two nesting levels at once.
+      importance:
+        is: major
+        why: It consumed diagnosis time immediately before a client demonstration and prompted the preventive measures that followed.
+      complexity:
+        is: natural
+        why: The user-visible symptom is simple; the amplification needs a short explanation.
+      technicality:
+        is: some
+        why: A request that never completes is intelligible on its own; the cascade is technical.
+      date: 2026-06-05
+      source:
+        is: journal
+        why: Postmortem written the same day.
+      claim:
+        - fact: The visible symptom was a processing run that did not terminate within an acceptable delay.
+        - fact: The incident was not caused by a business logic error.
+      tag:
+        - incident
+    involves:
+      actor antoine:
+        with:
+          complexity:
+            is: simple
+            why: The incident occurred on a request he had submitted.
+  tool flowlint:
+    info:
+      title: Flow lint
+      summary: A static check over exported flow definitions that enforces invariants the designer does not surface.
+      importance:
+        is: major
+        why: It is the mechanism by which discovered platform behavior stops costing time twice.
+      complexity:
+        is: simple
+        why: The purpose is easy to state.
+      technicality:
+        is: most
+        why: The rules concern the exported definition format.
+      date:
+        from: 2026-05
+        to: 2026-07
+      source:
+        - is: repo
+          why: Rule implementations and their fixtures.
+        - is: journal
+          why: (reference the entries introducing rules after each discovered pitfall)
+      claim:
+        - fact: The rule that detected the retry policy removal had been written to catch human forgetfulness, and instead caught a change made by the editor.
+        - opinion: Building the rules reactively, after being hurt, was the right tradeoff; building them in advance would have delayed functional work.
+      tag:
+        - tooling
+        - reliability
+    verifies:
+      finding silent_retry_policy_drop:
+        with:
+          complexity:
+            is: natural
+            why: The rule checks for exactly the property whose disappearance was discovered.
+          claim:
+            - fact: The check fails when a child flow call does not explicitly disable automatic retries.
+    mitigates:
+      finding silent_retry_policy_drop:
+        with:
+          complexity:
+            is: natural
+            why: The check does not stop the editor from removing the property; it makes the removal visible before publication.
+          claim:
+            - fact: The removal still happens; it is now detected instead of being discovered through an incident.
+    illustrates:
+      learning autonomy_growth:
+        with:
+          complexity:
+            is: natural
+            why: Turning a recurring surprise into an enforced invariant is a change of posture, not only a tool.
+  constraint evolving_scope:
+    info:
+      title: Evolving project scope
+      summary: The project changes over time, which affected planning, understanding and implementation priorities.
+      importance:
+        is: central
+        why: Changes increase workload and risk, thereby requiring more tools to protect reliability.
+      complexity:
+        is: natural
+        why: Many projects evolve.
+      source:
+        - is: journal
+          why: (reference main related entry dates here)
+        - is: journal
+          why: (reference main related entry dates here)
+      claim:
+        - fact: The project does not remain stable from its initial framing.
+        - fact: New expectations and constraints appear as the work progresses.
+        - fact: The evolution of the project increased my need to rebuild context.
+        - fact: The project is a moving system; increasing the number of parts increases complexity nonlinearly.
+      date:
+        from: 2025-12
+        to: 2026-07
+      tag:
+        - scope
+        - planning
+        - project_management
+    explains:
+      event handover_pressure:
+        with:
+          complexity:
+            is: natural
+            why: The transitions are simple officially, however there are remaining concerns and unanswered questions in practice.
+          claim:
+            - fact: The changing project scope made my short handover harder.
+    constrains:
+      project sponsorship:
+        with:
+          complexity:
+            is: natural
+            why: The evolving scope affected how the Sponsorship work had to be understood and presented.
+      requirement cumulative_threshold:
+        with:
+          complexity:
+            is: natural
+            why: The rule's boundaries and special cases were still being renegotiated late in the project.
+          claim:
+            - fact: Thresholds, exempted cases and the validation circuit were still moving after the June 9 demo.
+    involves:
+      actor me:
+        with:
+          complexity:
+            is: natural
+            why: My planning and context reconstruction were directly shaped by the evolving scope.
+          claim:
+            - fact: I had to adapt my understanding and work priorities as the project scope changed.
+  constraint reliability_focus:
+    info:
+      title: Reliability focus
+      summary: The work shifts from simply making automations work to making them understandable, maintainable and reliable.
+      importance:
+        is: central
+        why: Prototypes need to work. Products need to work twice. Uncertainty reduction is a major part of my work.
+      complexity:
+        is: intertwined
+        why: Relates to every project contextually, depending on stack, platform pitfalls, and hidden semantics.
+      technicality:
+        is: some
+        why: The requirement is intelligible on its own; the means are technical.
+      source:
+        is: journal
+        why: Main focus, pretty much from the very first day.
+      claim:
+        - fact: A working automation is not sufficient by itself.
+        - fact: I had to pay attention to maintainability, traceability and edge cases.
+        - fact: Reliability became a major learning axis of my apprenticeship.
+      date:
+        from: 2026-04
+        to: 2026-07
+      tag:
+        - reliability
+        - maintainability
+        - learning
+        - automation
+    requires:
+      learning autonomy_growth:
+        with:
+          complexity:
+            is: natural
+            why: Required overview of the system; still simple to explain.
+          claim:
+            - fact: Working on reliability required more independent judgment from me.
+    involves:
+      actor me:
+        with:
+          complexity:
+            is: natural
+            why: This learning axis describes my work and judgment, not only an external project property.
+          claim:
+            - fact: I worked on making automations more understandable, maintainable and reliable.
+  event handover_pressure:
+    info:
+      title: Handover under time pressure
+      summary: A short handover period makes it difficult to reconstruct the full context of an evolved project.
+      importance:
+        is: major
+        why: Changes the mission of the DSI Studio and my future opportunities.
+      complexity:
+        is: contextual
+        why: Affects every project differently.
+      source:
+        - is: journal
+          why: (reference main related entry dates here)
+        - is: journal
+          why: (reference main related entry dates here)
+      claim:
+        - fact: A limited handover period is not enough to fully understand the evolved project.
+        - fact: I had to reconstruct context from existing artifacts and behavior during the handover situation.
+      date:
+        from: 2026-06
+        to: 2026-06
+      tag:
+        - handover
+        - context
+        - planning
+    # A handover is ternary: what, from whom, to whom. Edges are binary, so the
+    # event carries the parties through `involves` and the transferred object
+    # through `contains`. See modeling.md, "Handovers".
+    involves:
+      actor me:
+        with:
+          complexity:
+            is: simple
+            why: I was directly subject to the handover pressure.
+          claim:
+            - fact: I had to reconstruct project context from artifacts and meetings.
+            - fact: I experienced the time pressure materially during handover.
+      actor indian_power_platform_team:
+        with:
+          complexity:
+            is: natural
+            why: Explaining the team's role needs a little context about the transition.
+          claim:
+            - fact: Receives transferred project responsibilities after the transition.
+    illustrates:
+      learning autonomy_growth:
+        with:
+          complexity:
+            is: natural
+            why: Prepared knowledge transfers by myself, unplanned English meetings over lunchtime, little official information.
+          claim:
+            - fact: The handover situation illustrates why I needed to reconstruct context autonomously.
+  learning autonomy_growth:
+    info:
+      title: Autonomy growth
+      summary: Progression from executing tasks toward reconstructing context, identifying risks, and reasoning about reliability.
+      importance:
+        is: central
+        why: Concerns almost every project.
+      complexity:
+        is: contextual
+        why: Autonomy applies differently from project to project.
+      source:
+        - is: journal
+          why: distributed
+        - is: journal
+          why: (you could refer an entry with a specific major instance of autonomy here)
+      claim:
+        - fact: My apprenticeship required increasing autonomy over time.
+        - fact: I had to understand unclear systems, not only implement requested changes.
+        - fact: I developed stronger judgment around complexity and reliability.
+      date:
+        from: 2026-01
+        to: 2026-07
+      tag:
+        - autonomy
+        - learning
+        - progression
+    involves:
+      actor me:
+        with:
+          complexity:
+            is: simple
+            why: This node describes my progression.
+          claim:
+            - fact: I am the actor whose autonomy growth is represented by this node.
+  event quarterly_meeting:
+    info:
+      title: Quarterly Meeting
+      summary: The DSI's quarterly meeting. News about the organization, project presentations, cybersecurity metrics, client NPS.
+      importance:
+        is: useful
+        why: It brings some long awaited context and direction after the Indian transition.
+      complexity:
+        is: natural
+        why: It doesn't directly affect ongoing projects. It is a scheduled event.
+      source:
+        - is: journal
+          why: entry 2026-06-26
+      claim:
+        - fact: The meeting covers the finalization of the transition of projects to the Indian Power Platform development team.
+        - fact: The meeting covers the future role of the DSI after the Indian team takes over Power Platform and SharePoint developments.
+      date: 2026-06-26 # A lone date is supported (it is parsed to equal from/to) for punctual events
+  tool sharepoint:
+    info:
+      title: SharePoint
+      summary: Data and collaboration platform used as part of the business workflow and automation environment.
+      importance:
+        is: major
+        why: Main database tool, used by the Studio for persistence and business data retention.
+      complexity:
+        is: natural
+        why: SharePoint is widely known and used.
+      technicality:
+        is: some
+        why: Its role as a data store is accessible; the consequences of it not being a database are not.
+      claim:
+        - fact: SharePoint is part of the technical environment.
+        - fact: I had to account for how the structure of stored data affects automation behavior.
+      date:
+        from: 2025-12
+        to: 2026-07
+      tag:
+        - sharepoint
+        - data
+        - collaboration
+  # Actors are ordinary nodes, linked to the situations they take part in with the `involves` verb.
+  actor indian_power_platform_team:
+    info:
+      title: Indian Power Platform team
+      summary: Team receiving transferred Power Platform and SharePoint project responsibilities after the transition.
+      complexity:
+        is: natural
+        why: The team's role only makes sense alongside the transition context.
+      tag:
+        - people
+# Edges. key format: `${source key} ${verb} ${target key}`
+# Use for edges that don't belong to any particular node.
+edges:
+  # all edges are keyed by (source key, verb, target key)
+  learning autonomy_growth - event handover_pressure:
+    complexity:
+      is: natural
+      why: The link between autonomy and the handover is intuitive but benefits from a sentence of context.
+    claim:
+      - fact: These two nodes are related somehow.
