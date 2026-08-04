@@ -341,8 +341,8 @@ nodes:
           claim:
             - fact: SharePoint was part of the project environment.
     contains:
-      # the node is understood as belonging to the scope of this particular node. In display, we will show something like Sponsorship: Application. The id becomes project sponsorship > product application. This is what allows us to use broad names in context.
-      product application:
+      # Same label, but since the kind is part of the key, this is idiomatic
+      product sponsorship:
         with:
           complexity:
             is: simple
@@ -350,7 +350,7 @@ nodes:
           claim:
             - fact: I worked on an application that was not initially part of the need.
         info:
-          title: Application
+          title: Sponsorship Application
           summary: The application serves as a front-end for the product.
           complexity:
             is: simple
@@ -405,12 +405,17 @@ nodes:
             - business_rules
             - reliability
             - edge_cases
-        requires:
+        # `illustrates`, not `requires`: the calculation is one of the concrete
+        # cases that made reliability the governing axis, rather than something
+        # that cannot be understood without it.
+        illustrates:
           constraint reliability_focus:
             with:
               complexity:
                 is: natural
-                why: The dependency on reliability work is clear once the calculation risks are known.
+                why: The reliability stakes are clear once the calculation risks are known.
+              claim:
+                - fact: The calculation is one of the concrete risks that made reliability a governing concern.
         involves:
           actor me:
             with:
@@ -652,7 +657,9 @@ nodes:
         - low_code
         - reliability
         - runtime_errors
-    requires:
+    # `explains`, not `requires`: the platform's behavior is why reliability
+    # became a governing concern, not a prerequisite for understanding it.
+    explains:
       constraint reliability_focus:
         with:
           complexity:
@@ -912,7 +919,9 @@ nodes:
         - maintainability
         - learning
         - automation
-    requires:
+    # `contributes`, not `requires`: the reliability focus shaped the progression
+    # rather than being impossible to understand without it.
+    contributes:
       learning autonomy_growth:
         with:
           complexity:
@@ -1068,9 +1077,10 @@ nodes:
 # Use for edges that don't belong to any particular node.
 edges:
   # all edges are keyed by (source key, verb, target key)
+  # A fallback edge is a debt marker: the claim states what remains unresolved.
   learning autonomy_growth - event handover_pressure:
     complexity:
       is: natural
       why: The link between autonomy and the handover is intuitive but benefits from a sentence of context.
     claim:
-      - fact: These two nodes are related somehow.
+      - fact: The handover and the autonomy progression are connected, but the direction is unclear. The handover may have forced the autonomy, or the existing autonomy may be why the handover was survivable.

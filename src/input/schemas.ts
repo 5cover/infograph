@@ -1,6 +1,14 @@
 import z from 'zod'
 import type { SomeType } from 'zod/v4/core'
-import { type Complexity, importance, type BaseKeys, claimTypes, type Claim, type ClaimType } from '../types.js'
+import {
+    type Complexity,
+    importance,
+    type BaseKeys,
+    claimTypes,
+    type Claim,
+    type ClaimType,
+    type Technicality,
+} from '../types.js'
 import { kdataEdge, kdataNode, type InputOutgoing, type InputInfograph } from './types.js'
 
 const slugPattern = '(-|[a-z0-9]+(_[a-z0-9]+)*)'
@@ -19,6 +27,15 @@ const zComplexity: z.ZodType<Complexity> = z.union([
     z.literal('natural').describe('needs explanation, but self-contained and natural to explain'),
     z.literal('contextual').describe('needs context from other nodes not in the relation'),
     z.literal('intertwined').describe('needs deep context or demonstration'),
+])
+
+const zTechnicality: z.ZodType<Technicality> = z.union([
+    z.literal('none').describe('No part of understanding requires technical knowledge.'),
+    z.literal('some').describe('Most understanding requires none; some parts are conditioned by it.'),
+    z
+        .literal('most')
+        .describe('Most understanding is conditioned by technical knowledge, but an accessible framing exists.'),
+    z.literal('all').describe('No part can be conveyed without technical grounding.'),
 ])
 
 const zNaturalLanguage = z
@@ -88,6 +105,7 @@ const zNode = z.looseObject({
         complexity: zReason(zComplexity).describe(
             'Estimated explanation cost of this node. Note: this refers to explanation complexity, not node complexity. A node may refer to a very complex task and remain reasonably simple to explain.'
         ),
+        technicality: zReason(zTechnicality).optional().describe('How much technical background a reader needs.'),
         source: zFlexarray(zReason(zSourceKey))
             .optional()
             .describe(
@@ -103,6 +121,7 @@ const zNode = z.looseObject({
 
 const zEdge = z.object({
     complexity: zReason(zComplexity),
+    technicality: zReason(zTechnicality).optional().describe('How much technical background a reader needs.'),
     claim: z
         .array(zClaim)
         .optional()
@@ -118,7 +137,10 @@ const zExternalNodeRef = zNodeRef.refine(node => !(kdataNode in node), {
 const zOutgoing: z.ZodType<InputOutgoing<BaseKeys>> = z.looseRecord(
     zVerbKey,
     z
-        .record(zNodeKey, z.union([zNodeRef.and(zNode).and(z.lazy(() => zOutgoing)), zExternalNodeRef]))
+        .record(
+            zNodeKey,
+            z.union([zNodeRef.and(zNode).and(z.lazy(() => zOutgoing)), zExternalNodeRef])
+        )
         .describe('Outgoing edges.')
 )
 

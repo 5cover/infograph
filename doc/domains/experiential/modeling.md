@@ -251,6 +251,14 @@ Do not create nodes because a noun phrase can be extracted from a sentence. Do n
 
 Rule of thumb: *could I meaningfully navigate to this and connect it elsewhere?* → node. *does this only help explain the current element?* → claim or prose.
 
+### claims within a node
+
+Claims are semi-structured node internals: a way to break up what would otherwise be a paragraph of prose. They are not a query surface, and they carry no metadata of their own. Anything a projection needs to select or sort on belongs on the node.
+
+Claims in a node should concern the same small set of subjects. If they are about **different subjects**, the node is doing two jobs and should be split. If they are about the **same subject from different angles**, keep them together, even when their depth varies: a node explained both accessibly and technically is normal and useful.
+
+So claims may be freely technical. Prefer stating a mechanism before appraising it, since an appraisal with nothing to point at is usually a missing fact. Beyond that, do not agonize over it.
+
 ## Modeling patterns
 
 ### Periods are tasks, not a kind of their own
@@ -263,6 +271,14 @@ Two cases that look like periods but are not tasks:
 
 - A stretch of time whose significance is entirely at its boundaries is an `event`, even if it spans months.
 - A period during which the project was in a state that shaped the available work is a `constraint`. *The project is in requirements analysis, so no development work is available* is a condition, not an activity.
+
+### Node keys: Avoid generic labels, favor diverging kind
+
+`project sponsorship` and `product sponsorship` can both exist because kind differs.
+
+`product application` is bad because it's not clear which application it is since node keys are global. There are no namespaces or nesting.
+
+`product sponsorship` can explain it is a Power Apps application.
 
 ### Lifecycles are one node
 

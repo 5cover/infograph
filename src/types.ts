@@ -2,6 +2,8 @@ export const complexity = ['simple', 'natural', 'contextual', 'intertwined'] as 
 export type Complexity = (typeof complexity)[number]
 export const importance = ['minor', 'useful', 'major', 'central'] as const
 export type Importance = (typeof importance)[number]
+export const technicality = ['none', 'some', 'most', 'all'] as const
+export type Technicality = (typeof technicality)[number]
 export const claimTypes = {
     fact: 'affirmation held to be true in the infographic, because observed or sufficiently supported by sources. It can include a reasonable inference, without imposing an additional distinction.',
     hypothesis: 'possible explanation whose sources do not yet allow establishing the truth.',

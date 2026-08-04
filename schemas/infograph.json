@@ -58,7 +58,7 @@
       "description": "Use for edges that don't belong to any particular node.",
       "allOf": [
         {
-          "$ref": "#/definitions/__schema45"
+          "$ref": "#/definitions/__schema55"
         }
       ]
     }
@@ -91,7 +91,7 @@
       ]
     },
     "__schema3": {
-      "description": "Person responsible for validating the graph. This graph is not just extracted text. It is a validated representation. The author field makes that explicit.",
+      "description": "Person responsible for validating the graph. This graph is not just extracted text. It is a validated representation. The author field makes that explicit. When \"I\" is used in natural language, this is the person referred to.",
       "allOf": [
         {
           "$ref": "#/definitions/__schema1"
@@ -170,7 +170,7 @@
           "$ref": "#/definitions/__schema12"
         },
         {
-          "$ref": "#/definitions/__schema35"
+          "$ref": "#/definitions/__schema42"
         }
       ]
     },
@@ -237,11 +237,19 @@
               "description": "Estimated explanation cost of this node. Note: this refers to explanation complexity, not node complexity. A node may refer to a very complex task and remain reasonably simple to explain.",
               "additionalProperties": false
             },
+            "technicality": {
+              "description": "How much technical background a reader needs.",
+              "allOf": [
+                {
+                  "$ref": "#/definitions/__schema31"
+                }
+              ]
+            },
             "source": {
               "description": "Where the information comes from. Source can be omitted for common / general knowledge information, like well-known public tools.",
               "allOf": [
                 {
-                  "$ref": "#/definitions/__schema31"
+                  "$ref": "#/definitions/__schema38"
                 }
               ]
             },
@@ -249,7 +257,7 @@
               "description": "Lowercase kebab-case labels intended for lightweight classification, not prose. Allow for simple search and grouping without adding many specialized fields.",
               "allOf": [
                 {
-                  "$ref": "#/definitions/__schema34"
+                  "$ref": "#/definitions/__schema41"
                 }
               ]
             }
@@ -477,27 +485,13 @@
       }
     },
     "__schema31": {
-      "anyOf": [
-        {
-          "$ref": "#/definitions/__schema32"
-        },
-        {
-          "minItems": 1,
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/__schema32"
-          }
-        }
-      ]
-    },
-    "__schema32": {
       "type": "object",
       "properties": {
         "is": {
           "description": "Selected value.",
           "allOf": [
             {
-              "$ref": "#/definitions/__schema5"
+              "$ref": "#/definitions/__schema36"
             }
           ]
         },
@@ -507,7 +501,7 @@
               "$ref": "#/definitions/__schema1"
             },
             {
-              "$ref": "#/definitions/__schema33"
+              "$ref": "#/definitions/__schema37"
             }
           ],
           "description": "Justification for selecting this value. Why choose this value and not another. Retraces author intent."
@@ -519,89 +513,60 @@
       ],
       "additionalProperties": false
     },
+    "__schema32": {
+      "type": "string",
+      "const": "none",
+      "description": "No part of understanding requires technical knowledge."
+    },
     "__schema33": {
+      "type": "string",
+      "const": "some",
+      "description": "Most understanding requires none; some parts are conditioned by it."
+    },
+    "__schema34": {
+      "type": "string",
+      "const": "most",
+      "description": "Most understanding is conditioned by technical knowledge, but an accessible framing exists."
+    },
+    "__schema35": {
+      "type": "string",
+      "const": "all",
+      "description": "No part can be conveyed without technical grounding."
+    },
+    "__schema36": {
+      "anyOf": [
+        {
+          "$ref": "#/definitions/__schema32"
+        },
+        {
+          "$ref": "#/definitions/__schema33"
+        },
+        {
+          "$ref": "#/definitions/__schema34"
+        },
+        {
+          "$ref": "#/definitions/__schema35"
+        }
+      ]
+    },
+    "__schema37": {
       "minItems": 1,
       "type": "array",
       "items": {
         "$ref": "#/definitions/__schema1"
       }
     },
-    "__schema34": {
+    "__schema38": {
       "anyOf": [
         {
-          "$ref": "#/definitions/__schema5"
+          "$ref": "#/definitions/__schema39"
         },
         {
           "minItems": 1,
           "type": "array",
           "items": {
-            "$ref": "#/definitions/__schema5"
+            "$ref": "#/definitions/__schema39"
           }
-        }
-      ]
-    },
-    "__schema35": {
-      "type": "object",
-      "patternProperties": {
-        "^(?!\\x77ith$|\\x69nfo$)(-|[a-z0-9]+(_[a-z0-9]+)*)$": {
-          "type": "object",
-          "propertyNames": {
-            "$ref": "#/definitions/__schema10"
-          },
-          "additionalProperties": {
-            "$ref": "#/definitions/__schema36"
-          },
-          "description": "Outgoing edges."
-        }
-      }
-    },
-    "__schema36": {
-      "anyOf": [
-        {
-          "allOf": [
-            {
-              "$ref": "#/definitions/__schema37"
-            },
-            {
-              "$ref": "#/definitions/__schema12"
-            },
-            {
-              "allOf": [
-                {
-                  "$ref": "#/definitions/__schema35"
-                }
-              ]
-            }
-          ]
-        },
-        {
-          "allOf": [
-            {
-              "$ref": "#/definitions/__schema37"
-            }
-          ]
-        }
-      ]
-    },
-    "__schema37": {
-      "type": "object",
-      "properties": {
-        "with": {
-          "$ref": "#/definitions/__schema38"
-        }
-      },
-      "required": [
-        "with"
-      ],
-      "additionalProperties": {
-        "$ref": "#/definitions/__schema44"
-      }
-    },
-    "__schema38": {
-      "description": "Edge information.",
-      "allOf": [
-        {
-          "$ref": "#/definitions/__schema43"
         }
       ]
     },
@@ -612,7 +577,7 @@
           "description": "Selected value.",
           "allOf": [
             {
-              "$ref": "#/definitions/__schema28"
+              "$ref": "#/definitions/__schema5"
             }
           ]
         },
@@ -642,27 +607,189 @@
       }
     },
     "__schema41": {
-      "description": "Some relationships are harder to explain than the things they connect.",
-      "allOf": [
+      "anyOf": [
         {
-          "$ref": "#/definitions/__schema42"
+          "$ref": "#/definitions/__schema5"
+        },
+        {
+          "minItems": 1,
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/__schema5"
+          }
         }
       ]
     },
     "__schema42": {
+      "type": "object",
+      "patternProperties": {
+        "^(?!\\x77ith$|\\x69nfo$)(-|[a-z0-9]+(_[a-z0-9]+)*)$": {
+          "type": "object",
+          "propertyNames": {
+            "$ref": "#/definitions/__schema10"
+          },
+          "additionalProperties": {
+            "$ref": "#/definitions/__schema43"
+          },
+          "description": "Outgoing edges."
+        }
+      }
+    },
+    "__schema43": {
+      "anyOf": [
+        {
+          "allOf": [
+            {
+              "$ref": "#/definitions/__schema44"
+            },
+            {
+              "$ref": "#/definitions/__schema12"
+            },
+            {
+              "allOf": [
+                {
+                  "$ref": "#/definitions/__schema42"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "allOf": [
+            {
+              "$ref": "#/definitions/__schema44"
+            }
+          ]
+        }
+      ]
+    },
+    "__schema44": {
+      "type": "object",
+      "properties": {
+        "with": {
+          "$ref": "#/definitions/__schema45"
+        }
+      },
+      "required": [
+        "with"
+      ],
+      "additionalProperties": {
+        "$ref": "#/definitions/__schema54"
+      }
+    },
+    "__schema45": {
+      "description": "Edge information.",
+      "allOf": [
+        {
+          "$ref": "#/definitions/__schema53"
+        }
+      ]
+    },
+    "__schema46": {
+      "type": "object",
+      "properties": {
+        "is": {
+          "description": "Selected value.",
+          "allOf": [
+            {
+              "$ref": "#/definitions/__schema28"
+            }
+          ]
+        },
+        "why": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/__schema1"
+            },
+            {
+              "$ref": "#/definitions/__schema47"
+            }
+          ],
+          "description": "Justification for selecting this value. Why choose this value and not another. Retraces author intent."
+        }
+      },
+      "required": [
+        "is",
+        "why"
+      ],
+      "additionalProperties": false
+    },
+    "__schema47": {
+      "minItems": 1,
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/__schema1"
+      }
+    },
+    "__schema48": {
+      "description": "How much technical background a reader needs.",
+      "allOf": [
+        {
+          "$ref": "#/definitions/__schema49"
+        }
+      ]
+    },
+    "__schema49": {
+      "type": "object",
+      "properties": {
+        "is": {
+          "description": "Selected value.",
+          "allOf": [
+            {
+              "$ref": "#/definitions/__schema36"
+            }
+          ]
+        },
+        "why": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/__schema1"
+            },
+            {
+              "$ref": "#/definitions/__schema50"
+            }
+          ],
+          "description": "Justification for selecting this value. Why choose this value and not another. Retraces author intent."
+        }
+      },
+      "required": [
+        "is",
+        "why"
+      ],
+      "additionalProperties": false
+    },
+    "__schema50": {
+      "minItems": 1,
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/__schema1"
+      }
+    },
+    "__schema51": {
+      "description": "Some relationships are harder to explain than the things they connect.",
+      "allOf": [
+        {
+          "$ref": "#/definitions/__schema52"
+        }
+      ]
+    },
+    "__schema52": {
       "type": "array",
       "items": {
         "$ref": "#/definitions/__schema14"
       }
     },
-    "__schema43": {
+    "__schema53": {
       "type": "object",
       "properties": {
         "complexity": {
-          "$ref": "#/definitions/__schema39"
+          "$ref": "#/definitions/__schema46"
+        },
+        "technicality": {
+          "$ref": "#/definitions/__schema48"
         },
         "claim": {
-          "$ref": "#/definitions/__schema41"
+          "$ref": "#/definitions/__schema51"
         }
       },
       "required": [
@@ -670,15 +797,15 @@
       ],
       "additionalProperties": false
     },
-    "__schema44": {},
-    "__schema45": {
+    "__schema54": {},
+    "__schema55": {
       "type": "object",
       "propertyNames": {
         "type": "string",
         "pattern": "^(-|[a-z0-9]+(_[a-z0-9]+)*) (-|[a-z0-9]+(_[a-z0-9]+)*) (?!\\x77ith$|\\x69nfo$)(-|[a-z0-9]+(_[a-z0-9]+)*) (-|[a-z0-9]+(_[a-z0-9]+)*) (-|[a-z0-9]+(_[a-z0-9]+)*)$"
       },
       "additionalProperties": {
-        "$ref": "#/definitions/__schema43"
+        "$ref": "#/definitions/__schema53"
       }
     }
   }

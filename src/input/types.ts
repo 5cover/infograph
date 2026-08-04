@@ -7,6 +7,7 @@ import type {
     InfographDomain,
     InfographInfo,
     InfographNodeKey,
+    Technicality,
 } from '../types.js'
 
 export const kdataEdge = 'with'
@@ -16,6 +17,7 @@ export type Flexarray<T> = T | T[]
 
 export type InputEdgeInfo = {
     complexity: InputReason<Complexity>
+    technicality?: InputReason<Technicality>
     claim?: Claim[]
 }
 
@@ -31,6 +33,7 @@ export type InputNodeInfo<Keys extends BaseKeys> = {
     date?: string | InfographDate<string>
     importance?: InputReason<Importance>
     complexity: InputReason<Complexity>
+    technicality?: InputReason<Technicality>
     source?: Flexarray<InputReason<Keys['source']>>
     tag?: Flexarray<string>
 }

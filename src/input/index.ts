@@ -18,6 +18,8 @@ import { verbPattern, zInfographInput } from './schemas.js'
 
 export const defineInfograph = <Keys extends BaseKeys>(infograph: InputInfograph<Keys>) => infograph
 
+type Key = { kind: string; id: string; isNamespaced: boolean }
+
 const zInfograph = zInfographInput.transform((g, ctx): Infograph<BaseKeys> => {
     // verify .edges match "{nodesrc} {verb} {nodedest}"" and nodesrc/nodede
     // verify .nodes.{kind}
@@ -43,7 +45,7 @@ const zInfograph = zInfographInput.transform((g, ctx): Infograph<BaseKeys> => {
         return d
     }
 
-    const verifyKeyset =
+    const verifyKeyword =
         <K extends string = string>(thing: string, has: (key: K) => boolean) =>
         (key: K) => {
             if (has(key)) return
@@ -54,10 +56,10 @@ const zInfograph = zInfographInput.transform((g, ctx): Infograph<BaseKeys> => {
                 message: `Undefined ${thing}: '${key}'`,
             })
         }
-    const verifyKind = verifyKeyset('kind', k => k in g.domain.kind)
-    const verifyVerb = verifyKeyset('verb', k => k in g.domain.verb)
-    const verifySource = verifyKeyset('source', k => k in g.domain.source)
-    const verifyNode = verifyKeyset<InfographNodeKey<BaseKeys>>('node', k => infograph.nodes.has(k))
+    const verifyKind = verifyKeyword('kind', k => k in g.domain.kind)
+    const verifyVerb = verifyKeyword('verb', k => k in g.domain.verb)
+    const verifySource = verifyKeyword('source', k => k in g.domain.source)
+    const verifyNode = verifyKeyword<InfographNodeKey<BaseKeys>>('node', k => infograph.nodes.has(k))
     type DeferredEntry<K extends string> = [f: (key: K) => void, key: K]
     const deferredChecks: DeferredEntry<any>[] = []
     const defer = <K extends string>(...r: DeferredEntry<K>) => {
@@ -65,27 +67,27 @@ const zInfograph = zInfographInput.transform((g, ctx): Infograph<BaseKeys> => {
     }
 
     const infographEdges = walkEntry(g, 'edges', edges =>
-        edges ?
-            entries(edges)
-                .map(([key, edge]) => {
-                    const [fromkind, fromid, verb, tokind, toid] = key.split(' ', 5)
-                    verifyVerb(verb)
-                    const from = nodeKey(fromkind, fromid)
-                    const to = nodeKey(tokind, toid)
-                    defer(verifyNode, from)
-                    defer(verifyNode, to)
-                    return {
-                        from,
-                        verb,
-                        to,
-                        info: {
-                            complexity: buildReason(edge.complexity),
-                            claim: edge.claim,
-                        },
-                    }
-                })
-                .toArray()
-        :   []
+        edges
+            ? entries(edges)
+                  .map(([keystring, edge]) => {
+                      const info = parseEdge(keystring)
+                      verifyVerb(info.verb)
+                      const from = nodeKey(info.from)
+                      const to = nodeKey(info.to)
+                      defer(verifyNode, from)
+                      defer(verifyNode, to)
+                      return {
+                          from,
+                          verb: info.verb,
+                          to,
+                          info: {
+                              complexity: buildReason(edge.complexity),
+                              claim: edge.claim,
+                          },
+                      }
+                  })
+                  .toArray()
+            : []
     )
 
     const infograph: Infograph<BaseKeys> = {
@@ -93,7 +95,7 @@ const zInfograph = zInfographInput.transform((g, ctx): Infograph<BaseKeys> => {
         domain: g.domain,
         edges: infographEdges,
         nodes: new Map(
-            walkEntry(g, 'nodes', nodes => entries(nodes).flatMap(([key, node]) => parseNode(key, node, [])))
+            walkEntry(g, 'nodes', nodes => entries(nodes).flatMap(([key, node]) => parseNode(parseKey(key), node)))
         ),
     }
 
@@ -104,20 +106,16 @@ const zInfograph = zInfographInput.transform((g, ctx): Infograph<BaseKeys> => {
     return infograph
 
     function* parseNode(
-        originalKey: string,
-        node: InputNode<BaseKeys>,
-        parents: { kind: string; id: string; title: string }[]
+        key: Key,
+        node: InputNode<BaseKeys>
     ): Generator<[k: InfographNodeKey<BaseKeys>, v: InfographNode<BaseKeys>]> {
         const d = node[kdataNode]
-        const [kind, id] = originalKey.split(' ', 2)
-        const key = flattenNodeKey(originalKey, parents)
-        verifyKind(kind)
-        parents.push({ kind, id, title: d.title })
+        verifyKind(key.kind)
         yield [
-            key,
+            unparseKey(key),
             {
                 ...d,
-                title: parents.map(p => p.title).join(' '),
+                title: d.title,
                 complexity: buildReason(d.complexity),
                 importance: d.importance && buildReason(d.importance),
                 source: deflex(d.source)?.map(source => {
@@ -125,18 +123,17 @@ const zInfograph = zInfographInput.transform((g, ctx): Infograph<BaseKeys> => {
                     return buildReason(source)
                 }),
                 tag: deflex(d.tag),
-                date:
-                    d.date ?
-                        typeof d.date === 'string' ?
-                            (() => {
-                                const on = verifyDate(d.date)
-                                return { from: on, to: on }
-                            })()
-                        :   {
-                                from: verifyDate(d.date.from),
-                                to: verifyDate(d.date.to),
-                            }
-                    :   undefined,
+                date: d.date
+                    ? typeof d.date === 'string'
+                        ? (() => {
+                              const on = verifyDate(d.date)
+                              return { from: on, to: on }
+                          })()
+                        : {
+                              from: verifyDate(d.date.from),
+                              to: verifyDate(d.date.to),
+                          }
+                    : undefined,
             },
         ] as const
         yield* entries(node).flatMap(([verb, value]) => {
@@ -144,29 +141,45 @@ const zInfograph = zInfographInput.transform((g, ctx): Infograph<BaseKeys> => {
             verifyVerb(verb)
             if (!value) return []
             const nodes = value as Exclude<InputOutgoing<BaseKeys>[string], undefined>
-            return entries(nodes).flatMap(([outkey, node]) => {
+            return entries(nodes).flatMap(([outkeystring, node]) => {
                 const isInlineNode = node && kdataNode in node
-                const to = isInlineNode ? flattenNodeKey(outkey, parents) : (outkey as InfographNodeKey<BaseKeys>)
+                const outkey = parseKey(outkeystring)
+                const to = unparseKey(outkey)
                 infographEdges.push({
                     verb,
-                    from: key,
+                    from: unparseKey(key),
                     to,
                     info: {
                         complexity: buildReason(node[kdataEdge].complexity),
                         claim: node[kdataEdge].claim,
                     },
                 })
-                if (isInlineNode) return parseNode(outkey, node, parents)
+                if (isInlineNode) return parseNode(outkey, node)
                 defer(verifyNode, to)
                 return []
             })
         })
-        parents.pop()
     }
-    function flattenNodeKey(originalKey: string, parents: { kind: string; id: string }[]) {
-        const [kind, id] = originalKey.split(' ', 2)
-        return nodeKey(kind, [id, ...parents.map(p => nodeKey(p.kind, p.id)).reverse()].join(' < '))
+
+    function parseKey(keystring: string): Key {
+        const [kind, id] = keystring.split(' ', 2)
+        return _parseKey(kind, id)
     }
+
+    function parseEdge(keystring: string) {
+        const [fromkind, fromid, verb, tokind, toid] = keystring.split(' ', 5)
+        return { from: _parseKey(fromkind, fromid), verb, to: _parseKey(tokind, toid) }
+    }
+
+    function _parseKey(kind: string, id: string): Key {
+        const isNamespaced = kind[0] === '.'
+        return { kind: isNamespaced ? kind.slice(1) : kind, id, isNamespaced }
+    }
+
+    function unparseKey(key: Key) {
+        return `${key.kind} ${key.id}` as const
+    }
+
     function* entries<V>(o: { [k: string]: V }) {
         for (const [k, v] of Object.entries(o)) {
             if (v === undefined) continue
@@ -184,17 +197,16 @@ export const getSchema = (options?: { additionalProperties?: boolean }) =>
         target: 'draft-07',
         reused: 'ref',
         io: 'input',
-        override:
-            options?.additionalProperties ? undefined : (
-                ctx => {
-                    if (
-                        undefined !== ctx.jsonSchema.properties &&
-                        undefined === ctx.jsonSchema.propertyNames &&
-                        undefined === ctx.jsonSchema.additionalProperties
-                    )
-                        ctx.jsonSchema.additionalProperties = false
-                }
-            ),
+        override: options?.additionalProperties
+            ? undefined
+            : ctx => {
+                  if (
+                      undefined !== ctx.jsonSchema.properties &&
+                      undefined === ctx.jsonSchema.propertyNames &&
+                      undefined === ctx.jsonSchema.additionalProperties
+                  )
+                      ctx.jsonSchema.additionalProperties = false
+              },
     })
 
 function buildReason<T>(c: InputReason<T>): InfographReason<T> {
@@ -205,13 +217,9 @@ function deflex<T>(fa: Flexarray<readonly T[]> | undefined): never // ambiguous
 function deflex<T>(fa: Flexarray<Exclude<T, undefined>>): Exclude<T, undefined>[]
 function deflex<T>(fa: Flexarray<T> | undefined): T[] | undefined
 function deflex<T>(fa: Flexarray<T> | undefined): T[] | undefined {
-    return (
-        fa === undefined ? undefined
-        : Array.isArray(fa) ? fa
-        : [fa]
-    )
+    return fa === undefined ? undefined : Array.isArray(fa) ? fa : [fa]
 }
 
-function nodeKey(kind: string, id: string) {
-    return `${kind} ${id}` as const
+function nodeKey(k: Key) {
+    return `${k.kind} ${k.id}` as const
 }
