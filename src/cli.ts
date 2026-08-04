@@ -15,6 +15,7 @@ import { nonTrivialComponents, stronglyConnectedComponents } from './queries/scc
 import { toMermaid, toMermaidGrouped } from './infograph.js'
 import type { BaseKeys, Infograph } from './types.js'
 import { terseDate } from './terseDate.js'
+import { strcmp } from './util.js'
 
 type Format = 'json' | 'yaml' | 'mermaid'
 
@@ -172,12 +173,15 @@ queryCommand
 queryCommand
     .command('keywords')
     .description('show keywords')
+    .option('--desc', 'show descs too')
     .addArgument(args.infograph)
-    .action(file =>
-        emit(
-            Object.fromEntries(Object.entries(readInfograph(file).domain).map(([k, v]) => [k, Object.keys(v).sort()] as const))
-        )
-    )
+    .action((file, desc) => {
+        const d = Object.entries(readInfograph(file).domain)
+        const entries = desc
+            ? d.map(([k, v]) => [k, Object.fromEntries(Object.entries(v).sort((a, b) => strcmp(a[0], b[0])))])
+            : d.map(([k, v]) => [k, Object.keys(v).sort()])
+        emit(Object.fromEntries(entries))
+    })
 
 program.parse()
 

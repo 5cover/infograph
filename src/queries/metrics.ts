@@ -6,6 +6,7 @@ import {
     type InfographNode,
     type InfographNodeKey,
 } from '../types.js'
+import { strcmp } from '../util.js'
 import { stronglyConnectedComponents } from './scc.js'
 
 export type Stats = {
@@ -133,7 +134,7 @@ function tally(values: string[]): Record<string, number> {
     for (const value of values) {
         counts.set(value, (counts.get(value) ?? 0) + 1)
     }
-    return Object.fromEntries([...counts].sort((a, b) => b[1] - a[1] || (a[0] < b[0] ? -1 : 1)))
+    return Object.fromEntries([...counts].sort((a, b) => b[1] - a[1] || strcmp(a[0], b[0])))
 }
 
 // Buckets over a fixed set of levels, so every level appears (including zero

@@ -31,7 +31,6 @@
     "bracketSameLine": true,
     "semi": false,
     "endOfLine": "lf",
-    "experimentalTernaries": true,
     "proseWrap": "never",
     "trailingComma": "es5",
     "overrides": [
