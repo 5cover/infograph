@@ -30,9 +30,9 @@ Three design commitments follow, and they explain most of the choices below.
 
 ## Vocabulary
 
-Nineteen kinds and eighteen verbs, including one fallback each.
+Twenty kinds and eighteen verbs, including one fallback each.
 
-**Kinds.** `project` `task` `product` `tool` `constraint` `finding` `event` `decision` `requirement` `objective` `problem` `challenge` `method` `process` `model` `learning` `actor` `jargon` `-`
+**Kinds.** `project` `task` `product` `tool` `constraint` `finding` `event` `decision` `requirement` `objective` `problem` `challenge` `method` `process` `model` `learning` `skill` `actor` `jargon` `-`
 
 **Verbs.** `contains` `uses` `produces` `requires` `verifies` `explains` `illustrates` `constrains` `anticipates` `mitigates` `prevents` `rejects` `replaces` `contributes` `systematizes` `involves` `participates` `-`
 
@@ -122,6 +122,13 @@ A finding states behavior. Keep the appraisal of that behavior in `claim: opinio
 A finding earns a node when something else in the graph points at it: it explains an event, is verified by a check, is mitigated by a method, or constrains a product. Otherwise keep it as `claim: fact` on the relevant `tool`.
 
 This is the guard against a pitfall catalogue. A corpus can easily contain a hundred discovered behaviors. When several illustrate the same underlying behavior, create one stable finding and attach a few examples rather than a node per occurrence.
+
+### `learning` vs `skill`
+
+- *What changed in me?* → `learning`
+- *What capability, independent of me, can be referenced, required or developed?* → `skill`
+
+`learning` is the change of acquiring or refining a capability; `skill` is the capability itself, as a reusable thing that several parts of the graph can point at (`requires`, `uses`, `contributes`, `involves`). A skill node does not imply that ownership needs its own edge for every actor who has it: only add one when it matters. When a capability is only ever discussed as something the author personally gained, it can stay a `learning`; give it a `skill` node once something else in the graph needs to require, use or develop it independently of that one progression.
 
 ### `requirement` vs `objective` vs `task`
 
@@ -231,6 +238,15 @@ A statement can be critical and still factual when supported by observable behav
 
 Do not classify a statement as opinion merely because it is negative, and do not present a personal judgment as fact because it is strongly felt or often repeated.
 
+### `claim: option` vs `claim: counterfactual`
+
+Both record an alternative; they differ in whether it was actually on the table.
+
+- `option` — genuinely considered at the time, at the grain of the node carrying it. Pairs with a `fact` stating what was chosen.
+- `counterfactual` — reasoning about what would, could or should happen under changed circumstances, including alternatives only considered in retrospect.
+
+`option: Keep the existing SharePoint triggers.` next to `fact: The triggers were removed.` records a real decision point. `counterfactual: With a more stable initial scope, less work would have been needed to reconstruct context later.` is retrospective reasoning about a circumstance that was never actually chosen among alternatives at the time. See [Alternatives that were weighed](#alternatives-that-were-weighed) for when an alternative earns a `decision` node instead of staying a claim.
+
 ### `actor` node vs incidental mention
 
 An entity earns an `actor` node when its participation, stakeholder role, decisions, constraints or perspective are materially represented. Someone named only as incidental context stays in prose.
@@ -303,9 +319,40 @@ event knowledge_transfer
 
 ### Alternatives that were weighed
 
-Rejected candidates almost always already have a natural kind: a competing platform is a `tool`, a different access-control approach is a `method`, a tool that was never built is a `project`. There is no `option` kind, because it would create a second node for the same thing.
+Rejected candidates almost always already have a natural kind: a competing platform is a `tool`, a different access-control approach is a `method`, a tool that was never built is a `project`. There is no `option` kind — a candidate node would duplicate that natural kind. Reach for `claim: option` instead when the alternative does not warrant a node of its own; see [`claim: option` vs `claim: counterfactual`](#claim-option-vs-claim-counterfactual).
 
-Model the choice as a `decision` with `rejects` edges to the candidates, and the reasoning as `claim: counterfactual` on each edge.
+Model the choice as a `decision` with `rejects` edges to the candidates, and the reasoning as `claim: counterfactual` on each edge. That is for a choice structurally important enough to deserve its own node with several edges.
+
+For a smaller, local choice that does not need its own node, record the alternatives as `claim: option` on the node where the choice was made, and the outcome as `claim: fact`:
+
+```yaml
+task flow_refactor:
+  claims:
+    - option: Keep the existing SharePoint triggers.
+    - option: Replace them with explicit flow entry points.
+    - fact: The triggers were removed.
+```
+
+`option` differs from `counterfactual`: an `option` was genuinely on the table at the time, at the grain of the node carrying it; a `counterfactual` is reasoning about what would, could or should happen under changed circumstances, including alternatives considered only in retrospect. Promote `option` claims to a `decision` node with `rejects` edges once the choice starts carrying several relations of its own.
+
+### Experiments
+
+There is no `experiment` kind. An experiment is a `task` whose purpose is to test a hypothesis or investigate uncertain behavior: use a `hypothesis` claim for the proposition being tested, `option` claims for the approaches considered for running it, and `fact` claims for what was observed. The task then connects to whatever it informs through ordinary edges.
+
+```yaml
+task test_flow_runtime_behavior:
+  claims:
+    - hypothesis: Power Automate evaluates this expression only at runtime.
+    - fact: The expression succeeds in the editor but fails during execution.
+```
+
+```
+task test_flow_runtime_behavior illustrates model maker_compiler
+task test_flow_runtime_behavior contributes learning runtime_validation
+task test_flow_runtime_behavior uses tool power_automate
+```
+
+Reconsider a dedicated `experiment` kind only if experiments need to be queried, related or analyzed as first-class entities in ways `task` cannot represent cleanly — not before.
 
 ### Discovered behavior and its guard
 

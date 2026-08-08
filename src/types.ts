@@ -10,6 +10,7 @@ export const claimTypes = {
     opinion:
         'judgment, appreciation, preference or position of the author. It is not intended to become true or false by accumulation of evidence.',
     counterfactual: 'affirmation about what could have, should have, or might occur in a different situation.',
+    option: 'alternative that was genuinely considered in the context of the node, at the time. Distinct from counterfactual: an option was actually on the table, not reasoning about changed circumstances.',
 } as const
 
 export type ClaimType = keyof typeof claimTypes

@@ -135,6 +135,13 @@ domain:
       desc: |
         A change in the author's capability, judgment or posture over time.
         Evidence of progression. Example: moving from implementation to reliability reasoning.
+        It differs from a skill, which is the reusable capability itself, not the change of acquiring it.
+    skill:
+      desc: |
+        A capability in the abstract, independent of whether a particular actor possesses it.
+        Use it when the capability itself has enough identity to be referenced, required, used or developed across several parts of the graph.
+        It differs from a learning, which records a change in the author's own capability over time, not the capability as a reusable thing. The infograph does not need to systematically encode who possesses a skill; only add ownership edges when they matter.
+        Example: business analysis, system analysis, Power Platform.
     actor:
       desc: |
         A person, team, support group, role or institution involved in the situation.
@@ -1023,6 +1030,60 @@ nodes:
             why: This node describes my progression.
           claim:
             - fact: I am the actor whose autonomy growth is represented by this node.
+    contributes:
+      skill software_reliability:
+        with:
+          complexity:
+            is: simple
+            why: Growing autonomy is one contributor among several to this reusable capability.
+          claim:
+            - fact: Autonomy growth contributed to developing reasoning about software reliability.
+  skill software_reliability:
+    info:
+      title: Software reliability reasoning
+      summary: The capability to reason about failure modes, retries and remote-dependency behavior independently of any single project.
+      complexity:
+        is: natural
+        why: The capability generalizes past the projects that first required it.
+      claim:
+        - fact: This capability is referenced from more than one part of the graph, which is why it has its own node rather than staying a claim on a single project.
+      tag:
+        - skill
+        - reliability
+  task test_flow_runtime_behavior:
+    info:
+      title: Testing flow runtime behavior
+      summary: Deliberate experiment to determine when Power Automate evaluates a given expression.
+      complexity:
+        is: natural
+        why: Requires distinguishing maker-time from runtime behavior to interpret correctly.
+      claim:
+        - hypothesis: Power Automate evaluates this expression only at runtime, not when the flow is saved or checked in the editor.
+        - option: Add a compose action to force early evaluation and inspect its output.
+        - option: Instrument the expression directly and run the flow with representative data.
+        - fact: The expression succeeds in the editor's checker but fails during execution against real data.
+      date:
+        from: 2026-03-04
+        to: 2026-03-04
+      tag:
+        - experiment
+        - power_automate
+    illustrates:
+      model layered_product_history:
+        with:
+          complexity:
+            is: contextual
+            why: The experiment demonstrates the maker/runtime split as a concrete instance of the broader interpretation.
+          claim:
+            - fact: The experiment is one concrete instance supporting the broader interpretation of the platform's layered history.
+    uses:
+      tool power_automate:
+        with:
+          complexity:
+            is: simple
+            why: The experiment is run against this tool.
+          claim:
+            - fact: The experiment was carried out directly in Power Automate.
   event quarterly_meeting:
     info:
       title: Quarterly Meeting
