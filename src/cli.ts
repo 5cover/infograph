@@ -19,7 +19,8 @@ import type { BaseKeys, Infograph } from './types.js'
 import { terseDate } from './terseDate.js'
 import { strcmp } from './util.js'
 
-type Format = 'json' | 'yaml' | 'mermaid'
+const formats = ['json', 'yaml', 'mermaid'] as const
+type Format = (typeof formats)[number]
 
 const args = {
     infograph: new Argument('<file>', 'YAML or JSON infograph file'),
@@ -41,8 +42,8 @@ program
     .version('1.0.0')
     .addOption(
         new Option('-f, --format <format>', 'output format (pass before the subcommand)')
-            .choices(['json', 'yaml', 'mermaid'])
-            .default('json')
+            .choices(formats)
+            .default('yaml')
     )
 
 program
@@ -179,17 +180,23 @@ queryCommand
         emit(infograph.edges.filter(e => e.verb === opts.verb))
     })
 
-const groupbyCommand = queryCommand.command('groupby').description('Group infograph topology around selected sites')
-
+const groupbyCommand = queryCommand
+    .command('groupby')
+    .option('-c,--count')
+    .description('Group infograph topology around selected sites')
 groupbyCommand
-    .command('project')
+    .command('kind <kind>')
     .description('Group edges around project nodes using edge Voronoi partitioning')
     .addArgument(args.infograph)
-    .action(file => {
+    .action((kind, file, _, c) => {
         const infograph = readInfograph(file)
-        const sites = [...infograph.nodes.keys()].filter(node => node.startsWith('project '))
+        const sites = [...infograph.nodes.keys()].filter(node => node.startsWith(kind + ' '))
         const groups = groupBySites(infograph, sites)
-        emit(groups, { mermaid: g => groupRecordToMermaid(infograph, g) })
+        if (c.optsWithGlobals().count) {
+            emit(Object.fromEntries(Object.entries(groups).map(([k, v]) => [k, v.length])))
+        } else {
+            emit(groups, { mermaid: g => groupRecordToMermaid(infograph, groups) })
+        }
     })
 
 queryCommand
@@ -216,9 +223,9 @@ queryCommand
     .description('show keywords')
     .option('--desc', 'show descs too')
     .addArgument(args.infograph)
-    .action((file, desc) => {
+    .action((file, opts) => {
         const d = Object.entries(readInfograph(file).domain)
-        const entries = desc
+        const entries = opts.desc
             ? d.map(([k, v]) => [k, Object.fromEntries(Object.entries(v).sort((a, b) => strcmp(a[0], b[0])))])
             : d.map(([k, v]) => [k, Object.keys(v).sort()])
         emit(Object.fromEntries(entries))
