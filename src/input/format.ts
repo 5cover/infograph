@@ -6,7 +6,6 @@ import type {
     InfographDate,
     InfographEdgeId,
     InfographNode,
-    InfographNodeKey,
     InfographReason,
 } from '../types.js'
 import { terseDate } from '../terseDate.js'
@@ -14,15 +13,31 @@ import { kdataEdge, kdataNode } from './types.js'
 
 type PlainObject = Record<string, unknown>
 
+const topLevelOrder = ['info', 'domain', 'nodes'] as const
+const domainOrder = ['kind', 'verb', 'source'] as const
+const infoOrder = [
+    'title',
+    'summary',
+    'date',
+    'importance',
+    'complexity',
+    'technicality',
+    'source',
+    'claim',
+    'tag',
+] as const
+const reasonOrder = ['is', 'why'] as const
+const edgeEnvelopeOrder = [kdataEdge] as const
+
 export function formatInfograph<Keys extends BaseKeys>(infograph: Infograph<Keys>): PlainObject {
     const nodes: PlainObject = {}
 
-    for (const [key, node] of infograph.nodes) {
+    for (const [key, node] of [...infograph.nodes].sort(([a], [b]) => compareString(a, b))) {
         nodes[key] = { [kdataNode]: formatNode(node) }
     }
 
     const seenEdges = new Set<InfographEdgeId<Keys>>()
-    for (const edge of infograph.edges) {
+    for (const edge of [...infograph.edges].sort((a, b) => compareString(edgeId(a), edgeId(b)))) {
         const id = `${edge.from} ${edge.verb} ${edge.to}` as InfographEdgeId<Keys>
         if (seenEdges.has(id)) throw new Error(`Duplicate edge cannot be formatted: ${id}`)
         seenEdges.add(id)
@@ -31,14 +46,21 @@ export function formatInfograph<Keys extends BaseKeys>(infograph: Infograph<Keys
         if (source === undefined) throw new Error(`Cannot format edge from unknown node: ${id}`)
 
         const byVerb = ensureObject(source, edge.verb)
-        byVerb[edge.to] = { [kdataEdge]: formatEdge(edge.info) }
+        byVerb[edge.to] = orderedObject({ [kdataEdge]: formatEdge(edge.info) }, edgeEnvelopeOrder)
     }
 
-    return omitUndefined({
-        info: infograph.info,
-        domain: infograph.domain,
-        nodes,
-    })
+    for (const [key, node] of Object.entries(nodes)) {
+        nodes[key] = orderNode(node as PlainObject)
+    }
+
+    return orderedObject(
+        {
+            info: infograph.info,
+            domain: formatDomain(infograph.domain),
+            nodes: sortRecord(nodes),
+        },
+        topLevelOrder
+    )
 }
 
 export function formatInfographYaml<Keys extends BaseKeys>(infograph: Infograph<Keys>): string {
@@ -50,25 +72,31 @@ export function formatInfographYaml<Keys extends BaseKeys>(infograph: Infograph<
 }
 
 function formatNode<Keys extends BaseKeys>(node: InfographNode<Keys>): PlainObject {
-    return omitUndefined({
-        title: node.title,
-        summary: node.summary,
-        claim: formatClaims(node.claim),
-        date: formatDate(node.date),
-        importance: formatReason(node.importance),
-        complexity: formatReason(node.complexity),
-        technicality: formatReason(node.technicality),
-        source: flex(node.source?.map(formatReason)),
-        tag: flex(node.tag),
-    })
+    return orderedObject(
+        {
+            title: node.title,
+            summary: node.summary,
+            date: formatDate(node.date),
+            importance: formatReason(node.importance),
+            complexity: formatReason(node.complexity),
+            technicality: formatReason(node.technicality),
+            source: flex(node.source?.map(formatReason)),
+            claim: formatClaims(node.claim),
+            tag: flex(node.tag),
+        },
+        infoOrder
+    )
 }
 
 function formatEdge<Keys extends BaseKeys>(edge: Infograph<Keys>['edges'][number]['info']): PlainObject {
-    return omitUndefined({
-        complexity: formatReason(edge.complexity),
-        technicality: formatReason(edge.technicality),
-        claim: formatClaims(edge.claim),
-    })
+    return orderedObject(
+        {
+            complexity: formatReason(edge.complexity),
+            technicality: formatReason(edge.technicality),
+            claim: formatClaims(edge.claim),
+        },
+        infoOrder
+    )
 }
 
 function formatClaims(claims: Claim[] | undefined): PlainObject[] | undefined {
@@ -77,7 +105,7 @@ function formatClaims(claims: Claim[] | undefined): PlainObject[] | undefined {
 
 function formatReason<T>(reason: InfographReason<T> | undefined): PlainObject | undefined {
     if (reason === undefined) return undefined
-    return { is: reason.is, why: flex(reason.why) }
+    return orderedObject({ is: reason.is, why: flex(reason.why) }, reasonOrder)
 }
 
 function formatDate(date: InfographDate | undefined): string | { from: string; to: string } | undefined {
@@ -100,8 +128,50 @@ function ensureObject(parent: PlainObject, key: string): PlainObject {
     return created
 }
 
-function omitUndefined(values: PlainObject): PlainObject {
-    return Object.fromEntries(Object.entries(values).filter(([, value]) => value !== undefined))
+function formatDomain<Keys extends BaseKeys>(domain: Infograph<Keys>['domain']): PlainObject {
+    return orderedObject(
+        {
+            kind: sortRecord(domain.kind),
+            verb: sortRecord(domain.verb),
+            source: sortRecord(domain.source),
+        },
+        domainOrder
+    )
+}
+
+function orderedObject(values: PlainObject, order: readonly string[]): PlainObject {
+    const index = new Map(order.map((key, i) => [key, i] as const))
+    return Object.fromEntries(
+        Object.entries(values)
+            .filter(([, value]) => value !== undefined)
+            .sort(
+                ([a], [b]) =>
+                    (index.get(a) ?? Number.POSITIVE_INFINITY) - (index.get(b) ?? Number.POSITIVE_INFINITY) ||
+                    compareString(a, b)
+            )
+    )
+}
+
+function sortRecord(record: PlainObject): PlainObject {
+    return Object.fromEntries(Object.entries(record).sort(([a], [b]) => compareString(a, b)))
+}
+
+function orderNode(node: PlainObject): PlainObject {
+    const ordered: PlainObject = {}
+    if (node[kdataNode] !== undefined) ordered[kdataNode] = node[kdataNode]
+    for (const [verb, targets] of Object.entries(node).sort(([a], [b]) => compareString(a, b))) {
+        if (verb === kdataNode) continue
+        ordered[verb] = sortRecord(targets as PlainObject)
+    }
+    return ordered
+}
+
+function edgeId<Keys extends BaseKeys>(edge: Infograph<Keys>['edges'][number]): InfographEdgeId<Keys> {
+    return `${edge.from} ${edge.verb} ${edge.to}` as InfographEdgeId<Keys>
+}
+
+function compareString(a: string, b: string): number {
+    return a < b ? -1 : a > b ? 1 : 0
 }
 
 function isPlainObject(value: unknown): value is PlainObject {

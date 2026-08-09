@@ -89,21 +89,27 @@ test('formats an infograph to terse input shape', () => {
             author: 'me',
         },
         domain: {
-            kind: { project: null, task: null, actor: null },
+            kind: { actor: null, project: null, task: null },
             verb: { contains: null, involves: null },
             source: { journal: null },
         },
         nodes: {
+            'actor me': {
+                info: {
+                    title: 'Me',
+                    complexity: { is: 'simple', why: 'author' },
+                },
+            },
             'project alpha': {
                 info: {
                     title: 'Alpha',
                     summary: 'Project node.',
-                    claim: [{ fact: 'I worked on Alpha.' }],
                     date: '2026',
                     importance: { is: 'major', why: 'central to the example' },
                     complexity: { is: 'simple', why: 'easy' },
                     technicality: { is: 'some', why: 'needs a little platform context' },
                     source: { is: 'journal', why: 'entry' },
+                    claim: [{ fact: 'I worked on Alpha.' }],
                     tag: 'alpha',
                 },
                 contains: {
@@ -131,21 +137,37 @@ test('formats an infograph to terse input shape', () => {
                     tag: ['beta', 'task'],
                 },
             },
-            'actor me': {
-                info: {
-                    title: 'Me',
-                    complexity: { is: 'simple', why: 'author' },
-                },
-            },
         },
     })
+})
+
+test('formats object keys in canonical order', () => {
+    const formatted = formatInfograph(infograph()) as Record<string, any>
+
+    assert.deepEqual(Object.keys(formatted), ['info', 'domain', 'nodes'])
+    assert.deepEqual(Object.keys(formatted.domain), ['kind', 'verb', 'source'])
+    assert.deepEqual(Object.keys(formatted.domain.kind), ['actor', 'project', 'task'])
+    assert.deepEqual(Object.keys(formatted.nodes), ['actor me', 'project alpha', 'task beta'])
+    assert.deepEqual(Object.keys(formatted.nodes['project alpha'].info), [
+        'title',
+        'summary',
+        'date',
+        'importance',
+        'complexity',
+        'technicality',
+        'source',
+        'claim',
+        'tag',
+    ])
+    assert.deepEqual(Object.keys(formatted.nodes['project alpha'].contains), ['task beta'])
+    assert.deepEqual(Object.keys(formatted.nodes['project alpha'].involves), ['actor me'])
 })
 
 test('formatted YAML parses back to an equivalent graph', () => {
     const formatted = YAML.parse(formatInfographYaml(infograph()))
     const parsed = parseInfograph(formatted)
 
-    assert.deepEqual([...parsed.nodes.keys()], [...infograph().nodes.keys()])
+    assert.deepEqual([...parsed.nodes.keys()].sort(), [...infograph().nodes.keys()].sort())
     assert.deepEqual(
         parsed.edges.map(edge => `${edge.from} ${edge.verb} ${edge.to}`),
         infograph().edges.map(edge => `${edge.from} ${edge.verb} ${edge.to}`)
