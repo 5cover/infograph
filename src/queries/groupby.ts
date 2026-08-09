@@ -1,10 +1,10 @@
 import { Flowchart } from 'mermaid-ast'
-import type { BaseKeys, Infograph, InfographEdgeId, InfographNodeKey } from '../types.js'
+import type { BaseKeys, Infograph, InfographEdgeKey, InfographNodeKey } from '../types.js'
 import { render, sanitizeId } from '../mermaid.js'
 import { strcmp } from '../util.js'
-import { parseEdgeKey } from '../infograph.js'
+import { parseEdgeKey, unparseEdgeKey } from '../infograph.js'
 
-export type EdgeId<Keys extends BaseKeys> = InfographEdgeId<Keys>
+export type EdgeId<Keys extends BaseKeys> = InfographEdgeKey<Keys>
 export type GroupRecord<Keys extends BaseKeys> = Record<InfographNodeKey<Keys>, EdgeId<Keys>[]>
 
 type InfographEdge<Keys extends BaseKeys> = Infograph<Keys>['edges'][number]
@@ -29,7 +29,7 @@ export function groupBySites<Keys extends BaseKeys>(
         if (!infograph.nodes.has(site)) throw new Error(`Unknown Voronoi site: ${site}`)
     }
 
-    const edgeIds = infograph.edges.map(edgeId)
+    const edgeIds = infograph.edges.map(unparseEdgeKey)
     const sortedEdgeIds = [...edgeIds].sort(strcmp)
     const edgeById = new Map<EdgeId<Keys>, InfographEdge<Keys>>()
     const incidence = new Map<InfographNodeKey<Keys>, EdgeId<Keys>[]>()
@@ -81,15 +81,11 @@ export function groupBySites<Keys extends BaseKeys>(
     return result
 }
 
-export function edgeId<Keys extends BaseKeys>(edge: InfographEdge<Keys>): EdgeId<Keys> {
-    return `${edge.from} ${edge.verb} ${edge.to}` as EdgeId<Keys>
-}
-
 export function groupRecordToMermaid<Keys extends BaseKeys>(
     infograph: Infograph<Keys>,
     groups: GroupRecord<Keys>
 ): string {
-    const edgeById = new Map(infograph.edges.map(edge => [edgeId(edge), edge] as const))
+    const edgeById = new Map(infograph.edges.map(edge => [unparseEdgeKey(edge), edge] as const))
 
     return render(
         (Object.entries(groups) as [InfographNodeKey<Keys>, EdgeId<Keys>[]][])

@@ -1,7 +1,9 @@
 import {
     type BaseKeys,
     type Infograph,
+    type InfographEdgeKey,
     type InfographNode,
+    type InfographNodeIdentity,
     type InfographNodeKey,
     type InfographReason,
 } from '../types.js'
@@ -15,11 +17,11 @@ import {
     type Flexarray,
 } from './types.js'
 import { verbPattern, zInfographInput } from './schemas.js'
-import { parseEdgeKey, parseNodeKey, unparseNodeKey, type NodeKey } from '../infograph.js';
+import { parseEdgeKey, parseNodeKey, unparseNodeKey } from '../infograph.js';
 
 export const defineInfograph = <Keys extends BaseKeys>(infograph: InputInfograph<Keys>) => infograph
 
-const zInfograph = zInfographInput.transform((g, ctx): Infograph<BaseKeys> => {
+const zInfograph = zInfographInput.transform((g, ctx): Infograph => {
     // verify .edges match "{nodesrc} {verb} {nodedest}"" and nodesrc/nodede
     // verify .nodes.{kind}
 
@@ -58,7 +60,7 @@ const zInfograph = zInfographInput.transform((g, ctx): Infograph<BaseKeys> => {
     const verifyKind = verifyKeyword('kind', k => k in g.domain.kind)
     const verifyVerb = verifyKeyword('verb', k => k in g.domain.verb)
     const verifySource = verifyKeyword('source', k => k in g.domain.source)
-    const verifyNode = verifyKeyword<InfographNodeKey<BaseKeys>>('node', k => infograph.nodes.has(k))
+    const verifyNode = verifyKeyword<InfographNodeKey>('node', k => infograph.nodes.has(k))
     type DeferredEntry<K extends string> = [f: (key: K) => void, key: K]
     const deferredChecks: DeferredEntry<any>[] = []
     const defer = <K extends string>(...r: DeferredEntry<K>) => {
@@ -69,7 +71,7 @@ const zInfograph = zInfographInput.transform((g, ctx): Infograph<BaseKeys> => {
         edges
             ? entries(edges)
                   .map(([keystring, edge]) => {
-                      const info = parseEdgeKey(keystring)
+                      const info = parseEdgeKey(keystring as InfographEdgeKey)
                       verifyVerb(info.verb)
                       const from = unparseNodeKey(info.from)
                       const to = unparseNodeKey(info.to)
@@ -90,7 +92,7 @@ const zInfograph = zInfographInput.transform((g, ctx): Infograph<BaseKeys> => {
             : []
     )
 
-    const infograph: Infograph<BaseKeys> = {
+    const infograph: Infograph = {
         info: g.info,
         domain: g.domain,
         edges: infographEdges,
@@ -106,9 +108,9 @@ const zInfograph = zInfographInput.transform((g, ctx): Infograph<BaseKeys> => {
     return infograph
 
     function* parseNode(
-        key: NodeKey,
-        node: InputNode<BaseKeys>
-    ): Generator<[k: InfographNodeKey<BaseKeys>, v: InfographNode<BaseKeys>]> {
+        key: InfographNodeIdentity,
+        node: InputNode
+    ): Generator<[k: InfographNodeKey, v: InfographNode]> {
         const d = node[kdataNode]
         verifyKind(key.kind)
         yield [

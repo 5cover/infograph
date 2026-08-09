@@ -42,7 +42,7 @@ export type InputNodeRef = { [kdataEdge]: InputEdgeInfo }
 
 type R<K extends PropertyKey, V> = { [P in K]?: V }
 
-export type InputNode<Keys extends BaseKeys> = { [kdataNode]: InputNodeInfo<Keys> } & InputOutgoing<Keys>
+export type InputNode<Keys extends BaseKeys = BaseKeys> = { [kdataNode]: InputNodeInfo<Keys> } & InputOutgoing<Keys>
 
 type InputEdgeId<Keys extends BaseKeys> = `${InfographNodeKey<Keys>} ${Keys['verb']} ${InfographNodeKey<Keys>}`
 

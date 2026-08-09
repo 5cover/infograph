@@ -36,7 +36,7 @@ export type InfographReason<T> = {
     why: string[]
 }
 
-export type InfographNode<Keys extends BaseKeys> = {
+export type InfographNode<Keys extends BaseKeys = BaseKeys> = {
     title: string
     summary?: string
     claim?: Claim[]
@@ -62,21 +62,25 @@ export type BaseKeys = {
     verb: string
     source: string
 }
+export type InfographNodeIdentity<Keys extends BaseKeys = BaseKeys> = { kind: Keys['kind']; id: Keys['node'] }
 
-export type InfographNodeKey<Keys extends BaseKeys> = `${Keys['kind']} ${Keys['node']}`
-export type InfographEdgeId<Keys extends BaseKeys> =
+export type InfographNodeKey<Keys extends BaseKeys = BaseKeys> = `${Keys['kind']} ${Keys['node']}`
+export type InfographEdgeKey<Keys extends BaseKeys = BaseKeys> =
     `${InfographNodeKey<Keys>} ${Keys['verb']} ${InfographNodeKey<Keys>}`
 
-export type Infograph<Keys extends BaseKeys> = {
+export type InfographEdgeIdentity<Keys extends BaseKeys> = {
+    verb: Keys['verb']
+    from: InfographNodeKey<Keys>
+    to: InfographNodeKey<Keys>
+}
+
+export type Infograph<Keys extends BaseKeys = BaseKeys> = {
     info?: InfographInfo
     domain: InfographDomain<Keys>
     nodes: Map<InfographNodeKey<Keys>, InfographNode<Keys>>
-    edges: {
-        verb: Keys['verb']
-        from: InfographNodeKey<Keys>
-        to: InfographNodeKey<Keys>
+    edges: (InfographEdgeIdentity<Keys> & {
         info: EdgeInfo
-    }[]
+    })[]
 }
 
 export type InfographDomain<Keys extends BaseKeys> = {

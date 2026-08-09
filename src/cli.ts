@@ -1,7 +1,7 @@
 import { Argument, InvalidArgumentError, Option, program } from '@commander-js/extra-typings'
 import { readFileSync } from 'node:fs'
 import * as YAML from 'yaml'
-import { formatInfograph, formatInfographYaml } from './input/format.js'
+import { formatInfographByEdges, formatInfographByNodes } from './input/format.js'
 import { parseInfograph } from './input/index.js'
 import {
     chronological,
@@ -28,7 +28,7 @@ const args = {
 
 const asJson = (value: unknown) => JSON.stringify(value, null, 2)
 const asYaml = (value: unknown) =>
-    new YAML.Document(value, (key: unknown, value: unknown) => (value instanceof Date ? terseDate(value) : value), {
+    new YAML.Document(value, (_key: unknown, value: unknown) => (value instanceof Date ? terseDate(value) : value), {
         aliasDuplicateObjects: false,
     }).toString({
         nullStr: '',
@@ -59,21 +59,19 @@ program
         })
     })
 
-program
-    .command('format')
-    .description('Rewrite an infograph using the terse input representation')
-    .addArgument(args.infograph)
-    .action(file => {
-        const infograph = readInfograph(file)
-        if (!globalFormatWasExplicit()) {
-            console.log(formatInfographYaml(infograph))
-            return
-        }
+const formatCommand = program.command('format').description('Rewrite an infograph')
 
-        emit(formatInfograph(infograph), {
-            yaml: () => formatInfographYaml(infograph),
-        })
-    })
+formatCommand
+    .command('nodes')
+    .description('nodes first')
+    .addArgument(args.infograph)
+    .action(file => emit(formatInfographByNodes(readInfograph(file))))
+
+formatCommand
+    .command('edges')
+    .description('edges first')
+    .addArgument(args.infograph)
+    .action(file => emit(formatInfographByEdges(readInfograph(file))))
 
 const queryCommand = program.command('query').description('run a query on the infograph')
 
@@ -235,10 +233,6 @@ program.parse()
 
 function globalFormat(): Format {
     return (program.opts() as { format: Format }).format
-}
-
-function globalFormatWasExplicit(): boolean {
-    return process.argv.some(arg => arg === '-f' || arg === '--format' || arg.startsWith('--format='))
 }
 
 function emit<T>(

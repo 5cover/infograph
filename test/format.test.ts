@@ -1,9 +1,10 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
 import * as YAML from 'yaml'
-import { formatInfograph, formatInfographYaml } from '../src/input/format.js'
+import { formatInfographByNodes } from '../src/input/format.js'
 import { parseInfograph } from '../src/input/index.js'
-import type { BaseKeys, Infograph, InfographNodeKey } from '../src/types.js'
+import type {  Infograph, InfographNodeKey } from '../src/types.js'
+import { unparseEdgeKey } from '../src/infograph.js';
 
 type Keys = {
     node: string
@@ -82,7 +83,7 @@ const infograph = (): Infograph<Keys> => ({
 })
 
 test('formats an infograph to terse input shape', () => {
-    assert.deepEqual(formatInfograph(infograph()), {
+    assert.deepEqual(formatInfographByNodes(infograph()), {
         info: {
             title: 'Example',
             context: 'Formatter test',
@@ -142,7 +143,7 @@ test('formats an infograph to terse input shape', () => {
 })
 
 test('formats object keys in canonical order', () => {
-    const formatted = formatInfograph(infograph()) as Record<string, any>
+    const formatted = formatInfographByNodes(infograph()) as Record<string, any>
 
     assert.deepEqual(Object.keys(formatted), ['info', 'domain', 'nodes'])
     assert.deepEqual(Object.keys(formatted.domain), ['kind', 'verb', 'source'])
@@ -163,21 +164,20 @@ test('formats object keys in canonical order', () => {
     assert.deepEqual(Object.keys(formatted.nodes['project alpha'].involves), ['actor me'])
 })
 
-test('formatted YAML parses back to an equivalent graph', () => {
-    const formatted = YAML.parse(formatInfographYaml(infograph()))
-    const parsed = parseInfograph(formatted)
+test('formatted infograph parses back to an equivalent graph', () => {
+    const parsed = parseInfograph(formatInfographByNodes(infograph()))
 
     assert.deepEqual([...parsed.nodes.keys()].sort(), [...infograph().nodes.keys()].sort())
     assert.deepEqual(
-        parsed.edges.map(edge => `${edge.from} ${edge.verb} ${edge.to}`),
-        infograph().edges.map(edge => `${edge.from} ${edge.verb} ${edge.to}`)
+        parsed.edges.map(unparseEdgeKey),
+        infograph().edges.map(unparseEdgeKey)
     )
-    assert.equal('edges' in formatted, false)
+    assert.equal(parsed.edges, undefined)
 })
 
 test('throws when duplicate canonical edges cannot be represented in input objects', () => {
     const graph = infograph()
     graph.edges.push(graph.edges[0])
 
-    assert.throws(() => formatInfograph(graph), /Duplicate edge cannot be formatted/)
+    assert.throws(() => formatInfographByNodes(graph), /Duplicate edge cannot be formatted/)
 })

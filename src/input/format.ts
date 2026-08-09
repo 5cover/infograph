@@ -4,12 +4,13 @@ import type {
     Claim,
     Infograph,
     InfographDate,
-    InfographEdgeId,
+    InfographEdgeKey,
     InfographNode,
     InfographReason,
 } from '../types.js'
 import { terseDate } from '../terseDate.js'
 import { kdataEdge, kdataNode } from './types.js'
+import { unparseEdgeKey } from '../infograph.js'
 
 type PlainObject = Record<string, unknown>
 
@@ -29,16 +30,16 @@ const infoOrder = [
 const reasonOrder = ['is', 'why'] as const
 const edgeEnvelopeOrder = [kdataEdge] as const
 
-export function formatInfograph<Keys extends BaseKeys>(infograph: Infograph<Keys>): PlainObject {
+export function formatInfographByNodes<Keys extends BaseKeys>(infograph: Infograph<Keys>): PlainObject {
     const nodes: PlainObject = {}
 
     for (const [key, node] of [...infograph.nodes].sort(([a], [b]) => compareString(a, b))) {
         nodes[key] = { [kdataNode]: formatNode(node) }
     }
 
-    const seenEdges = new Set<InfographEdgeId<Keys>>()
-    for (const edge of [...infograph.edges].sort((a, b) => compareString(edgeId(a), edgeId(b)))) {
-        const id = `${edge.from} ${edge.verb} ${edge.to}` as InfographEdgeId<Keys>
+    const seenEdges = new Set<InfographEdgeKey<Keys>>()
+    for (const edge of [...infograph.edges].sort((a, b) => compareString(unparseEdgeKey(a), unparseEdgeKey(b)))) {
+        const id = unparseEdgeKey(edge)
         if (seenEdges.has(id)) throw new Error(`Duplicate edge cannot be formatted: ${id}`)
         seenEdges.add(id)
 
@@ -63,12 +64,15 @@ export function formatInfograph<Keys extends BaseKeys>(infograph: Infograph<Keys
     )
 }
 
-export function formatInfographYaml<Keys extends BaseKeys>(infograph: Infograph<Keys>): string {
-    return new YAML.Document(formatInfograph(infograph), null, { aliasDuplicateObjects: false }).toString({
-        nullStr: '',
-        lineWidth: 0,
-        singleQuote: true,
-    })
+export function formatInfographByEdges<Keys extends BaseKeys>(infograph: Infograph<Keys>): PlainObject {
+    return orderedObject(
+        {
+            ...infograph,
+            domain: formatDomain(infograph.domain),
+            edges: infograph.edges.map(unparseEdgeKey).sort(),
+        },
+        topLevelOrder
+    )
 }
 
 function formatNode<Keys extends BaseKeys>(node: InfographNode<Keys>): PlainObject {
@@ -164,10 +168,6 @@ function orderNode(node: PlainObject): PlainObject {
         ordered[verb] = sortRecord(targets as PlainObject)
     }
     return ordered
-}
-
-function edgeId<Keys extends BaseKeys>(edge: Infograph<Keys>['edges'][number]): InfographEdgeId<Keys> {
-    return `${edge.from} ${edge.verb} ${edge.to}` as InfographEdgeId<Keys>
 }
 
 function compareString(a: string, b: string): number {

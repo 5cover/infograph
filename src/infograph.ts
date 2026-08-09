@@ -1,5 +1,13 @@
 import { Flowchart } from 'mermaid-ast'
-import type { BaseKeys, Infograph, InfographNodeKey } from './types.js'
+import type {
+    BaseKeys,
+    EdgeInfo,
+    Infograph,
+    InfographEdgeKey,
+    InfographEdgeIdentity,
+    InfographNodeKey,
+    InfographNodeIdentity,
+} from './types.js'
 import { render, sanitizeId } from './mermaid.js'
 
 export type ToMermaidConfig<Keys extends BaseKeys> = {
@@ -22,7 +30,7 @@ export function subgraph<Keys extends BaseKeys>(
 
 export function toMermaid<Keys extends BaseKeys>(
     infograph: Infograph<Keys>,
-    config: ToMermaidConfig<BaseKeys> = {}
+    config: ToMermaidConfig<Keys> = {}
 ): string {
     const flowchart = Flowchart.create()
     addInfograph(flowchart, infograph, config)
@@ -35,7 +43,7 @@ export function toMermaid<Keys extends BaseKeys>(
 export function toMermaidGrouped<Keys extends BaseKeys>(
     infograph: Infograph<Keys>,
     groups: { title: string; nodes: InfographNodeKey<Keys>[] }[],
-    config: ToMermaidConfig<BaseKeys> = {}
+    config: ToMermaidConfig<Keys> = {}
 ): string {
     const flowchart = Flowchart.create()
     groups.forEach((group, index) => {
@@ -48,7 +56,7 @@ export function toMermaidGrouped<Keys extends BaseKeys>(
 function addInfograph<Keys extends BaseKeys>(
     flowchart: Flowchart,
     infograph: Infograph<Keys>,
-    config: ToMermaidConfig<BaseKeys>
+    config: ToMermaidConfig<Keys>
 ) {
     for (const [key, node] of infograph.nodes.entries()) {
         const date = node.date?.from ? '<br>' + node.date.from.toISOString().split('T', 1)[0] : ''
@@ -64,18 +72,28 @@ function addInfograph<Keys extends BaseKeys>(
     }
 }
 
-export type NodeKey = { kind: string; id: string }
-
-export function parseNodeKey(keystring: string): NodeKey {
+export function parseNodeKey(keystring: string): InfographNodeIdentity {
     const [kind, id] = keystring.split(' ', 2)
     return { kind, id }
 }
 
-export function parseEdgeKey(keystring: string) {
+type InfographParsedEdgeKey<Keys extends BaseKeys> = {
+    from: InfographNodeIdentity<Keys>
+    verb: Keys['verb']
+    to: InfographNodeIdentity<Keys>
+}
+
+export function parseEdgeKey<Keys extends BaseKeys>(keystring: InfographEdgeKey<Keys>): InfographParsedEdgeKey<Keys> {
     const [fromkind, fromid, verb, tokind, toid] = keystring.split(' ', 5)
     return { from: { kind: fromkind, id: fromid }, verb, to: { kind: tokind, id: toid } }
 }
 
-export function unparseNodeKey(key: NodeKey) {
+export function unparseNodeKey<Keys extends BaseKeys>(key: InfographNodeIdentity<Keys>): InfographNodeKey<Keys> {
     return `${key.kind} ${key.id}` as const
+}
+
+export function unparseEdgeKey<Keys extends BaseKeys>(
+    edge: InfographParsedEdgeKey<Keys> | InfographEdgeIdentity<Keys>
+): InfographEdgeKey<Keys> {
+    return `${typeof edge.from === 'string' ? edge.from : unparseNodeKey(edge.from)} ${edge.verb} ${typeof edge.to === 'string' ? edge.to : unparseNodeKey(edge.to)}` as const
 }
