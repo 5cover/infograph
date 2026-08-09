@@ -73,7 +73,7 @@ export function parseNodeKey(keystring: string): NodeKey {
 
 export function parseEdgeKey(keystring: string) {
     const [fromkind, fromid, verb, tokind, toid] = keystring.split(' ', 5)
-    return { from: { kind: fromkind, id: toid }, verb, to: { kind: tokind, id: toid } }
+    return { from: { kind: fromkind, id: fromid }, verb, to: { kind: tokind, id: toid } }
 }
 
 export function unparseNodeKey(key: NodeKey) {

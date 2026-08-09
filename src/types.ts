@@ -22,6 +22,7 @@ export type Claim = {
 
 export type EdgeInfo = {
     complexity: InfographReason<Complexity>
+    technicality?: InfographReason<Technicality>
     claim?: Claim[]
 }
 
@@ -42,6 +43,7 @@ export type InfographNode<Keys extends BaseKeys> = {
     date?: InfographDate
     importance?: InfographReason<Importance>
     complexity: InfographReason<Complexity>
+    technicality?: InfographReason<Technicality>
     source?: InfographReason<Keys['source']>[]
     tag?: string[]
 }

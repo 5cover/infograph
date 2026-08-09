@@ -81,6 +81,7 @@ const zInfograph = zInfographInput.transform((g, ctx): Infograph<BaseKeys> => {
                           to,
                           info: {
                               complexity: buildReason(edge.complexity),
+                              technicality: edge.technicality && buildReason(edge.technicality),
                               claim: edge.claim,
                           },
                       }
@@ -116,6 +117,7 @@ const zInfograph = zInfographInput.transform((g, ctx): Infograph<BaseKeys> => {
                 ...d,
                 title: d.title,
                 complexity: buildReason(d.complexity),
+                technicality: d.technicality && buildReason(d.technicality),
                 importance: d.importance && buildReason(d.importance),
                 source: deflex(d.source)?.map(source => {
                     verifySource(source.is)
@@ -150,6 +152,7 @@ const zInfograph = zInfographInput.transform((g, ctx): Infograph<BaseKeys> => {
                     to,
                     info: {
                         complexity: buildReason(node[kdataEdge].complexity),
+                        technicality: node[kdataEdge].technicality && buildReason(node[kdataEdge].technicality),
                         claim: node[kdataEdge].claim,
                     },
                 })
@@ -201,5 +204,3 @@ function deflex<T>(fa: Flexarray<T> | undefined): T[] | undefined
 function deflex<T>(fa: Flexarray<T> | undefined): T[] | undefined {
     return fa === undefined ? undefined : Array.isArray(fa) ? fa : [fa]
 }
-
-

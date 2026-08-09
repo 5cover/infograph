@@ -1,6 +1,7 @@
 import { Argument, InvalidArgumentError, Option, program } from '@commander-js/extra-typings'
 import { readFileSync } from 'node:fs'
 import * as YAML from 'yaml'
+import { formatInfograph, formatInfographYaml } from './input/format.js'
 import { parseInfograph } from './input/index.js'
 import {
     chronological,
@@ -54,6 +55,22 @@ program
             json: g => asJson(toJsonInfograph(g)),
             yaml: g => asYaml(toJsonInfograph(g)),
             mermaid: g => toMermaid(g),
+        })
+    })
+
+program
+    .command('format')
+    .description('Rewrite an infograph using the terse input representation')
+    .addArgument(args.infograph)
+    .action(file => {
+        const infograph = readInfograph(file)
+        if (!globalFormatWasExplicit()) {
+            console.log(formatInfographYaml(infograph))
+            return
+        }
+
+        emit(formatInfograph(infograph), {
+            yaml: () => formatInfographYaml(infograph),
         })
     })
 
@@ -211,6 +228,10 @@ program.parse()
 
 function globalFormat(): Format {
     return (program.opts() as { format: Format }).format
+}
+
+function globalFormatWasExplicit(): boolean {
+    return process.argv.some(arg => arg === '-f' || arg === '--format' || arg.startsWith('--format='))
 }
 
 function emit<T>(
