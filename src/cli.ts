@@ -152,6 +152,16 @@ queryCommand
         })
     })
 
+queryCommand
+    .command('elements')
+    .requiredOption('-v, --verb <verb>', 'The verb to filter edges by')
+    .addArgument(args.infograph)
+    .description('Filter edges')
+    .action((file, opts) => {
+        const infograph = readInfograph(file)
+        emit(infograph.edges.filter(e => e.verb === opts.verb))
+    })
+
 const groupbyCommand = queryCommand.command('groupby').description('Group infograph topology around selected sites')
 
 groupbyCommand

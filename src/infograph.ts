@@ -64,21 +64,16 @@ function addInfograph<Keys extends BaseKeys>(
     }
 }
 
-export type NodeKey = { kind: string; id: string; isNamespaced: boolean }
+export type NodeKey = { kind: string; id: string }
 
 export function parseNodeKey(keystring: string): NodeKey {
     const [kind, id] = keystring.split(' ', 2)
-    return _parseNodeKey(kind, id)
+    return { kind, id }
 }
 
 export function parseEdgeKey(keystring: string) {
     const [fromkind, fromid, verb, tokind, toid] = keystring.split(' ', 5)
-    return { from: _parseNodeKey(fromkind, fromid), verb, to: _parseNodeKey(tokind, toid) }
-}
-
-export function _parseNodeKey(kind: string, id: string): NodeKey {
-    const isNamespaced = kind[0] === '.'
-    return { kind: isNamespaced ? kind.slice(1) : kind, id, isNamespaced }
+    return { from: { kind: fromkind, id: toid }, verb, to: { kind: tokind, id: toid } }
 }
 
 export function unparseNodeKey(key: NodeKey) {
