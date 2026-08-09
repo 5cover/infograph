@@ -15,10 +15,9 @@ import {
     type Flexarray,
 } from './types.js'
 import { verbPattern, zInfographInput } from './schemas.js'
+import { parseEdgeKey, parseNodeKey, unparseNodeKey, type NodeKey } from '../infograph.js';
 
 export const defineInfograph = <Keys extends BaseKeys>(infograph: InputInfograph<Keys>) => infograph
-
-type Key = { kind: string; id: string; isNamespaced: boolean }
 
 const zInfograph = zInfographInput.transform((g, ctx): Infograph<BaseKeys> => {
     // verify .edges match "{nodesrc} {verb} {nodedest}"" and nodesrc/nodede
@@ -70,10 +69,10 @@ const zInfograph = zInfographInput.transform((g, ctx): Infograph<BaseKeys> => {
         edges
             ? entries(edges)
                   .map(([keystring, edge]) => {
-                      const info = parseEdge(keystring)
+                      const info = parseEdgeKey(keystring)
                       verifyVerb(info.verb)
-                      const from = nodeKey(info.from)
-                      const to = nodeKey(info.to)
+                      const from = unparseNodeKey(info.from)
+                      const to = unparseNodeKey(info.to)
                       defer(verifyNode, from)
                       defer(verifyNode, to)
                       return {
@@ -95,7 +94,7 @@ const zInfograph = zInfographInput.transform((g, ctx): Infograph<BaseKeys> => {
         domain: g.domain,
         edges: infographEdges,
         nodes: new Map(
-            walkEntry(g, 'nodes', nodes => entries(nodes).flatMap(([key, node]) => parseNode(parseKey(key), node)))
+            walkEntry(g, 'nodes', nodes => entries(nodes).flatMap(([key, node]) => parseNode(parseNodeKey(key), node)))
         ),
     }
 
@@ -106,13 +105,13 @@ const zInfograph = zInfographInput.transform((g, ctx): Infograph<BaseKeys> => {
     return infograph
 
     function* parseNode(
-        key: Key,
+        key: NodeKey,
         node: InputNode<BaseKeys>
     ): Generator<[k: InfographNodeKey<BaseKeys>, v: InfographNode<BaseKeys>]> {
         const d = node[kdataNode]
         verifyKind(key.kind)
         yield [
-            unparseKey(key),
+            unparseNodeKey(key),
             {
                 ...d,
                 title: d.title,
@@ -143,11 +142,11 @@ const zInfograph = zInfographInput.transform((g, ctx): Infograph<BaseKeys> => {
             const nodes = value as Exclude<InputOutgoing<BaseKeys>[string], undefined>
             return entries(nodes).flatMap(([outkeystring, node]) => {
                 const isInlineNode = node && kdataNode in node
-                const outkey = parseKey(outkeystring)
-                const to = unparseKey(outkey)
+                const outkey = parseNodeKey(outkeystring)
+                const to = unparseNodeKey(outkey)
                 infographEdges.push({
                     verb,
-                    from: unparseKey(key),
+                    from: unparseNodeKey(key),
                     to,
                     info: {
                         complexity: buildReason(node[kdataEdge].complexity),
@@ -161,24 +160,7 @@ const zInfograph = zInfographInput.transform((g, ctx): Infograph<BaseKeys> => {
         })
     }
 
-    function parseKey(keystring: string): Key {
-        const [kind, id] = keystring.split(' ', 2)
-        return _parseKey(kind, id)
-    }
-
-    function parseEdge(keystring: string) {
-        const [fromkind, fromid, verb, tokind, toid] = keystring.split(' ', 5)
-        return { from: _parseKey(fromkind, fromid), verb, to: _parseKey(tokind, toid) }
-    }
-
-    function _parseKey(kind: string, id: string): Key {
-        const isNamespaced = kind[0] === '.'
-        return { kind: isNamespaced ? kind.slice(1) : kind, id, isNamespaced }
-    }
-
-    function unparseKey(key: Key) {
-        return `${key.kind} ${key.id}` as const
-    }
+    
 
     function* entries<V>(o: { [k: string]: V }) {
         for (const [k, v] of Object.entries(o)) {
@@ -220,6 +202,4 @@ function deflex<T>(fa: Flexarray<T> | undefined): T[] | undefined {
     return fa === undefined ? undefined : Array.isArray(fa) ? fa : [fa]
 }
 
-function nodeKey(k: Key) {
-    return `${k.kind} ${k.id}` as const
-}
+

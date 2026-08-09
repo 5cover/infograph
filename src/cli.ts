@@ -12,6 +12,7 @@ import {
 } from './queries/chronological.js'
 import { metrics } from './queries/metrics.js'
 import { nonTrivialComponents, stronglyConnectedComponents } from './queries/scc.js'
+import { groupBySites, groupRecordToMermaid } from './queries/groupby.js'
 import { toMermaid, toMermaidGrouped } from './infograph.js'
 import type { BaseKeys, Infograph } from './types.js'
 import { terseDate } from './terseDate.js'
@@ -149,6 +150,19 @@ queryCommand
                     }))
                 ),
         })
+    })
+
+const groupbyCommand = queryCommand.command('groupby').description('Group infograph topology around selected sites')
+
+groupbyCommand
+    .command('project')
+    .description('Group edges around project nodes using edge Voronoi partitioning')
+    .addArgument(args.infograph)
+    .action(file => {
+        const infograph = readInfograph(file)
+        const sites = [...infograph.nodes.keys()].filter(node => node.startsWith('project '))
+        const groups = groupBySites(infograph, sites)
+        emit(groups, { mermaid: g => groupRecordToMermaid(infograph, g) })
     })
 
 queryCommand

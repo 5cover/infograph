@@ -24,7 +24,7 @@ export function toMermaid<Keys extends BaseKeys>(
     infograph: Infograph<Keys>,
     config: ToMermaidConfig<BaseKeys> = {}
 ): string {
-    const flowchart = Flowchart.create('TD')
+    const flowchart = Flowchart.create()
     addInfograph(flowchart, infograph, config)
     return render(flowchart)
 }
@@ -37,7 +37,7 @@ export function toMermaidGrouped<Keys extends BaseKeys>(
     groups: { title: string; nodes: InfographNodeKey<Keys>[] }[],
     config: ToMermaidConfig<BaseKeys> = {}
 ): string {
-    const flowchart = Flowchart.create('TD')
+    const flowchart = Flowchart.create()
     groups.forEach((group, index) => {
         addInfograph(flowchart, subgraph(infograph, group.nodes), config)
         flowchart.createSubgraph(`scc_${index + 1}`, group.nodes.map(sanitizeId), group.title)
@@ -56,6 +56,31 @@ function addInfograph<Keys extends BaseKeys>(
     }
 
     for (const edge of infograph.edges) {
-        flowchart.addLink(sanitizeId(edge.from), sanitizeId(edge.to), edge.verb === config.neutralVerb ? {} : { text: edge.verb })
+        flowchart.addLink(
+            sanitizeId(edge.from),
+            sanitizeId(edge.to),
+            edge.verb === config.neutralVerb ? {} : { text: edge.verb }
+        )
     }
+}
+
+export type NodeKey = { kind: string; id: string; isNamespaced: boolean }
+
+export function parseNodeKey(keystring: string): NodeKey {
+    const [kind, id] = keystring.split(' ', 2)
+    return _parseNodeKey(kind, id)
+}
+
+export function parseEdgeKey(keystring: string) {
+    const [fromkind, fromid, verb, tokind, toid] = keystring.split(' ', 5)
+    return { from: _parseNodeKey(fromkind, fromid), verb, to: _parseNodeKey(tokind, toid) }
+}
+
+export function _parseNodeKey(kind: string, id: string): NodeKey {
+    const isNamespaced = kind[0] === '.'
+    return { kind: isNamespaced ? kind.slice(1) : kind, id, isNamespaced }
+}
+
+export function unparseNodeKey(key: NodeKey) {
+    return `${key.kind} ${key.id}` as const
 }

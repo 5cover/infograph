@@ -62,6 +62,8 @@ export type BaseKeys = {
 }
 
 export type InfographNodeKey<Keys extends BaseKeys> = `${Keys['kind']} ${Keys['node']}`
+export type InfographEdgeId<Keys extends BaseKeys> =
+    `${InfographNodeKey<Keys>} ${Keys['verb']} ${InfographNodeKey<Keys>}`
 
 export type Infograph<Keys extends BaseKeys> = {
     info?: InfographInfo
