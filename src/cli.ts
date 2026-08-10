@@ -13,7 +13,7 @@ import {
 } from './queries/chronological.js'
 import { metrics } from './queries/metrics.js'
 import { nonTrivialComponents, stronglyConnectedComponents } from './queries/scc.js'
-import { groupBySites, groupRecordToMermaid } from './queries/groupby.js'
+import { groupBySites, groupRecordToMermaid, type GroupSort } from './queries/groupby.js'
 import { toMermaid, toMermaidGrouped } from './infograph.js'
 import type { BaseKeys, Infograph } from './types.js'
 import { terseDate } from './terseDate.js'
@@ -185,11 +185,16 @@ const groupbyCommand = queryCommand
 groupbyCommand
     .command('kind <kind>')
     .description('Group edges around project nodes using edge Voronoi partitioning')
+    .addOption(
+        new Option('-s, --sorted <mode>', 'sort each group alphabetically or with the funnel heuristic')
+            .choices(['alphabetical', 'funnel'] as const)
+            .default('alphabetical')
+    )
     .addArgument(args.infograph)
-    .action((kind, file, _, c) => {
+    .action((kind, file, options, c) => {
         const infograph = readInfograph(file)
         const sites = [...infograph.nodes.keys()].filter(node => node.startsWith(kind + ' '))
-        const groups = groupBySites(infograph, sites)
+        const groups = groupBySites(infograph, sites, options.sorted as GroupSort)
         if (c.optsWithGlobals().count) {
             emit(Object.fromEntries(Object.entries(groups).map(([k, v]) => [k, v.length])))
         } else {
