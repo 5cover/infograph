@@ -172,7 +172,6 @@ test('formatted infograph parses back to an equivalent graph', () => {
         parsed.edges.map(unparseEdgeKey),
         infograph().edges.map(unparseEdgeKey)
     )
-    assert.equal(parsed.edges, undefined)
 })
 
 test('throws when duplicate canonical edges cannot be represented in input objects', () => {

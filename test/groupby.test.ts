@@ -1,11 +1,12 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { edgeId, groupBySites, groupRecordToMermaid, sortGroupRecord } from '../src/queries/groupby.js'
+import { groupBySites, groupRecordToMermaid, sortGroupRecord, type EdgeId } from '../src/queries/groupby.js'
 import type { BaseKeys, Complexity, Infograph, InfographNodeKey, Technicality } from '../src/types.js'
+import { unparseEdgeKey } from '../src/infograph.js'
 
 type Keys = {
     node: string
-    kind: 'project' | 'task' | 'actor'
+    kind: 'project' | 'task' | 'actor' | 'tool' | 'process' | 'constraint' | 'event'
     verb: 'link'
     source: 'test'
 }
@@ -36,7 +37,7 @@ const graph = (
     edgeComplexities: Partial<Record<string, Complexity>> = {}
 ): Infograph<Keys> => ({
     domain: {
-        kind: { project: null, task: null, actor: null },
+        kind: { project: null, task: null, actor: null, tool: null, process: null, constraint: null, event: null },
         verb: { link: null },
         source: { test: null },
     },
@@ -47,7 +48,8 @@ const graph = (
     }),
 })
 
-const ids = (g: Infograph<Keys>) => g.edges.map(e => edgeId(e) as string).sort()
+const ids = (g: Infograph<Keys>) => g.edges.map(edge => unparseEdgeKey<Keys>(edge) as string).sort()
+const edgeKeys = (g: Infograph<Keys>): EdgeId<Keys>[] => g.edges.map(edge => unparseEdgeKey<Keys>(edge))
 
 const assertValidGroups = (
     g: Infograph<Keys>,
@@ -73,7 +75,7 @@ const assertValidGroups = (
 const incident = (g: Infograph<Keys>) => {
     const map = new Map<Node, string[]>()
     for (const e of g.edges) {
-        const id = edgeId(e) as string
+        const id = unparseEdgeKey(e) as string
         map.set(e.from, [...(map.get(e.from) ?? []), id])
         map.set(e.to, [...(map.get(e.to) ?? []), id])
     }
@@ -81,7 +83,7 @@ const incident = (g: Infograph<Keys>) => {
 }
 
 const distances = (g: Infograph<Keys>, site: Node) => {
-    const byId = new Map(g.edges.map(e => [edgeId(e) as string, e] as const))
+    const byId = new Map(g.edges.map(e => [unparseEdgeKey(e) as string, e] as const))
     const incidence = incident(g)
     const result = new Map<string, number>()
     const queue: { id: string; distance: number }[] = []
@@ -263,7 +265,7 @@ test('funnel starts with lower exposition-cost edges', () => {
             'task technical': { complexity: 'intertwined', technicality: 'all' },
         }
     )
-    const idsForGroup = g.edges.map(edgeId)
+    const idsForGroup = edgeKeys(g)
     const groups = sortGroupRecord(g, { 'project root': idsForGroup }, 'funnel')
 
     assert.deepEqual(groups['project root'], [
@@ -286,7 +288,7 @@ test('funnel prefers local continuity over an unrelated similarly cheap edge', (
     const groups = sortGroupRecord(
         g,
         {
-            'project root': g.edges.map(edgeId),
+            'project root': edgeKeys(g),
         },
         'funnel'
     )
@@ -310,7 +312,7 @@ test('funnel allows a locally coherent continuation to decrease exposition cost'
             'task less difficult': { complexity: 'contextual', technicality: 'some' },
         }
     )
-    const groups = sortGroupRecord(g, { 'project root': g.edges.map(edgeId) }, 'funnel')
+    const groups = sortGroupRecord(g, { 'project root': edgeKeys(g) }, 'funnel')
 
     assert.deepEqual(groups['project root'], [
         'project root link task difficult',
@@ -332,7 +334,7 @@ test('edge complexity breaks funnel ties after exposition cost', () => {
             'task start link task easy': 'simple',
         }
     )
-    const groups = sortGroupRecord(g, { 'project root': g.edges.map(edgeId) }, 'funnel')
+    const groups = sortGroupRecord(g, { 'project root': edgeKeys(g) }, 'funnel')
 
     assert.deepEqual(groups['project root'], [
         'project root link task start',
@@ -356,7 +358,7 @@ test('funnel starts a new implicit thread for disconnected group edges', () => {
             'task isolated three': { complexity: 'contextual', technicality: 'some' },
         }
     )
-    const groups = sortGroupRecord(g, { 'project root': g.edges.map(edgeId) }, 'funnel')
+    const groups = sortGroupRecord(g, { 'project root': edgeKeys(g) }, 'funnel')
 
     assert.deepEqual(groups['project root'], [
         'project root link task first',
@@ -394,8 +396,8 @@ test('funnel output is deterministic', () => {
             ['project root', 'task a'],
         ]
     )
-    const first = sortGroupRecord(g, { 'project root': g.edges.map(edgeId) }, 'funnel')
-    const second = sortGroupRecord(g, { 'project root': g.edges.map(edgeId) }, 'funnel')
+    const first = sortGroupRecord(g, { 'project root': edgeKeys(g) }, 'funnel')
+    const second = sortGroupRecord(g, { 'project root': edgeKeys(g) }, 'funnel')
 
     assert.deepEqual(first, second)
 })
@@ -431,7 +433,7 @@ test('funnel gives a realistic graph a plausible accessible-to-technical progres
             'constraint reliability_focus link event handover_pressure': 'contextual',
         }
     )
-    const groups = sortGroupRecord(g, { 'project sponsorship': g.edges.map(edgeId) }, 'funnel')
+    const groups = sortGroupRecord(g, { 'project sponsorship': edgeKeys(g) }, 'funnel')
 
     assert.deepEqual(groups['project sponsorship'], [
         'project sponsorship link actor me',

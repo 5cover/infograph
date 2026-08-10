@@ -29,10 +29,6 @@ type QueueItem<Keys extends BaseKeys> = {
     distance: number
 }
 
-export function edgeId<Keys extends BaseKeys>(edge: InfographEdge<Keys>): EdgeId<Keys> {
-    return unparseEdgeKey(edge)
-}
-
 export function groupBySites<Keys extends BaseKeys>(
     infograph: Infograph<Keys>,
     inputSites: Iterable<InfographNodeKey<Keys>>,
