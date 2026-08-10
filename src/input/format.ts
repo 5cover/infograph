@@ -2,8 +2,10 @@ import * as YAML from 'yaml'
 import type {
     BaseKeys,
     Claim,
+    EdgeInfo,
     Infograph,
     InfographDate,
+    InfographDomain,
     InfographEdgeKey,
     InfographNode,
     InfographReason,
@@ -11,6 +13,7 @@ import type {
 import { terseDate } from '../terseDate.js'
 import { kdataEdge, kdataNode } from './types.js'
 import { unparseEdgeKey } from '../infograph.js'
+import { strcmp } from '../util.js'
 
 type PlainObject = Record<string, unknown>
 
@@ -67,9 +70,14 @@ export function formatInfographByNodes<Keys extends BaseKeys>(infograph: Infogra
 export function formatInfographByEdges<Keys extends BaseKeys>(infograph: Infograph<Keys>): PlainObject {
     return orderedObject(
         {
-            ...infograph,
+            info: infograph.info,
+            nodes: Object.fromEntries(infograph.nodes.entries().map(([k, v]) => [k, { info: formatNode(v) }])),
             domain: formatDomain(infograph.domain),
-            edges: infograph.edges.map(unparseEdgeKey).sort(),
+            edges: Object.fromEntries(
+                infograph.edges
+                    .map(e => [unparseEdgeKey(e), formatEdge(e.info)] as const)
+                    .sort((a, b) => strcmp(a[0], b[0]))
+            ),
         },
         topLevelOrder
     )
@@ -92,7 +100,7 @@ function formatNode<Keys extends BaseKeys>(node: InfographNode<Keys>): PlainObje
     )
 }
 
-function formatEdge<Keys extends BaseKeys>(edge: Infograph<Keys>['edges'][number]['info']): PlainObject {
+function formatEdge(edge: EdgeInfo): PlainObject {
     return orderedObject(
         {
             complexity: formatReason(edge.complexity),
@@ -132,7 +140,7 @@ function ensureObject(parent: PlainObject, key: string): PlainObject {
     return created
 }
 
-function formatDomain<Keys extends BaseKeys>(domain: Infograph<Keys>['domain']): PlainObject {
+function formatDomain<Keys extends BaseKeys>(domain: InfographDomain<Keys>): PlainObject {
     return orderedObject(
         {
             kind: sortRecord(domain.kind),
