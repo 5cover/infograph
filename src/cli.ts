@@ -196,7 +196,7 @@ groupbyCommand
         const sites = [...infograph.nodes.keys()].filter(node => node.startsWith(kind + ' '))
         const groups = groupBySites(infograph, sites, options.sorted as GroupSort)
         if (c.optsWithGlobals().count) {
-            emit(Object.fromEntries(Object.entries(groups).map(([k, v]) => [k, v.length])))
+            emit(Object.fromEntries(Object.entries(groups).map(([k, v]) => [k, Object.keys(v).length])))
         } else {
             emit(groups, { mermaid: g => groupRecordToMermaid(infograph, groups) })
         }

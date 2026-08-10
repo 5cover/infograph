@@ -50,18 +50,22 @@ const graph = (
 
 const ids = (g: Infograph<Keys>) => g.edges.map(edge => unparseEdgeKey<Keys>(edge) as string).sort()
 const edgeKeys = (g: Infograph<Keys>): EdgeId<Keys>[] => g.edges.map(edge => unparseEdgeKey<Keys>(edge))
+const edgeRecord = <T>(ids: readonly string[], value: T): Record<string, T> =>
+    Object.fromEntries(ids.map(id => [id, value]))
+const scoredEdges = (entries: readonly [string, number][]): Record<string, number> => Object.fromEntries(entries)
+const edgeIds = (record: Record<string, unknown>) => Object.keys(record)
 
 const assertValidGroups = (
     g: Infograph<Keys>,
     sites: Node[],
-    groups: Partial<Record<Node, readonly string[]>>
+    groups: Partial<Record<Node, Record<string, unknown>>>
 ) => {
     const allEdges = new Set(ids(g))
     assert.deepEqual(Object.keys(groups).sort(), [...sites].sort())
 
     const union = new Set<string>()
     for (const [site, group] of Object.entries(groups)) {
-        const assignedEdges = group ?? []
+        const assignedEdges = edgeIds(group ?? {})
         assert.ok(sites.includes(site as Node))
         assert.deepEqual(assignedEdges, [...assignedEdges].sort())
         for (const id of assignedEdges) {
@@ -111,14 +115,14 @@ const distances = (g: Infograph<Keys>, site: Node) => {
 const assertNearestOnly = (
     g: Infograph<Keys>,
     sites: Node[],
-    groups: Partial<Record<Node, readonly string[]>>
+    groups: Partial<Record<Node, Record<string, unknown>>>
 ) => {
     const bySite = new Map(sites.map(site => [site, distances(g, site)] as const))
     for (const id of ids(g)) {
         const edgeDistances = sites.map(site => bySite.get(site)!.get(id) ?? Number.POSITIVE_INFINITY)
         const minimum = Math.min(...edgeDistances)
         for (const site of sites) {
-            const assigned = groups[site]?.includes(id) ?? false
+            const assigned = Object.hasOwn(groups[site] ?? {}, id)
             const distance = bySite.get(site)!.get(id) ?? Number.POSITIVE_INFINITY
             assert.equal(assigned, distance === minimum, `${id} assignment for ${site}`)
         }
@@ -137,8 +141,8 @@ test('groups a simple chain between two project sites', () => {
     const groups = groupBySites(g, ['project a', 'project d'])
 
     assert.deepEqual(groups, {
-        'project a': ['project a link task b', 'task b link task c'],
-        'project d': ['task b link task c', 'task c link project d'],
+        'project a': edgeRecord(['project a link task b', 'task b link task c'], undefined),
+        'project d': edgeRecord(['task b link task c', 'task c link project d'], undefined),
     })
     assertValidGroups(g, ['project a', 'project d'], groups)
     assertNearestOnly(g, ['project a', 'project d'], groups)
@@ -155,8 +159,8 @@ test('duplicates an odd-length boundary edge into both nearest groups', () => {
     )
     const groups = groupBySites(g, ['project a', 'project d'])
 
-    assert.ok(groups['project a'].includes('task b link task c'))
-    assert.ok(groups['project d'].includes('task b link task c'))
+    assert.ok(Object.hasOwn(groups['project a'], 'task b link task c'))
+    assert.ok(Object.hasOwn(groups['project d'], 'task b link task c'))
 })
 
 test('propagates equal-distance assignments across a branched shared boundary', () => {
@@ -175,8 +179,8 @@ test('propagates equal-distance assignments across a branched shared boundary', 
 
     assertValidGroups(g, ['project a', 'project d'], groups)
     assertNearestOnly(g, ['project a', 'project d'], groups)
-    assert.ok(groups['project a'].includes('task x link task y'))
-    assert.ok(groups['project d'].includes('task x link task y'))
+    assert.ok(Object.hasOwn(groups['project a'], 'task x link task y'))
+    assert.ok(Object.hasOwn(groups['project d'], 'task x link task y'))
 })
 
 test('supports more than two sites', () => {
@@ -192,7 +196,7 @@ test('supports more than two sites', () => {
     const sites: Node[] = ['project a', 'project c', 'project e']
     const groups = groupBySites(g, sites)
 
-    assert.deepEqual(groups['project c'], ['project c link task d', 'task b link project c'])
+    assert.deepEqual(groups['project c'], edgeRecord(['project c link task d', 'task b link project c'], undefined))
     assertValidGroups(g, sites, groups)
     assertNearestOnly(g, sites, groups)
 })
@@ -201,7 +205,7 @@ test('returns an empty group for a site with no incident edges', () => {
     const g = graph(['project a', 'task b', 'project isolated'], [['project a', 'task b']])
     const groups = groupBySites(g, ['project a', 'project isolated'])
 
-    assert.deepEqual(groups['project isolated'], [])
+    assert.deepEqual(groups['project isolated'], {})
     assertValidGroups(g, ['project a', 'project isolated'], groups)
 })
 
@@ -217,8 +221,8 @@ test('treats directed edges as undirected for distance', () => {
     const groups = groupBySites(g, ['project a', 'project d'])
 
     assert.deepEqual(groups, {
-        'project a': ['task b link project a', 'task c link task b'],
-        'project d': ['project d link task c', 'task c link task b'],
+        'project a': edgeRecord(['task b link project a', 'task c link task b'], undefined),
+        'project d': edgeRecord(['project d link task c', 'task c link task b'], undefined),
     })
     assertValidGroups(g, ['project a', 'project d'], groups)
     assertNearestOnly(g, ['project a', 'project d'], groups)
@@ -249,7 +253,7 @@ test('alphabetical sorting remains the default and explicit alphabetical mode', 
     const explicit = groupBySites(g, ['project a'], 'alphabetical')
 
     assert.deepEqual(implicit, explicit)
-    assert.deepEqual(implicit['project a'], ['project a link task b', 'project a link task c'])
+    assert.deepEqual(implicit['project a'], edgeRecord(['project a link task b', 'project a link task c'], undefined))
 })
 
 test('funnel starts with lower exposition-cost edges', () => {
@@ -266,13 +270,16 @@ test('funnel starts with lower exposition-cost edges', () => {
         }
     )
     const idsForGroup = edgeKeys(g)
-    const groups = sortGroupRecord(g, { 'project root': idsForGroup }, 'funnel')
+    const groups = sortGroupRecord(g, { 'project root': edgeRecord(idsForGroup, undefined) }, 'funnel')
 
-    assert.deepEqual(groups['project root'], [
-        'project root link task accessible',
-        'project root link task contextual',
-        'project root link task technical',
-    ])
+    assert.deepEqual(
+        groups['project root'],
+        scoredEdges([
+            ['project root link task accessible', 0],
+            ['project root link task contextual', 3],
+            ['project root link task technical', 6],
+        ])
+    )
 })
 
 test('funnel prefers local continuity over an unrelated similarly cheap edge', () => {
@@ -288,16 +295,19 @@ test('funnel prefers local continuity over an unrelated similarly cheap edge', (
     const groups = sortGroupRecord(
         g,
         {
-            'project root': edgeKeys(g),
+            'project root': edgeRecord(edgeKeys(g), undefined),
         },
         'funnel'
     )
 
-    assert.deepEqual(groups['project root'], [
-        'project root link task accessible',
-        'task accessible link task technical',
-        'task isolated link task isolated two',
-    ])
+    assert.deepEqual(
+        groups['project root'],
+        scoredEdges([
+            ['project root link task accessible', 0],
+            ['task accessible link task technical', 4],
+            ['task isolated link task isolated two', 0],
+        ])
+    )
 })
 
 test('funnel allows a locally coherent continuation to decrease exposition cost', () => {
@@ -312,12 +322,15 @@ test('funnel allows a locally coherent continuation to decrease exposition cost'
             'task less difficult': { complexity: 'contextual', technicality: 'some' },
         }
     )
-    const groups = sortGroupRecord(g, { 'project root': edgeKeys(g) }, 'funnel')
+    const groups = sortGroupRecord(g, { 'project root': edgeRecord(edgeKeys(g), undefined) }, 'funnel')
 
-    assert.deepEqual(groups['project root'], [
-        'project root link task difficult',
-        'task difficult link task less difficult',
-    ])
+    assert.deepEqual(
+        groups['project root'],
+        scoredEdges([
+            ['project root link task difficult', 4],
+            ['task difficult link task less difficult', 4],
+        ])
+    )
 })
 
 test('edge complexity breaks funnel ties after exposition cost', () => {
@@ -334,13 +347,16 @@ test('edge complexity breaks funnel ties after exposition cost', () => {
             'task start link task easy': 'simple',
         }
     )
-    const groups = sortGroupRecord(g, { 'project root': edgeKeys(g) }, 'funnel')
+    const groups = sortGroupRecord(g, { 'project root': edgeRecord(edgeKeys(g), undefined) }, 'funnel')
 
-    assert.deepEqual(groups['project root'], [
-        'project root link task start',
-        'task start link task easy',
-        'task start link task hard',
-    ])
+    assert.deepEqual(
+        groups['project root'],
+        scoredEdges([
+            ['project root link task start', 0],
+            ['task start link task easy', 0],
+            ['task start link task hard', 0],
+        ])
+    )
 })
 
 test('funnel starts a new implicit thread for disconnected group edges', () => {
@@ -358,14 +374,17 @@ test('funnel starts a new implicit thread for disconnected group edges', () => {
             'task isolated three': { complexity: 'contextual', technicality: 'some' },
         }
     )
-    const groups = sortGroupRecord(g, { 'project root': edgeKeys(g) }, 'funnel')
+    const groups = sortGroupRecord(g, { 'project root': edgeRecord(edgeKeys(g), undefined) }, 'funnel')
 
-    assert.deepEqual(groups['project root'], [
-        'project root link task first',
-        'task first link task second',
-        'task isolated link task isolated two',
-        'task isolated two link task isolated three',
-    ])
+    assert.deepEqual(
+        groups['project root'],
+        scoredEdges([
+            ['project root link task first', 0],
+            ['task first link task second', 6],
+            ['task isolated link task isolated two', 1],
+            ['task isolated two link task isolated three', 3],
+        ])
+    )
 })
 
 test('funnel preserves group membership, visits every edge once, and sorts groups independently', () => {
@@ -382,8 +401,8 @@ test('funnel preserves group membership, visits every edge once, and sorts group
 
     assert.deepEqual(Object.keys(funnel), Object.keys(alphabetical))
     for (const site of Object.keys(alphabetical) as Node[]) {
-        assert.deepEqual(new Set(funnel[site]), new Set(alphabetical[site]))
-        assert.equal(new Set(funnel[site]).size, funnel[site].length)
+        assert.deepEqual(new Set(edgeIds(funnel[site])), new Set(edgeIds(alphabetical[site])))
+        assert.equal(new Set(edgeIds(funnel[site])).size, edgeIds(funnel[site]).length)
     }
 })
 
@@ -396,8 +415,8 @@ test('funnel output is deterministic', () => {
             ['project root', 'task a'],
         ]
     )
-    const first = sortGroupRecord(g, { 'project root': edgeKeys(g) }, 'funnel')
-    const second = sortGroupRecord(g, { 'project root': edgeKeys(g) }, 'funnel')
+    const first = sortGroupRecord(g, { 'project root': edgeRecord(edgeKeys(g), undefined) }, 'funnel')
+    const second = sortGroupRecord(g, { 'project root': edgeRecord(edgeKeys(g), undefined) }, 'funnel')
 
     assert.deepEqual(first, second)
 })
@@ -433,15 +452,18 @@ test('funnel gives a realistic graph a plausible accessible-to-technical progres
             'constraint reliability_focus link event handover_pressure': 'contextual',
         }
     )
-    const groups = sortGroupRecord(g, { 'project sponsorship': edgeKeys(g) }, 'funnel')
+    const groups = sortGroupRecord(g, { 'project sponsorship': edgeRecord(edgeKeys(g), undefined) }, 'funnel')
 
-    assert.deepEqual(groups['project sponsorship'], [
-        'project sponsorship link actor me',
-        'project sponsorship link tool power_automate',
-        'project sponsorship link process amount_calculation',
-        'process amount_calculation link constraint reliability_focus',
-        'constraint reliability_focus link event handover_pressure',
-    ])
+    assert.deepEqual(
+        groups['project sponsorship'],
+        scoredEdges([
+            ['project sponsorship link actor me', 2],
+            ['project sponsorship link tool power_automate', 2],
+            ['project sponsorship link process amount_calculation', 3],
+            ['process amount_calculation link constraint reliability_focus', 6],
+            ['constraint reliability_focus link event handover_pressure', 6],
+        ])
+    )
 })
 
 test('throws for an unknown site', () => {

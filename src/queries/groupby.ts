@@ -13,7 +13,10 @@ import { strcmp } from '../util.js'
 import { parseEdgeKey, unparseEdgeKey } from '../infograph.js'
 
 export type EdgeId<Keys extends BaseKeys> = InfographEdgeKey<Keys>
-export type GroupRecord<Keys extends BaseKeys> = Record<InfographNodeKey<Keys>, EdgeId<Keys>[]>
+export type GroupRecord<Keys extends BaseKeys, T = undefined> = Record<
+    InfographNodeKey<Keys>,
+    Record<EdgeId<Keys>, T>
+>
 export type GroupSort = 'alphabetical' | 'funnel'
 
 type InfographEdge<Keys extends BaseKeys> = Infograph<Keys>['edges'][number]
@@ -32,8 +35,23 @@ type QueueItem<Keys extends BaseKeys> = {
 export function groupBySites<Keys extends BaseKeys>(
     infograph: Infograph<Keys>,
     inputSites: Iterable<InfographNodeKey<Keys>>,
+    sorted?: 'alphabetical'
+): GroupRecord<Keys, undefined>
+export function groupBySites<Keys extends BaseKeys>(
+    infograph: Infograph<Keys>,
+    inputSites: Iterable<InfographNodeKey<Keys>>,
+    sorted: 'funnel'
+): GroupRecord<Keys, number>
+export function groupBySites<Keys extends BaseKeys>(
+    infograph: Infograph<Keys>,
+    inputSites: Iterable<InfographNodeKey<Keys>>,
+    sorted: GroupSort
+): GroupRecord<Keys, undefined> | GroupRecord<Keys, number>
+export function groupBySites<Keys extends BaseKeys>(
+    infograph: Infograph<Keys>,
+    inputSites: Iterable<InfographNodeKey<Keys>>,
     sorted: GroupSort = 'alphabetical'
-): GroupRecord<Keys> {
+): GroupRecord<Keys, undefined> | GroupRecord<Keys, number> {
     const sites = [...new Set(inputSites)].sort(strcmp)
     for (const site of sites) {
         if (!infograph.nodes.has(site)) throw new Error(`Unknown Voronoi site: ${site}`)
@@ -81,10 +99,10 @@ export function groupBySites<Keys extends BaseKeys>(
         throw new Error(`Cannot group edges unreachable from any Voronoi site: ${unreachable.join(', ')}`)
     }
 
-    const result = Object.fromEntries(sites.map(site => [site, [] as EdgeId<Keys>[]])) as GroupRecord<Keys>
+    const result = Object.fromEntries(sites.map(site => [site, {} as Record<EdgeId<Keys>, undefined>])) as GroupRecord<Keys>
     for (const id of sortedEdgeIds) {
         for (const site of [...assignments.get(id)!.sites].sort(strcmp)) {
-            result[site].push(id)
+            result[site][id] = undefined
         }
     }
 
@@ -96,20 +114,39 @@ export function groupBySites<Keys extends BaseKeys>(
  * the historical output order; funnel is a small, deterministic, local continuity
  * heuristic for report preparation.
  */
-export function sortGroupRecord<Keys extends BaseKeys>(
+export function sortGroupRecord<Keys extends BaseKeys, T>(
     infograph: Infograph<Keys>,
-    groups: GroupRecord<Keys>,
+    groups: GroupRecord<Keys, T>,
+    sorted?: 'alphabetical'
+): GroupRecord<Keys, undefined>
+export function sortGroupRecord<Keys extends BaseKeys, T>(
+    infograph: Infograph<Keys>,
+    groups: GroupRecord<Keys, T>,
+    sorted: 'funnel'
+): GroupRecord<Keys, number>
+export function sortGroupRecord<Keys extends BaseKeys, T>(
+    infograph: Infograph<Keys>,
+    groups: GroupRecord<Keys, T>,
+    sorted: GroupSort
+): GroupRecord<Keys, undefined> | GroupRecord<Keys, number>
+export function sortGroupRecord<Keys extends BaseKeys, T>(
+    infograph: Infograph<Keys>,
+    groups: GroupRecord<Keys, T>,
     sorted: GroupSort = 'alphabetical'
-): GroupRecord<Keys> {
+): GroupRecord<Keys, undefined> | GroupRecord<Keys, number> {
     const edgeById = new Map(infograph.edges.map(edge => [unparseEdgeKey(edge), edge] as const))
 
     return Object.fromEntries(
-        Object.entries(groups).map(([site, ids]) => {
-            const edgeIds = ids as EdgeId<Keys>[]
+        Object.entries(groups).map(([site, rawEdgeRecord]) => {
+            const edgeRecord = rawEdgeRecord as Record<EdgeId<Keys>, T>
+            const edgeIds = Object.keys(edgeRecord) as EdgeId<Keys>[]
             const ordered = sorted === 'funnel' ? funnelOrder(infograph, edgeById, edgeIds) : [...edgeIds].sort(strcmp)
-            return [site, ordered]
+            const values = Object.fromEntries(
+                ordered.map(id => [id, sorted === 'funnel' ? edgeExpositionCost(edgeById.get(id)!, infograph) : undefined])
+            )
+            return [site, values]
         })
-    ) as GroupRecord<Keys>
+    ) as GroupRecord<Keys, undefined> | GroupRecord<Keys, number>
 }
 
 /** Numeric exposition score for a node: complexity plus technicality. */
@@ -218,20 +255,20 @@ function ordinalScore<T>(levels: readonly T[], value: T | undefined): number {
     return score
 }
 
-export function groupRecordToMermaid<Keys extends BaseKeys>(
+export function groupRecordToMermaid<Keys extends BaseKeys, T>(
     infograph: Infograph<Keys>,
-    groups: GroupRecord<Keys>
+    groups: GroupRecord<Keys, T>
 ): string {
     const edgeById = new Map(infograph.edges.map(edge => [unparseEdgeKey(edge), edge] as const))
 
     return render(
-        (Object.entries(groups) as [InfographNodeKey<Keys>, EdgeId<Keys>[]][])
+        (Object.entries(groups) as [InfographNodeKey<Keys>, Record<EdgeId<Keys>, T>][])
             .sort(([a], [b]) => strcmp(a, b))
             .map(([center, ids]) => {
                 const flowchart = Flowchart.create()
                 const nodeKeys = new Set<InfographNodeKey<Keys>>([center])
 
-                for (const id of ids) {
+                for (const id of Object.keys(ids) as EdgeId<Keys>[]) {
                     const edge = edgeById.get(id)
                     if (edge === undefined) continue
                     nodeKeys.add(edge.from)
@@ -245,7 +282,7 @@ export function groupRecordToMermaid<Keys extends BaseKeys>(
                     flowchart.addNode(sanitizeId(key), text)
                 }
 
-                for (const id of ids) {
+                for (const id of Object.keys(ids) as EdgeId<Keys>[]) {
                     const edge = edgeById.get(id)
                     if (edge === undefined) continue
                     flowchart.addLink(sanitizeId(edge.from), sanitizeId(edge.to), { text: parseEdgeKey(id).verb })
