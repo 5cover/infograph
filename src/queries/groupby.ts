@@ -8,11 +8,17 @@ import {
     type InfographNodeKey,
 } from '../types.js'
 import { GraphDiagram, type GraphFormat, renderGraph } from '../graph.js'
+import { parseEdgeKey, parseNodeKey, subgraphFilterEdges, unparseEdgeKey } from '../infograph.js'
 import { strcmp } from '../util.js'
-import { parseEdgeKey, parseNodeKey, unparseEdgeKey } from '../infograph.js'
 
-export type GroupRecord<Keys extends BaseKeys = BaseKeys, T = null> = Map<InfographNodeKey<Keys>, GroupRecordValue<Keys, T>>
+export type EdgeId<Keys extends BaseKeys> = InfographEdgeKey<Keys>
 export type GroupRecordValue<Keys extends BaseKeys, T = null> = Map<InfographEdgeKey<Keys>, T>
+export type GroupRecord<Keys extends BaseKeys = BaseKeys, T = null> = Map<
+    InfographNodeKey<Keys>,
+    GroupRecordValue<Keys, T>
+>
+export type GroupKey<Keys extends BaseKeys> = InfographNodeKey<Keys> | '*'
+export type GroupTree<Keys extends BaseKeys = BaseKeys, T = GroupRecordValue<Keys>> = Map<GroupKey<Keys>, GroupTree<Keys, T> | T>
 
 export const groupSort = ['alphabetical', 'funnel'] as const
 export type GroupSort = (typeof groupSort)[number]
@@ -30,7 +36,7 @@ type QueueItem<Keys extends BaseKeys> = {
     distance: number
 }
 
-type GroupbyOptions<Keys extends BaseKeys> = {
+export type GroupbyOptions<Keys extends BaseKeys> = {
     inputSites: Iterable<InfographNodeKey<Keys>>
     allowUnreachable?: boolean
     sorted?: GroupSort
@@ -52,13 +58,13 @@ export function groupBySites<Keys extends BaseKeys>(
     infograph: Infograph<Keys>,
     opts: GroupbyOptions<Keys>
 ): GroupRecord<Keys, null> | GroupRecord<Keys, number> {
-    const sites = [...new Set(opts.inputSites)].sort(strcmp)
+    const sites = new Set(opts.inputSites).values().toArray().toSorted(strcmp)
     for (const site of sites) {
         if (!infograph.nodes.has(site)) throw new Error(`Unknown Voronoi site: ${site}`)
     }
 
     const edgeIds = infograph.edges.map(unparseEdgeKey)
-    const sortedEdgeIds = [...edgeIds].sort(strcmp)
+    const sortedEdgeIds = edgeIds.toSorted(strcmp)
     const edgeById = new Map<InfographEdgeKey<Keys>, InfographEdge<Keys>>()
     const incidence = new Map<InfographNodeKey<Keys>, InfographEdgeKey<Keys>[]>()
 
@@ -70,25 +76,17 @@ export function groupBySites<Keys extends BaseKeys>(
         addIncident(incidence, edge.from, id)
         addIncident(incidence, edge.to, id)
     }
-
     for (const ids of incidence.values()) ids.sort(strcmp)
 
     const assignments = new Map<InfographEdgeKey<Keys>, Assignment<Keys>>()
     const queue: QueueItem<Keys>[] = []
-
     for (const site of sites) {
-        for (const id of incidence.get(site) ?? []) {
-            addReach(assignments, queue, id, site, 0)
-        }
+        for (const id of incidence.get(site) ?? []) addReach(assignments, queue, id, site, 0)
     }
-
     for (let head = 0; head < queue.length; head++) {
         const item = queue[head]
         const assignment = assignments.get(item.edge)
-        if (assignment === undefined || assignment.distance !== item.distance || !assignment.sites.has(item.site)) {
-            continue
-        }
-
+        if (assignment === undefined || assignment.distance !== item.distance || !assignment.sites.has(item.site)) continue
         for (const next of adjacentEdges(edgeById, incidence, item.edge)) {
             addReach(assignments, queue, next, item.site, item.distance + 1)
         }
@@ -96,7 +94,7 @@ export function groupBySites<Keys extends BaseKeys>(
 
     if (!opts.allowUnreachable) {
         const unreachable = sortedEdgeIds.filter(id => !assignments.has(id))
-        if (unreachable.length > 0) {
+        if (unreachable.length) {
             throw new Error(`Cannot group edges unreachable from any Voronoi site (${sites}): ${unreachable.join(', ')}`)
         }
     }
@@ -105,19 +103,73 @@ export function groupBySites<Keys extends BaseKeys>(
     for (const id of sortedEdgeIds) {
         const assignment = assignments.get(id)
         if (!assignment) continue
-        for (const site of [...assignment.sites].sort(strcmp)) {
-            result.get(site)!.set(id, null)
-        }
+        for (const site of assignment.sites.values().toArray().toSorted(strcmp)) result.get(site)!.set(id, null)
     }
-
     return sortGroupRecord(infograph, result, opts.sorted ?? 'alphabetical')
 }
 
 /**
- * Sort each already-assigned group without changing its membership. Alphabetical is
- * the historical output order; funnel is a small, deterministic, local continuity
- * heuristic for report preparation.
+ * Group the same edge set repeatedly by each requested node kind. Every requested
+ * depth is present: `*` carries the residual branch when that kind has no applicable
+ * site, or when a site's Voronoi grouping leaves edges unreachable.
  */
+export function groupByKinds<Keys extends BaseKeys>(
+    infograph: Infograph<Keys>,
+    kinds: readonly Keys['kind'][],
+    sorted?: 'alphabetical'
+): GroupTree<Keys, GroupRecordValue<Keys, null>>
+export function groupByKinds<Keys extends BaseKeys>(
+    infograph: Infograph<Keys>,
+    kinds: readonly Keys['kind'][],
+    sorted: 'funnel'
+): GroupTree<Keys, GroupRecordValue<Keys, number>>
+export function groupByKinds<Keys extends BaseKeys>(
+    infograph: Infograph<Keys>,
+    kinds: readonly Keys['kind'][],
+    sorted?: GroupSort
+): GroupTree<Keys, GroupRecordValue<Keys, null>> | GroupTree<Keys, GroupRecordValue<Keys, number>>
+export function groupByKinds<Keys extends BaseKeys>(
+    infograph: Infograph<Keys>,
+    kinds: readonly Keys['kind'][],
+    sorted: GroupSort = 'alphabetical'
+): GroupTree<Keys, GroupRecordValue<Keys, null>> | GroupTree<Keys, GroupRecordValue<Keys, number>> {
+    if (!kinds.length) throw new Error('At least one grouping kind is required')
+    const all = new Map(infograph.edges.map(edge => [unparseEdgeKey(edge), null] as const))
+    return groupLevel(infograph, all, kinds, sorted) as unknown as
+        | GroupTree<Keys, GroupRecordValue<Keys, null>>
+        | GroupTree<Keys, GroupRecordValue<Keys, number>>
+}
+
+function groupLevel<Keys extends BaseKeys>(
+    infograph: Infograph<Keys>,
+    edges: Map<InfographEdgeKey<Keys>, unknown>,
+    kinds: readonly Keys['kind'][],
+    sorted: GroupSort
+): GroupTree<Keys, GroupRecordValue<Keys, null | number>> | GroupRecordValue<Keys, null | number> {
+    if (!kinds.length) return orderEdgeMap(infograph, edges.keys(), sorted)
+
+    const subinfograph = subgraphFilterEdges(infograph, edge => edges.has(unparseEdgeKey(edge)))
+    const sites = subinfograph.nodes
+        .keys()
+        .filter(key => parseNodeKey(key).kind === kinds[0])
+        .toArray()
+    if (!sites.length) return new Map([['*', groupLevel(infograph, edges, kinds.slice(1), sorted)]])
+
+    const grouped = groupBySites(subinfograph, { inputSites: sites, allowUnreachable: true, sorted })
+    const assigned = new Set<InfographEdgeKey<Keys>>()
+    const result: GroupTree<Keys, GroupRecordValue<Keys, null | number>> = new Map()
+    for (const [site, group] of grouped) {
+        if (!group.size) continue
+        for (const edge of group.keys()) assigned.add(edge)
+        result.set(site, groupLevel(infograph, group, kinds.slice(1), sorted))
+    }
+
+    const residual = new Map(edges.entries().filter(([edge]) => !assigned.has(edge)))
+    if (residual.size) result.set('*', groupLevel(infograph, residual, kinds.slice(1), sorted))
+    return result
+}
+
+/** Sort each already-assigned group without changing its membership. */
 export function sortGroupRecord<Keys extends BaseKeys, T>(
     infograph: Infograph<Keys>,
     groups: GroupRecord<Keys, T>,
@@ -138,21 +190,22 @@ export function sortGroupRecord<Keys extends BaseKeys, T>(
     groups: GroupRecord<Keys, T>,
     sorted: GroupSort = 'alphabetical'
 ): GroupRecord<Keys, null> | GroupRecord<Keys, number> {
-    const edgeById = new Map(infograph.edges.map(edge => [unparseEdgeKey(edge), edge] as const))
-
     return new Map(
-        groups.entries().map(([site, edgeMap]) => {
-            const edgeIds = edgeMap.keys()
-            const ordered = sorted === 'funnel' ? funnelOrder(infograph, edgeById, edgeIds) : [...edgeIds].sort(strcmp)
-            const values = new Map(
-                ordered.map(id => [
-                    id,
-                    sorted === 'funnel' ? edgeExpositionCost(edgeById.get(id)!, infograph) : null,
-                ])
-            )
-            return [site, values] as const
-        })
+        groups.entries().map(([site, edges]) => [site, orderEdgeMap(infograph, edges.keys(), sorted)] as const)
     ) as GroupRecord<Keys, null> | GroupRecord<Keys, number>
+}
+
+function orderEdgeMap<Keys extends BaseKeys>(
+    infograph: Infograph<Keys>,
+    edgeIds: Iterable<InfographEdgeKey<Keys>>,
+    sorted: GroupSort
+): GroupRecordValue<Keys, null | number> {
+    const edgeById = new Map(infograph.edges.map(edge => [unparseEdgeKey(edge), edge] as const))
+    const ids = Iterator.from(edgeIds).toArray()
+    const ordered = sorted === 'funnel' ? funnelOrder(infograph, edgeById, ids) : ids.toSorted(strcmp)
+    return new Map(
+        ordered.map(id => [id, sorted === 'funnel' ? edgeExpositionCost(edgeById.get(id)!, infograph) : null] as const)
+    )
 }
 
 /** Numeric exposition score for a node: complexity plus technicality. */
@@ -161,10 +214,7 @@ export function nodeExpositionCost<Keys extends BaseKeys>(node: InfographNode<Ke
 }
 
 /** Numeric exposition score for an edge, intentionally ignoring the edge's own complexity. */
-export function edgeExpositionCost<Keys extends BaseKeys>(
-    edge: InfographEdge<Keys>,
-    infograph: Infograph<Keys>
-): number {
+export function edgeExpositionCost<Keys extends BaseKeys>(edge: InfographEdge<Keys>, infograph: Infograph<Keys>): number {
     const from = infograph.nodes.get(edge.from)
     const to = infograph.nodes.get(edge.to)
     if (from === undefined || to === undefined) throw new Error(`Unknown edge endpoint: ${edge.from} → ${edge.to}`)
@@ -179,12 +229,12 @@ function funnelOrder<Keys extends BaseKeys>(
     const remaining = new Set(edgeIds)
     const ordered: InfographEdgeKey<Keys>[] = []
     const threadNodes = new Set<InfographNodeKey<Keys>>()
-    let lastExpositionCost: number | null
+    let lastExpositionCost: number | null = null
 
-    while (remaining.size > 0) {
-        const candidates = [...remaining]
+    while (remaining.size) {
+        const candidates = remaining.values().toArray()
         if (
-            threadNodes.size > 0 &&
+            threadNodes.size &&
             !candidates.some(id => {
                 const edge = edgeById.get(id)
                 return edge !== undefined && (threadNodes.has(edge.from) || threadNodes.has(edge.to))
@@ -193,19 +243,17 @@ function funnelOrder<Keys extends BaseKeys>(
             threadNodes.clear()
             lastExpositionCost = null
         }
-        const selected = candidates.sort((a, b) =>
+        const selected = candidates.toSorted((a, b) =>
             compareFunnelCandidates(infograph, edgeById, a, b, threadNodes, lastExpositionCost)
         )[0]
         const edge = edgeById.get(selected)
         if (edge === undefined) throw new Error(`Unknown edge ID in group: ${selected}`)
-
         remaining.delete(selected)
         ordered.push(selected)
         threadNodes.add(edge.from)
         threadNodes.add(edge.to)
         lastExpositionCost = edgeExpositionCost(edge, infograph)
     }
-
     return ordered
 }
 
@@ -220,22 +268,15 @@ function compareFunnelCandidates<Keys extends BaseKeys>(
     const a = edgeById.get(aId)
     const b = edgeById.get(bId)
     if (a === undefined || b === undefined) return a === undefined ? 1 : -1
-
     if (lastExpositionCost === null) return compareEdgeOrder(infograph, edgeById, aId, bId)
 
-    const continuity = (edge: InfographEdge<Keys>) =>
-        Number(threadNodes.has(edge.from)) + Number(threadNodes.has(edge.to))
+    const continuity = (edge: InfographEdge<Keys>) => Number(threadNodes.has(edge.from)) + Number(threadNodes.has(edge.to))
     const continuityDifference = continuity(b) - continuity(a)
-    if (continuityDifference !== 0) return continuityDifference
+    if (continuityDifference) return continuityDifference
 
-    // Prefer moving forward, while allowing a locally continuous decrease when no
-    // non-decreasing continuation is available at this continuity level. A larger
-    // backward jump is therefore considered later than a smaller one.
-    const backwardJump = (edge: InfographEdge<Keys>) =>
-        Math.max(0, lastExpositionCost - edgeExpositionCost(edge, infograph))
+    const backwardJump = (edge: InfographEdge<Keys>) => Math.max(0, lastExpositionCost - edgeExpositionCost(edge, infograph))
     const backwardDifference = backwardJump(a) - backwardJump(b)
-    if (backwardDifference !== 0) return backwardDifference
-
+    if (backwardDifference) return backwardDifference
     return compareEdgeOrder(infograph, edgeById, aId, bId)
 }
 
@@ -261,59 +302,63 @@ function ordinalScore<T>(levels: readonly T[], value: T | undefined): number {
     return score
 }
 
-export function groupRecordToGraph<Keys extends BaseKeys, T>(
+export function groupTreeToGraph<Keys extends BaseKeys, T>(
     infograph: Infograph<Keys>,
-    groups: Map<string, GroupRecordValue<Keys, T>>,
+    tree: GroupTree<Keys, GroupRecordValue<Keys, T>>,
+    depth: number,
+    format: GraphFormat
+): GroupTree<Keys, string> {
+    return mapGroupTree(tree, depth, (edges, centers) => groupEdgesToGraph(infograph, edges, centers, format))
+}
+
+export function mapGroupTree<Keys extends BaseKeys, T, U>(
+    tree: GroupTree<Keys, T>,
+    depth: number,
+    mapLeaf: (value: T, centers: InfographNodeKey<Keys>[]) => U
+): GroupTree<Keys, U> {
+    if (depth < 1) throw new Error('A group tree must have at least one level')
+    const visit = (branch: GroupTree<Keys, T>, level: number, centers: InfographNodeKey<Keys>[]): GroupTree<Keys, U> => {
+        const result: GroupTree<Keys, U> = new Map()
+        for (const [key, value] of branch) {
+            const nextCenters = key === '*' ? centers : [...centers, key]
+            result.set(key, level === depth - 1 ? mapLeaf(value as T, nextCenters) : visit(value as GroupTree<Keys, T>, level + 1, nextCenters))
+        }
+        return result
+    }
+    return visit(tree, 0, [])
+}
+
+function groupEdgesToGraph<Keys extends BaseKeys, T>(
+    infograph: Infograph<Keys>,
+    edges: GroupRecordValue<Keys, T>,
+    centers: InfographNodeKey<Keys>[],
     format: GraphFormat
 ): string {
     const edgeById = new Map(infograph.edges.map(edge => [unparseEdgeKey(edge), edge] as const))
-
-    const diagrams = groups
-        .entries()
-        .toArray()
-        .sort(([a], [b]) => strcmp(a, b))
-        .map(([centers, ids]) => {
-            const diagram = new GraphDiagram('LR')
-            const centerSet = new Set<InfographNodeKey<Keys>>(centers.split('>') as InfographNodeKey[])
-            const nodeKeys = new Set<InfographNodeKey<Keys>>(centerSet)
-
-            for (const id of Object.keys(ids) as InfographEdgeKey<Keys>[]) {
-                const edge = edgeById.get(id)
-                if (edge === undefined) continue
-                nodeKeys.add(edge.from)
-                nodeKeys.add(edge.to)
-            }
-
-            for (const key of [...nodeKeys].sort(strcmp)) {
-                let text = infograph.nodes.get(key)?.title ?? key
-                // Necessary workaround due to a bug in mermaid-ast. This remains
-                // presentation text, rather than backend-specific graph construction.
-                text = text.replaceAll(/[()[\]{}]/g, ' ')
-                diagram.addNode(
-                    key,
-                    `${parseNodeKey(key).kind}: ${text}`,
-                    centerSet.has(key) ? { shape: 'circle', classes: ['site'] } : {}
-                )
-            }
-
-            for (const id of Object.keys(ids) as InfographEdgeKey<Keys>[]) {
-                const edge = edgeById.get(id)
-                if (edge === undefined) continue
-                diagram.addEdge(edge.from, edge.to, { label: parseEdgeKey(id).verb })
-            }
-
-            return diagram
-        })
-
-    return renderGraph(diagrams, format)
+    const diagram = new GraphDiagram('LR')
+    const centerSet = new Set(centers)
+    const nodeKeys = new Set<InfographNodeKey<Keys>>(centers)
+    for (const id of edges.keys()) {
+        const edge = edgeById.get(id)
+        if (!edge) continue
+        nodeKeys.add(edge.from)
+        nodeKeys.add(edge.to)
+    }
+    for (const key of nodeKeys.values().toArray().toSorted(strcmp)) {
+        const title = (infograph.nodes.get(key)?.title ?? key).replaceAll(/[()[\]{}]/g, ' ')
+        diagram.addNode(
+            key,
+            `${parseNodeKey(key).kind}: ${title}`,
+            centerSet.has(key) ? { shape: 'circle', classes: ['site'] } : {}
+        )
+    }
+    for (const id of edges.keys()) {
+        const edge = edgeById.get(id)
+        if (edge) diagram.addEdge(edge.from, edge.to, { label: parseEdgeKey(id).verb })
+    }
+    return renderGraph(diagram, format)
 }
 
-export function groupRecordToMermaid<Keys extends BaseKeys, T>(
-    infograph: Infograph<Keys>,
-    groups: GroupRecord<Keys, T>
-): string {
-    return groupRecordToGraph(infograph, groups, 'mermaid')
-}
 function addIncident<Keys extends BaseKeys>(
     incidence: Map<InfographNodeKey<Keys>, InfographEdgeKey<Keys>[]>,
     node: InfographNodeKey<Keys>,
@@ -349,9 +394,10 @@ function adjacentEdges<Keys extends BaseKeys>(
     edge: InfographEdgeKey<Keys>
 ): InfographEdgeKey<Keys>[] {
     const original = edgeById.get(edge)
-    if (original === undefined) return []
-
-    return [...new Set([...(incidence.get(original.from) ?? []), ...(incidence.get(original.to) ?? [])])]
+    if (!original) return []
+    return new Set([...(incidence.get(original.from) ?? []), ...(incidence.get(original.to) ?? [])])
+        .values()
+        .toArray()
         .filter(candidate => candidate !== edge)
-        .sort(strcmp)
+        .toSorted(strcmp)
 }

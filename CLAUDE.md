@@ -10,13 +10,14 @@ Infograph structures information, experiences and their relationships in a factu
 
 There is no build/lint/test setup. TypeScript runs directly via **tsx** (not installed as a dependency — invoked through `npx`). Plain `node src/*.ts` fails because the code uses directory imports (`./input`) that only tsx's resolver handles.
 
-- Run the CLI: `npx tsx src/cli.ts [-f json|yaml|mermaid] <command> <file>`
-  - The global `-f, --format` option is read from `program.opts()` and goes **before** the subcommand. Each command supports a subset (see `emit()` in `src/cli.ts`); `metrics` falls back to `json` for unsupported values.
-  - `parse <file>` — flattened graph as JSON/YAML, or `toMermaid` for mermaid.
-  - `chronological <file> [--budget N] [--simple N --natural N --contextual N --intertwined N]` — traversal thread as JSON/YAML, or `threadToMermaid` for mermaid.
+- Run the CLI: `npx tsx src/cli.ts [-f json|yaml|native|plain] [-d plain|count|graph:mermaid|graph:graphviz|graph:cytoscape] <command> <file>`
+  - The global `-f, --format` option selects syntax and `-d, --data` selects the requested data; both go **before** the subcommand. `emit()` first transforms the query result by data mode, then serializes it in the selected form.
+  - `parse <file>` — flattened canonical graph, or one graph string with a `graph:*` data mode.
+  - `query chronological run <file> [--budget N] [--simple N --natural N --contextual N --intertwined N]` — traversal thread, or a rendered graph. `--notes` changes plain thread data into the readable notes document.
   - `metrics <file>` — graph statistics (JSON/YAML).
-  - `scc <file>` — non-trivial strongly connected components as a JSON/YAML list, or one Mermaid flowchart with a subgraph per SCC.
-  - Mermaid is built with the **mermaid-ast** library (`src/mermaid.ts` holds the shared `sanitizeId`; `toMermaid`/`toMermaidGrouped` live in `src/infograph.ts`).
+  - `query scc <file>` — non-trivial strongly connected components, or one graph with a visual group per SCC.
+  - `query groupby kind <kind...> <file>` — hierarchically partitions edges by one or more node kinds. `*` carries a residual branch; `count` gives leaf node/edge counts and `graph:*` gives graph strings at leaves.
+  - Mermaid, Graphviz DOT, and Cytoscape are rendered from the common `GraphDiagram` model in `src/graph.ts`.
 - Regenerate the JSON Schema: `npx tsx scripts/schemas.ts` (writes `schemas/infograph.json` from the zod schema — the schema is derived, never hand-edit it).
 - Typecheck: `npx tsc --noEmit`. Note tsx runs code by stripping types without checking them, so run `tsc` explicitly to catch type errors.
 - Package manager is **pnpm** (`pnpm@11.9.0`).
@@ -43,7 +44,7 @@ The conversion between the two layers is the heart of the codebase, in `src/inpu
 
 `src/queries/chronological.ts` is a query profile: minimum-cost reachability from a chosen root under a per-path "explanation complexity" budget (node + edge complexity, with a configurable cost per `Complexity` level). It uses Dijkstra-style relaxation so a later cheaper path can replace an earlier route. Root selection and equal-cost candidate ordering are date-first. Add new query profiles as sibling files here.
 
-`src/infograph.ts` renders a canonical `Infograph` to a Mermaid `flowchart`.
+`src/graph.ts` defines a backend-neutral graph construction API; `src/infograph.ts` projects canonical infographs into that model.
 
 `src/cli.ts` is the commander-based entry point wiring files → `parseInfograph` → query profiles → JSON.
 

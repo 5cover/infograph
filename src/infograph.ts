@@ -112,8 +112,8 @@ export function unparseEdgeKey<Keys extends BaseKeys>(
 export function subgraphFilterEdges<Keys extends BaseKeys>(
     infograph: Infograph<Keys>,
     edgeBelongs: (e: InfographEdge<Keys>) => boolean
-): Infograph {
+): Infograph<Keys> {
     const edges = infograph.edges.filter(e => edgeBelongs(e))
-    const nodeIds = new Set(infograph.edges.values().flatMap(e => [e.from, e.to]))
+    const nodeIds = new Set(edges.flatMap(e => [e.from, e.to]))
     return { ...infograph, edges, nodes: new Map(infograph.nodes.entries().filter(([k]) => nodeIds.has(k))) }
 }

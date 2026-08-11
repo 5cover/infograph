@@ -54,17 +54,7 @@ export class GraphDiagram {
     }
 }
 
-export function renderGraph(diagram: GraphDiagram, format: GraphFormat): string
-export function renderGraph(diagrams: GraphDiagram[], format: GraphFormat): string
-export function renderGraph(diagrams: GraphDiagram | GraphDiagram[], format: GraphFormat): string {
-    if (!Array.isArray(diagrams)) return renderOne(diagrams, format)
-    if (diagrams.length === 0) return ''
-    if (diagrams.length === 1) return renderOne(diagrams[0], format)
-
-    return diagrams.map(diagram => `\`\`\`${fenceLanguage(format)}\n${renderOne(diagram, format)}\n\`\`\``).join('\n\n')
-}
-
-function renderOne(diagram: GraphDiagram, format: GraphFormat): string {
+export function renderGraph(diagram: GraphDiagram, format: GraphFormat): string {
     if (format === 'mermaid') return renderMermaid(diagram)
     if (format === 'graphviz') return renderGraphviz(diagram)
     return renderCytoscape(diagram)
@@ -162,12 +152,6 @@ function groupParents(diagram: GraphDiagram): Map<string, string> {
 function classes(base: string[] | undefined, style: string | undefined): Pick<CytoscapeElement, 'classes'> {
     const values = [...(base ?? []), ...(style === undefined ? [] : [style])]
     return values.length ? { classes: values } : {}
-}
-
-function fenceLanguage(format: GraphFormat): string {
-    if (format === 'mermaid') return 'mermaid'
-    if (format === 'graphviz') return 'dot'
-    return 'json'
 }
 
 function sanitizeMermaidId(key: string): string {

@@ -48,12 +48,7 @@ test('renders Cytoscape elements with compound parents and classes', () => {
     })
 })
 
-test('wraps multiple diagrams in separate format-appropriate markdown blocks', () => {
-    const dot = renderGraph([diagram(), diagram()], 'graphviz')
-    const cytoscape = renderGraph([diagram(), diagram()], 'cytoscape')
-
-    assert.match(dot, /^```dot\ndigraph "G"/)
-    assert.match(dot, /\n```\n\n```dot\ndigraph "G"/)
-    assert.match(cytoscape, /^```json\n\[/)
-    assert.match(cytoscape, /\n```\n\n```json\n\[/)
+test('renders a raw diagram without Markdown framing', () => {
+    assert.doesNotMatch(renderGraph(diagram(), 'graphviz'), /```/)
+    assert.doesNotMatch(renderGraph(diagram(), 'cytoscape'), /```/)
 })

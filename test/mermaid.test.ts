@@ -9,18 +9,6 @@ const diagram = (id: string, label: string) => {
     return flowchart
 }
 
-test('renders an empty diagram array as an empty string', () => {
-    assert.equal(render([]), '')
-})
-
-test('renders a single diagram array like a single diagram', () => {
-    const flowchart = diagram('a', 'A')
-    assert.equal(render([flowchart]), render(flowchart))
-})
-
-test('wraps multiple diagrams in Mermaid markdown blocks separated by a blank line', () => {
-    assert.equal(
-        render([diagram('a', 'A'), diagram('b', 'B')]),
-        '```mermaid\nflowchart TD\na[A]\n```\n\n```mermaid\nflowchart TD\nb[B]\n```'
-    )
+test('renders one raw Mermaid diagram', () => {
+    assert.equal(render(diagram('a', 'A')), 'flowchart TD\na[A]')
 })
