@@ -74,13 +74,15 @@ export type InfographEdgeIdentity<Keys extends BaseKeys> = {
     to: InfographNodeKey<Keys>
 }
 
+export type InfographEdge<Keys extends BaseKeys> = InfographEdgeIdentity<Keys> & {
+    info: EdgeInfo
+}
+
 export type Infograph<Keys extends BaseKeys = BaseKeys> = {
     info?: InfographInfo
     domain: InfographDomain<Keys>
     nodes: Map<InfographNodeKey<Keys>, InfographNode<Keys>>
-    edges: (InfographEdgeIdentity<Keys> & {
-        info: EdgeInfo
-    })[]
+    edges: InfographEdge<Keys>[]
 }
 
 export type InfographDomain<Keys extends BaseKeys> = {

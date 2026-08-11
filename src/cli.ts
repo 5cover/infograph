@@ -13,22 +13,36 @@ import {
 } from './queries/chronological.js'
 import { metrics } from './queries/metrics.js'
 import { nonTrivialComponents, stronglyConnectedComponents } from './queries/scc.js'
-import { groupBySites, groupRecordToGraph, type GroupSort } from './queries/groupby.js'
-import { toGraph, toGroupedGraph } from './infograph.js'
-import type { BaseKeys, Infograph } from './types.js'
+import {
+    groupBySites,
+    groupRecordToGraph,
+    groupSort,
+    type GroupRecordValue,
+} from './queries/groupby.js'
+import { parseEdgeKey, parseNodeKey, subgraphFilterEdges, toGraph, toGroupedGraph, unparseEdgeKey, unparseNodeKey } from './infograph.js'
+import type { BaseKeys, Infograph, InfographNodeKey } from './types.js'
 import { terseDate } from './terseDate.js'
 import { strcmp } from './util.js'
+import { inspect } from 'node:util'
 
-const formats = ['json', 'yaml', 'mermaid', 'graphviz', 'cytoscape'] as const
+const formats = ['json', 'yaml', 'mermaid', 'graphviz', 'cytoscape', 'native'] as const
 type Format = (typeof formats)[number]
 
 const args = {
     infograph: new Argument('<file>', 'YAML or JSON infograph file'),
 }
 
-const asJson = (value: unknown) => JSON.stringify(value, null, 2)
+function replacer(_key: unknown, value: unknown) {
+    return value instanceof Date
+        ? terseDate(value)
+        : value instanceof Map
+          ? Object.fromEntries(value.entries().map(([k, v]): [unknown, unknown] => [k, replacer(k, v)]))
+          : value
+}
+
+const asJson = (value: unknown) => JSON.stringify(value, replacer, 2)
 const asYaml = (value: unknown) =>
-    new YAML.Document(value, (_key: unknown, value: unknown) => (value instanceof Date ? terseDate(value) : value), {
+    new YAML.Document(value, replacer, {
         aliasDuplicateObjects: false,
     }).toString({
         nullStr: '',
@@ -102,11 +116,11 @@ chronologicalCmd
             cutoff: options.cutoff,
         })
 
-        const notes = (t: ChronologicalThread<BaseKeys>) => (options.notes ? threadToNotes(infograph, t) : t)
+        const maynotes = (t: ChronologicalThread<BaseKeys>) => (options.notes ? threadToNotes(infograph, t) : t)
 
         emit(thread, {
-            json: t => asJson(notes(t)),
-            yaml: t => asYaml(notes(t)),
+            json: t => asJson(maynotes(t)),
+            yaml: t => asYaml(maynotes(t)),
             mermaid: t => threadToGraph(t, 'mermaid'),
             graphviz: t => threadToGraph(t, 'graphviz'),
             cytoscape: t => threadToGraph(t, 'cytoscape'),
@@ -206,26 +220,67 @@ const groupbyCommand = queryCommand
     .option('-c,--count')
     .description('Group infograph topology around selected sites')
 groupbyCommand
-    .command('kind <kind>')
-    .description('Group edges around project nodes using edge Voronoi partitioning')
+    .command('kind <kind1> <kind2>')
+    .description('Group edges around nodes of these kinds using edge Voronoi partitioning')
+    .addArgument(args.infograph)
     .addOption(
         new Option('-s, --sorted <mode>', 'sort each group alphabetically or with the funnel heuristic')
-            .choices(['alphabetical', 'funnel'] as const)
+            .choices(groupSort)
             .default('alphabetical')
     )
-    .addArgument(args.infograph)
-    .action((kind, file, options, c) => {
-        const infograph = readInfograph(file)
-        const sites = [...infograph.nodes.keys()].filter(node => node.startsWith(kind + ' '))
-        const groups = groupBySites(infograph, sites, options.sorted as GroupSort)
-        if (c.optsWithGlobals().count) {
-            emit(Object.fromEntries(Object.entries(groups).map(([k, v]) => [k, Object.keys(v).length])))
-        } else {
-            emit(groups, {
+    .action((kind1, kind2, file, o, c) => {
+        let infograph = readInfograph(file)
+        infograph = subgraphFilterEdges(infograph, e => e.verb !== 'involves' || e.to !== 'actor me')
+        const sites1 = infograph.nodes
+            .keys()
+            .filter(node => parseNodeKey(node).kind === kind1)
+            .toArray()
+        const sites2 = infograph.nodes
+            .keys()
+            .filter(node => parseNodeKey(node).kind === kind2)
+            .toArray()
+
+        const emitCount = c.optsWithGlobals().count
+
+        const groupedBySite1 = groupBySites(infograph, { sorted: o.sorted, inputSites: sites1 })
+
+        const groupSite2 = <T>(transform: (v2: GroupRecordValue<BaseKeys, unknown>) => T) =>
+            new Map(
+                groupedBySite1.entries().flatMap(([k1, v1]): [string, T][] => {
+                    const subinfograph = subgraphFilterEdges(infograph, e => v1.has(unparseEdgeKey(e)))
+                    const inputSites = sites2.filter(e => subinfograph.nodes.has(e))
+                    if (!inputSites.length) return [[`${k1}>*`, transform(v1)]]
+                    const groups: Map<string, GroupRecordValue<BaseKeys, unknown>> = groupBySites(subinfograph, {
+                        sorted: o.sorted,
+                        allowUnreachable: true,
+                        inputSites,
+                    })
+                    const nonempty = groups.entries().filter(([, v2]) => v2.size)
+                    const result = nonempty.map(([k2, v2]): [string, T] => [`${k1}>${k2}`, transform(v2)]).toArray()
+                    if (!result.length) return [[`${k1}>*`, transform(v1)]]
+                    return result
+                })
+            )
+
+        if (emitCount) {
+            const result = groupSite2(v2 => v2)
+            emit(result, {
                 mermaid: g => groupRecordToGraph(infograph, g, 'mermaid'),
                 graphviz: g => groupRecordToGraph(infograph, g, 'graphviz'),
                 cytoscape: g => groupRecordToGraph(infograph, g, 'cytoscape'),
             })
+        } else {
+            emit(
+                groupSite2(v2 => {
+                    const nodes = new Set<string>()
+                    for (const ek of v2.keys()) {
+                        const e = parseEdgeKey(ek)
+                        nodes.add(unparseNodeKey(e.from))
+                        nodes.add(unparseNodeKey(e.to))
+                    }
+                    return { edges: v2.size, nodes: nodes.size }
+                })
+            )
         }
     })
 
@@ -273,7 +328,7 @@ function emit<T>(
     fallback?: (value: T) => string
 ): void {
     const format = globalFormat()
-    handlers = { json: asJson, yaml: asYaml, ...handlers }
+    handlers = { native: x => inspect(x), json: asJson, yaml: asYaml, ...handlers }
     const handler = handlers[format] ?? fallback
     if (!handler) {
         throw new InvalidArgumentError(

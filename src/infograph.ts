@@ -6,6 +6,7 @@ import type {
     InfographEdgeIdentity,
     InfographNodeKey,
     InfographNodeIdentity,
+    InfographEdge,
 } from './types.js'
 import { GraphDiagram, type GraphFormat, renderGraph } from './graph.js'
 
@@ -106,4 +107,13 @@ export function unparseEdgeKey<Keys extends BaseKeys>(
     edge: InfographParsedEdgeKey<Keys> | InfographEdgeIdentity<Keys>
 ): InfographEdgeKey<Keys> {
     return `${typeof edge.from === 'string' ? edge.from : unparseNodeKey(edge.from)} ${edge.verb} ${typeof edge.to === 'string' ? edge.to : unparseNodeKey(edge.to)}` as const
+}
+
+export function subgraphFilterEdges<Keys extends BaseKeys>(
+    infograph: Infograph<Keys>,
+    edgeBelongs: (e: InfographEdge<Keys>) => boolean
+): Infograph {
+    const edges = infograph.edges.filter(e => edgeBelongs(e))
+    const nodeIds = new Set(infograph.edges.values().flatMap(e => [e.from, e.to]))
+    return { ...infograph, edges, nodes: new Map(infograph.nodes.entries().filter(([k]) => nodeIds.has(k))) }
 }

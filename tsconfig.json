@@ -9,7 +9,8 @@
     "strict": true,
     "types": ["node"],
     "lib": ["ESNext"],
-    "verbatimModuleSyntax": true
+    "verbatimModuleSyntax": true,
+    "incremental": true
   },
   "exclude": ["node_modules", "**/node_modules/*"]
 }

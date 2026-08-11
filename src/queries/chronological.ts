@@ -1,7 +1,5 @@
-import type { BaseKeys, Complexity, Infograph, InfographDate, InfographNode, InfographNodeKey } from '../types.js'
+import type { BaseKeys, Complexity, Infograph, InfographDate, InfographEdge, InfographNode, InfographNodeKey } from '../types.js'
 import { GraphDiagram, type GraphFormat, renderGraph } from '../graph.js'
-
-export type InfographEdge<Keys extends BaseKeys> = Infograph<Keys>['edges'][number]
 
 export type ChronologicalComplexity = Partial<Record<Complexity, number>>
 
