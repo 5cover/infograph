@@ -1,4 +1,3 @@
-import { Flowchart } from 'mermaid-ast'
 import type {
     BaseKeys,
     EdgeInfo,
@@ -8,11 +7,13 @@ import type {
     InfographNodeKey,
     InfographNodeIdentity,
 } from './types.js'
-import { render, sanitizeId } from './mermaid.js'
+import { GraphDiagram, type GraphFormat, renderGraph } from './graph.js'
 
-export type ToMermaidConfig<Keys extends BaseKeys> = {
+export type ToGraphConfig<Keys extends BaseKeys> = {
     neutralVerb?: Keys['verb']
 }
+
+export type ToMermaidConfig<Keys extends BaseKeys> = ToGraphConfig<Keys>
 
 // The subgraph induced by a set of node keys: those nodes plus every edge whose
 // endpoints are both kept. Domain and info are carried over unchanged.
@@ -28,47 +29,56 @@ export function subgraph<Keys extends BaseKeys>(
     }
 }
 
-export function toMermaid<Keys extends BaseKeys>(
+export function toGraph<Keys extends BaseKeys>(
     infograph: Infograph<Keys>,
-    config: ToMermaidConfig<Keys> = {}
+    format: GraphFormat,
+    config: ToGraphConfig<Keys> = {}
 ): string {
-    const flowchart = Flowchart.create()
-    addInfograph(flowchart, infograph, config)
-    return render(flowchart)
+    const diagram = new GraphDiagram()
+    addInfograph(diagram, infograph, config)
+    return renderGraph(diagram, format)
 }
 
-// Render several node groups as one flowchart, each group wrapped in its own Mermaid
-// subgraph showing only the edges induced within that group. Groups are expected to be
-// disjoint (e.g. strongly connected components), so no node is added twice.
+export function toMermaid<Keys extends BaseKeys>(infograph: Infograph<Keys>, config: ToGraphConfig<Keys> = {}): string {
+    return toGraph(infograph, 'mermaid', config)
+}
+
+// Render several node groups as one graph, each group wrapped in its own visual
+// subgraph showing only the edges induced within that group.
+export function toGroupedGraph<Keys extends BaseKeys>(
+    infograph: Infograph<Keys>,
+    groups: { title: string; nodes: InfographNodeKey<Keys>[] }[],
+    format: GraphFormat,
+    config: ToGraphConfig<Keys> = {}
+): string {
+    const diagram = new GraphDiagram()
+    groups.forEach((group, index) => {
+        addInfograph(diagram, subgraph(infograph, group.nodes), config)
+        diagram.addGroup(`scc_${index + 1}`, group.nodes, { label: group.title })
+    })
+    return renderGraph(diagram, format)
+}
+
 export function toMermaidGrouped<Keys extends BaseKeys>(
     infograph: Infograph<Keys>,
     groups: { title: string; nodes: InfographNodeKey<Keys>[] }[],
-    config: ToMermaidConfig<Keys> = {}
+    config: ToGraphConfig<Keys> = {}
 ): string {
-    const flowchart = Flowchart.create()
-    groups.forEach((group, index) => {
-        addInfograph(flowchart, subgraph(infograph, group.nodes), config)
-        flowchart.createSubgraph(`scc_${index + 1}`, group.nodes.map(sanitizeId), group.title)
-    })
-    return render(flowchart)
+    return toGroupedGraph(infograph, groups, 'mermaid', config)
 }
 
 function addInfograph<Keys extends BaseKeys>(
-    flowchart: Flowchart,
+    diagram: GraphDiagram,
     infograph: Infograph<Keys>,
-    config: ToMermaidConfig<Keys>
+    config: ToGraphConfig<Keys>
 ) {
     for (const [key, node] of infograph.nodes.entries()) {
-        const date = node.date?.from ? '<br>' + node.date.from.toISOString().split('T', 1)[0] : ''
-        flowchart.addNode(sanitizeId(key), key + date)
+        const date = node.date?.from ? '\n' + node.date.from.toISOString().split('T', 1)[0] : ''
+        diagram.addNode(key, key + date)
     }
 
     for (const edge of infograph.edges) {
-        flowchart.addLink(
-            sanitizeId(edge.from),
-            sanitizeId(edge.to),
-            edge.verb === config.neutralVerb ? {} : { text: edge.verb }
-        )
+        diagram.addEdge(edge.from, edge.to, edge.verb === config.neutralVerb ? {} : { label: edge.verb })
     }
 }
 

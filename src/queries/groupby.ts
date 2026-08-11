@@ -1,4 +1,3 @@
-import { Flowchart } from 'mermaid-ast'
 import {
     complexity as complexityLevels,
     technicality as technicalityLevels,
@@ -8,9 +7,9 @@ import {
     type InfographNode,
     type InfographNodeKey,
 } from '../types.js'
-import { render, sanitizeId } from '../mermaid.js'
+import { GraphDiagram, type GraphFormat, renderGraph } from '../graph.js'
 import { strcmp } from '../util.js'
-import { parseEdgeKey, unparseEdgeKey } from '../infograph.js'
+import { parseEdgeKey, parseNodeKey, unparseEdgeKey } from '../infograph.js'
 
 export type EdgeId<Keys extends BaseKeys> = InfographEdgeKey<Keys>
 export type GroupRecord<Keys extends BaseKeys, T = undefined> = Record<
@@ -255,44 +254,54 @@ function ordinalScore<T>(levels: readonly T[], value: T | undefined): number {
     return score
 }
 
+export function groupRecordToGraph<Keys extends BaseKeys, T>(
+    infograph: Infograph<Keys>,
+    groups: GroupRecord<Keys, T>,
+    format: GraphFormat
+): string {
+    const edgeById = new Map(
+        infograph.edges.map(edge => [unparseEdgeKey(edge), edge] as const)
+    )
+
+    const diagrams = (Object.entries(groups) as [InfographNodeKey<Keys>, Record<EdgeId<Keys>, T>][])
+        .sort(([a], [b]) => strcmp(a, b))
+        .map(([center, ids]) => {
+            const diagram = new GraphDiagram('LR')
+            const nodeKeys = new Set<InfographNodeKey<Keys>>([center])
+
+            for (const id of Object.keys(ids) as EdgeId<Keys>[]) {
+                const edge = edgeById.get(id)
+                if (edge === undefined) continue
+                nodeKeys.add(edge.from)
+                nodeKeys.add(edge.to)
+            }
+
+            for (const key of [...nodeKeys].sort(strcmp)) {
+                let text = infograph.nodes.get(key)?.title ?? key
+                // Necessary workaround due to a bug in mermaid-ast. This remains
+                // presentation text, rather than backend-specific graph construction.
+                text = text.replaceAll(/[()[\]{}]/g, ' ')
+                diagram.addNode(key, `${parseNodeKey(key).kind}: ${text}`, key === center ? { shape: 'circle' } : {})
+            }
+
+            for (const id of Object.keys(ids) as EdgeId<Keys>[]) {
+                const edge = edgeById.get(id)
+                if (edge === undefined) continue
+                diagram.addEdge(edge.from, edge.to, { label: parseEdgeKey(id).verb })
+            }
+
+            return diagram
+        })
+
+    return renderGraph(diagrams, format)
+}
+
 export function groupRecordToMermaid<Keys extends BaseKeys, T>(
     infograph: Infograph<Keys>,
     groups: GroupRecord<Keys, T>
 ): string {
-    const edgeById = new Map(infograph.edges.map(edge => [unparseEdgeKey(edge), edge] as const))
-
-    return render(
-        (Object.entries(groups) as [InfographNodeKey<Keys>, Record<EdgeId<Keys>, T>][])
-            .sort(([a], [b]) => strcmp(a, b))
-            .map(([center, ids]) => {
-                const flowchart = Flowchart.create()
-                const nodeKeys = new Set<InfographNodeKey<Keys>>([center])
-
-                for (const id of Object.keys(ids) as EdgeId<Keys>[]) {
-                    const edge = edgeById.get(id)
-                    if (edge === undefined) continue
-                    nodeKeys.add(edge.from)
-                    nodeKeys.add(edge.to)
-                }
-
-                for (const key of [...nodeKeys].sort(strcmp)) {
-                    let text = infograph.nodes.get(key)?.title ?? key
-                    // necessary workaround due to a bug in mermaid-ast
-                    text = text.replaceAll(/[()[\]{}]/g, ' ')
-                    flowchart.addNode(sanitizeId(key), text)
-                }
-
-                for (const id of Object.keys(ids) as EdgeId<Keys>[]) {
-                    const edge = edgeById.get(id)
-                    if (edge === undefined) continue
-                    flowchart.addLink(sanitizeId(edge.from), sanitizeId(edge.to), { text: parseEdgeKey(id).verb })
-                }
-
-                return flowchart
-            })
-    )
+    return groupRecordToGraph(infograph, groups, 'mermaid')
 }
-
 function addIncident<Keys extends BaseKeys>(
     incidence: Map<InfographNodeKey<Keys>, EdgeId<Keys>[]>,
     node: InfographNodeKey<Keys>,

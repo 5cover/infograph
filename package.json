@@ -16,6 +16,7 @@
     "@commander-js/extra-typings": "^15.0.0",
     "commander": "^15.0.0",
     "mermaid-ast": "^0.8.2",
+    "ts-graphviz": "^3.0.7",
     "yaml": "^2.9.0",
     "zod": "^4.4.3"
   },

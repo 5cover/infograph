@@ -6,20 +6,20 @@ import { parseInfograph } from './input/index.js'
 import {
     chronological,
     threadStats,
-    threadToMermaid,
+    threadToGraph,
     threadToNotes,
     type ChronologicalComplexity,
     type ChronologicalThread,
 } from './queries/chronological.js'
 import { metrics } from './queries/metrics.js'
 import { nonTrivialComponents, stronglyConnectedComponents } from './queries/scc.js'
-import { groupBySites, groupRecordToMermaid, type GroupSort } from './queries/groupby.js'
-import { toMermaid, toMermaidGrouped } from './infograph.js'
+import { groupBySites, groupRecordToGraph, type GroupSort } from './queries/groupby.js'
+import { toGraph, toGroupedGraph } from './infograph.js'
 import type { BaseKeys, Infograph } from './types.js'
 import { terseDate } from './terseDate.js'
 import { strcmp } from './util.js'
 
-const formats = ['json', 'yaml', 'mermaid'] as const
+const formats = ['json', 'yaml', 'mermaid', 'graphviz'] as const
 type Format = (typeof formats)[number]
 
 const args = {
@@ -55,7 +55,8 @@ program
         emit(infograph, {
             json: g => asJson(toJsonInfograph(g)),
             yaml: g => asYaml(toJsonInfograph(g)),
-            mermaid: g => toMermaid(g),
+            mermaid: g => toGraph(g, 'mermaid'),
+            graphviz: g => toGraph(g, 'graphviz'),
         })
     })
 
@@ -105,7 +106,8 @@ chronologicalCmd
         emit(thread, {
             json: t => asJson(notes(t)),
             yaml: t => asYaml(notes(t)),
-            mermaid: threadToMermaid,
+            mermaid: t => threadToGraph(t, 'mermaid'),
+            graphviz: t => threadToGraph(t, 'graphviz'),
         })
     })
 
@@ -158,12 +160,22 @@ queryCommand
 
         emit(groups, {
             mermaid: g =>
-                toMermaidGrouped(
+                toGroupedGraph(
                     infograph,
                     g.map((component, index) => ({
                         title: `SCC ${index + 1} — ${component.length} nodes`,
                         nodes: component,
-                    }))
+                    })),
+                    'mermaid'
+                ),
+            graphviz: g =>
+                toGroupedGraph(
+                    infograph,
+                    g.map((component, index) => ({
+                        title: `SCC ${index + 1} — ${component.length} nodes`,
+                        nodes: component,
+                    })),
+                    'graphviz'
                 ),
         })
     })
@@ -198,7 +210,10 @@ groupbyCommand
         if (c.optsWithGlobals().count) {
             emit(Object.fromEntries(Object.entries(groups).map(([k, v]) => [k, Object.keys(v).length])))
         } else {
-            emit(groups, { mermaid: g => groupRecordToMermaid(infograph, groups) })
+            emit(groups, {
+                mermaid: g => groupRecordToGraph(infograph, g, 'mermaid'),
+                graphviz: g => groupRecordToGraph(infograph, g, 'graphviz'),
+            })
         }
     })
 

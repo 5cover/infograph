@@ -17,6 +17,9 @@ importers:
       mermaid-ast:
         specifier: ^0.8.2
         version: 0.8.2
+      ts-graphviz:
+        specifier: ^3.0.7
+        version: 3.0.7
       yaml:
         specifier: ^2.9.0
         version: 2.9.0
@@ -215,6 +218,22 @@ packages:
   '@mermaid-js/parser@0.6.3':
     resolution: {integrity: sha512-lnjOhe7zyHjc+If7yT4zoedx2vo4sHaTmtkl1+or8BRTnCtDmcTpAjpzDSfCZrshM5bCoz0GyidzadJAH1xobA==}
 
+  '@ts-graphviz/adapter@3.0.6':
+    resolution: {integrity: sha512-QQSKzxaBdiuYA6jC+ajKAgDoyRTIanQZai4FLi2d2t+wY1wEUot8tcY1eG9ftegFwff2gfjZzuZlysmU3zufiw==}
+    engines: {node: '>=20'}
+
+  '@ts-graphviz/ast@3.0.6':
+    resolution: {integrity: sha512-9QOBQFanq0n7Ju9opTURHSvqXOqzHkplls3kkD6veWXNuJwaH8lzZUIEksU4i2gjAjRi+RafQWSWATZDKCCt8g==}
+    engines: {node: '>=20'}
+
+  '@ts-graphviz/common@3.0.5':
+    resolution: {integrity: sha512-CS7RMw2ywu0kqb05xD2n9dJMSEVae2MJagHkHh6u915UgW5ijDVhitNVwoVV6dKVeyf02ATm+autLKPwrNa86w==}
+    engines: {node: '>=20'}
+
+  '@ts-graphviz/core@3.0.7':
+    resolution: {integrity: sha512-Oyz9raPOihgC0CxOIJVE6iXy4AOd2X4N5DsxaRQeENhtgMBuyZMg+vSaR5q37vriWDgJeITkXeTJBrbSDddpQQ==}
+    engines: {node: '>=20'}
+
   '@types/node@26.1.2':
     resolution: {integrity: sha512-Vu4a5UFA9rIIFJ7rB/Vaafh9lrCQszopTCx6KjFboXTGQbPNasehVR5TEiithSDGyd1DEiUByggTZsg8jukeIg==}
 
@@ -253,6 +272,10 @@ packages:
   mermaid-ast@0.8.2:
     resolution: {integrity: sha512-uh2jEGW2IXwJZ8+BZM3cLBYy52xvopESvaiGPqE9tCoYlnroYzMmt8tjZu8bs7YkG5JOGtxqBT1fh88bbE8wVg==}
     engines: {node: '>=18.0.0'}
+
+  ts-graphviz@3.0.7:
+    resolution: {integrity: sha512-aGAjNs7IA+d3ZAflF9QluxWWtKCo8Ehrv0MziCY5Vi6hedugeZYfedq2cIIHX4be3ovGEDq+4D8/y9RrkdNFqw==}
+    engines: {node: '>=20'}
 
   tsx@4.23.11:
     resolution: {integrity: sha512-Ry2oTEUnhBdeEdWIztY8kf3/nBGnPnjMLVGL0YfdRXMORuPER5NlKmayqxtxRxwB1xBN+RivRaJfe7PM1rtiyw==}
@@ -400,6 +423,21 @@ snapshots:
     dependencies:
       langium: 3.3.1
 
+  '@ts-graphviz/adapter@3.0.6':
+    dependencies:
+      '@ts-graphviz/common': 3.0.5
+
+  '@ts-graphviz/ast@3.0.6':
+    dependencies:
+      '@ts-graphviz/common': 3.0.5
+
+  '@ts-graphviz/common@3.0.5': {}
+
+  '@ts-graphviz/core@3.0.7':
+    dependencies:
+      '@ts-graphviz/ast': 3.0.6
+      '@ts-graphviz/common': 3.0.5
+
   '@types/node@26.1.2':
     dependencies:
       undici-types: 8.3.0
@@ -467,6 +505,13 @@ snapshots:
   mermaid-ast@0.8.2:
     dependencies:
       '@mermaid-js/parser': 0.6.3
+
+  ts-graphviz@3.0.7:
+    dependencies:
+      '@ts-graphviz/adapter': 3.0.6
+      '@ts-graphviz/ast': 3.0.6
+      '@ts-graphviz/common': 3.0.5
+      '@ts-graphviz/core': 3.0.7
 
   tsx@4.23.11:
     dependencies:

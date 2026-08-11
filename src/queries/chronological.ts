@@ -1,6 +1,5 @@
-import { Flowchart } from 'mermaid-ast'
 import type { BaseKeys, Complexity, Infograph, InfographDate, InfographNode, InfographNodeKey } from '../types.js'
-import { render, sanitizeId } from '../mermaid.js'
+import { GraphDiagram, type GraphFormat, renderGraph } from '../graph.js'
 
 export type InfographEdge<Keys extends BaseKeys> = Infograph<Keys>['edges'][number]
 
@@ -65,55 +64,50 @@ export const defaultChronologicalComplexity: Required<ChronologicalComplexity> =
     intertwined: 4,
 }
 
-// Render a thread as a Mermaid flowchart with two link layers:
-//   • solid links  = the minimum-cost path tree (parent → child) — pure traversal structure, no verb,
-//     so the discovery hierarchy and backtracking are legible as tree shape;
-//   • dotted links = every relationship, in semantic direction with its verb (a tree
-//     edge appears both solid, for structure, and dotted, for its relationship);
-//   • node numbers = chronological presentation order (§3), with date and cumulative
-//     path-cost on the label (§5); boundary handles are external nodes reached by
-//     dotted edges labelled verb + reason + marginal cost.
-export function threadToMermaid<Keys extends BaseKeys>(thread: ChronologicalThread<Keys>): string {
-    const flowchart = Flowchart.create('TD')
+// Render a thread as a graph with two link layers:
+//   • solid links  = the minimum-cost path tree (parent → child), pure traversal structure;
+//   • dotted links = every semantic relationship, in its true direction;
+//   • boundary handles are external nodes reached by dotted edges.
+export function threadToGraph<Keys extends BaseKeys>(thread: ChronologicalThread<Keys>, format: GraphFormat): string {
+    const diagram = new GraphDiagram('TD')
     const day = (date?: InfographDate) => date?.from?.toISOString().split('T', 1)[0]
     const detail = (parts: (string | undefined)[]) => {
         const line = parts.filter(Boolean).join(' · ')
-        return line ? `<br>${line}` : ''
+        return line ? `\n${line}` : ''
     }
     const weight = (nodeCost: number, edgeCost?: number) =>
         `n${nodeCost}${edgeCost === undefined ? '' : ` e${edgeCost}`}`
 
-    // Selected nodes, numbered in chronological order.
     thread.steps.forEach((step, index) => {
-        flowchart.addNode(
-            sanitizeId(step.node),
+        diagram.addNode(
+            step.node,
             `${index + 1} ${step.node}${detail([day(step.date), weight(step.nodeCost, step.edgeCost)])}`
         )
     })
 
-    // solid: minimum-cost path tree edges (parent → child), unlabelled — traversal structure only.
     for (const step of thread.steps) {
-        if (step.parent) flowchart.addLink(sanitizeId(step.parent), sanitizeId(step.node), {})
+        if (step.parent) diagram.addEdge(step.parent, step.node)
     }
-
-    // dotted: every relationship among selected nodes, in semantic direction.
     for (const edge of thread.edges) {
-        flowchart.addLink(sanitizeId(edge.from), sanitizeId(edge.to), { text: edge.verb, stroke: 'dotted' })
+        diagram.addEdge(edge.from, edge.to, { label: edge.verb, style: 'dotted' })
     }
 
-    // boundary: external handle nodes (round) reached by dotted edges.
     const handles = new Map(thread.boundary.map(handle => [handle.external, handle.date]))
     for (const [external, date] of handles) {
-        flowchart.addNode(sanitizeId(external), `${external}${detail([day(date)])}`, { shape: 'stadium' })
+        diagram.addNode(external, `${external}${detail([day(date)])}`, { shape: 'stadium' })
     }
     for (const handle of thread.boundary) {
-        flowchart.addLink(sanitizeId(handle.from), sanitizeId(handle.to), {
-            text: `${handle.verb} · ${weight(handle.nodeCost, handle.edgeCost)} ${handle.reason}`,
-            stroke: 'dotted',
+        diagram.addEdge(handle.from, handle.to, {
+            label: `${handle.verb} · ${weight(handle.nodeCost, handle.edgeCost)} ${handle.reason}`,
+            style: 'dotted',
         })
     }
 
-    return render(flowchart)
+    return renderGraph(diagram, format)
+}
+
+export function threadToMermaid<Keys extends BaseKeys>(thread: ChronologicalThread<Keys>): string {
+    return threadToGraph(thread, 'mermaid')
 }
 
 // Format a cost as "<after>=<before>+<edge>+<node>" — a terse, locally-readable decomposition
@@ -162,7 +156,7 @@ export function threadToNotes<Keys extends BaseKeys>(
     // First-appearance bookkeeping, consumed strictly in document order (see emitStep's key order).
     const seenEdges = new Set<string>()
     const explainedBoundary = new Set<InfographNodeKey<Keys>>()
-    const edgeKey = (from: string, verb: string, to: string) => `${from} ${verb} ${to}`
+    const edgeKey = (from: string, verb: string, to: string) => `${from}\u0000${verb}\u0000${to}`
 
     type Item =
         | {
