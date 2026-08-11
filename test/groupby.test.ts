@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { groupBySites, groupRecordToMermaid, sortGroupRecord, type EdgeId } from '../src/queries/groupby.js'
+import { groupBySites, groupRecordToGraph, groupRecordToMermaid, sortGroupRecord, type EdgeId } from '../src/queries/groupby.js'
 import type { BaseKeys, Complexity, Infograph, InfographNodeKey, Technicality } from '../src/types.js'
 import { unparseEdgeKey } from '../src/infograph.js'
 
@@ -512,4 +512,17 @@ test('renders one Mermaid flowchart per group with titles and edge ID labels', (
     assert.match(output, /\n```\n\n```mermaid\nflowchart LR\n/)
     assert.match(output, /project-d\(\(project: D\)\)/)
     assert.match(output, /task-c\[task: C\] -->\|link\| project-d\(\(project: D\)\)/)
+})
+
+test('renders each groupby center with the Cytoscape site class', () => {
+    const g = graph(
+        ['project a', 'task b', 'project c'],
+        [
+            ['project a', 'task b'],
+            ['task b', 'project c'],
+        ]
+    )
+    const output = groupRecordToGraph(g, groupBySites(g, ['project a', 'project c']), 'cytoscape')
+
+    assert.equal([...output.matchAll(/"site"/g)].length, 2)
 })

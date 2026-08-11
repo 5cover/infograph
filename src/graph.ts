@@ -1,7 +1,7 @@
 import { attribute as _, Digraph, toDot } from 'ts-graphviz'
 import { Flowchart } from 'mermaid-ast'
 
-export type GraphFormat = 'mermaid' | 'graphviz'
+export type GraphFormat = 'mermaid' | 'graphviz' | 'cytoscape'
 export type GraphDirection = 'TD' | 'LR'
 export type GraphNodeShape = 'circle' | 'stadium'
 
@@ -9,13 +9,16 @@ export type GraphNode = {
     id: string
     label: string
     shape?: GraphNodeShape
+    classes?: string[]
 }
 
 export type GraphEdge = {
+    id: string
     from: string
     to: string
     label?: string
     style?: 'dotted'
+    classes?: string[]
 }
 
 export type GraphGroup = {
@@ -34,12 +37,16 @@ export class GraphDiagram {
 
     constructor(readonly direction: GraphDirection = 'TD') {}
 
-    addNode(id: string, label: string, options: Pick<GraphNode, 'shape'> = {}): void {
+    addNode(id: string, label: string, options: Omit<GraphNode, 'id' | 'label'> = {}): void {
         this.nodes.set(id, { id, label, ...options })
     }
 
-    addEdge(from: string, to: string, options: Omit<GraphEdge, 'from' | 'to'> = {}): void {
-        this.edges.push({ from, to, ...options })
+    addEdge(
+        from: string,
+        to: string,
+        options: Omit<GraphEdge, 'id' | 'from' | 'to'> & { id?: string } = {}
+    ): void {
+        this.edges.push({ id: options.id ?? `e${this.edges.length + 1}`, from, to, ...options })
     }
 
     addGroup(id: string, nodes: Iterable<string>, options: Pick<GraphGroup, 'label'> = {}): void {
@@ -58,7 +65,9 @@ export function renderGraph(diagrams: GraphDiagram | GraphDiagram[], format: Gra
 }
 
 function renderOne(diagram: GraphDiagram, format: GraphFormat): string {
-    return format === 'mermaid' ? renderMermaid(diagram) : renderGraphviz(diagram)
+    if (format === 'mermaid') return renderMermaid(diagram)
+    if (format === 'graphviz') return renderGraphviz(diagram)
+    return renderCytoscape(diagram)
 }
 
 function renderMermaid(diagram: GraphDiagram): string {
@@ -73,11 +82,7 @@ function renderMermaid(diagram: GraphDiagram): string {
         })
     }
     for (const group of diagram.groups) {
-        flowchart.createSubgraph(
-            group.id,
-            group.nodes.map(sanitizeMermaidId),
-            group.label
-        )
+        flowchart.createSubgraph(group.id, group.nodes.map(sanitizeMermaidId), group.label)
     }
     return flowchart.render({ compactLinks: true, indent: 0 })
 }
@@ -86,11 +91,7 @@ function renderGraphviz(diagram: GraphDiagram): string {
     const graph = new Digraph('G')
     graph.set(_.rankdir, diagram.direction === 'TD' ? 'TB' : 'LR')
 
-    const groupForNode = new Map<string, GraphGroup>()
-    for (const group of diagram.groups) {
-        for (const node of group.nodes) groupForNode.set(node, group)
-    }
-
+    const groupForNode = groupParents(diagram)
     const graphvizGroups = new Map<string, ReturnType<typeof graph.createSubgraph>>()
     for (const group of diagram.groups) {
         graphvizGroups.set(group.id, graph.createSubgraph(`cluster_${group.id}`, group.label ? { [_.label]: group.label } : {}))
@@ -101,7 +102,7 @@ function renderGraphviz(diagram: GraphDiagram): string {
             ...(node.shape === undefined ? {} : { [_.shape]: node.shape }),
         }
         const group = groupForNode.get(node.id)
-        if (group) graphvizGroups.get(group.id)!.createNode(node.id, attributes)
+        if (group) graphvizGroups.get(group)!.createNode(node.id, attributes)
         else graph.createNode(node.id, attributes)
     }
     for (const edge of diagram.edges) {
@@ -113,8 +114,60 @@ function renderGraphviz(diagram: GraphDiagram): string {
     return toDot(graph)
 }
 
+type CytoscapeElement = {
+    group: 'nodes' | 'edges'
+    data: Record<string, string>
+    classes?: string[]
+}
+
+function renderCytoscape(diagram: GraphDiagram): string {
+    const parents = groupParents(diagram)
+    const groupElements: CytoscapeElement[] = diagram.groups.map(group => ({
+        group: 'nodes',
+        data: { id: group.id, label: group.label ?? group.id },
+    }))
+    const nodeElements: CytoscapeElement[] = [...diagram.nodes.values()].map(node => ({
+        group: 'nodes',
+        data: {
+            id: node.id,
+            label: node.label,
+            ...(parents.has(node.id) ? { parent: parents.get(node.id)! } : {}),
+            ...(node.shape === undefined ? {} : { shape: node.shape }),
+        },
+        ...(node.classes?.length ? { classes: node.classes } : {}),
+    }))
+    const edgeElements: CytoscapeElement[] = diagram.edges.map(edge => ({
+        group: 'edges',
+        data: {
+            id: edge.id,
+            source: edge.from,
+            target: edge.to,
+            ...(edge.label === undefined ? {} : { label: edge.label }),
+            ...(edge.style === undefined ? {} : { style: edge.style }),
+        },
+        ...classes(edge.classes, edge.style),
+    }))
+
+    return JSON.stringify([...groupElements, ...nodeElements, ...edgeElements], null, 2)
+}
+
+function groupParents(diagram: GraphDiagram): Map<string, string> {
+    const parents = new Map<string, string>()
+    for (const group of diagram.groups) {
+        for (const node of group.nodes) parents.set(node, group.id)
+    }
+    return parents
+}
+
+function classes(base: string[] | undefined, style: string | undefined): Pick<CytoscapeElement, 'classes'> {
+    const values = [...(base ?? []), ...(style === undefined ? [] : [style])]
+    return values.length ? { classes: values } : {}
+}
+
 function fenceLanguage(format: GraphFormat): string {
-    return format === 'mermaid' ? 'mermaid' : 'dot'
+    if (format === 'mermaid') return 'mermaid'
+    if (format === 'graphviz') return 'dot'
+    return 'json'
 }
 
 function sanitizeMermaidId(key: string): string {

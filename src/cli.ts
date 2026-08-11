@@ -19,7 +19,7 @@ import type { BaseKeys, Infograph } from './types.js'
 import { terseDate } from './terseDate.js'
 import { strcmp } from './util.js'
 
-const formats = ['json', 'yaml', 'mermaid', 'graphviz'] as const
+const formats = ['json', 'yaml', 'mermaid', 'graphviz', 'cytoscape'] as const
 type Format = (typeof formats)[number]
 
 const args = {
@@ -57,6 +57,7 @@ program
             yaml: g => asYaml(toJsonInfograph(g)),
             mermaid: g => toGraph(g, 'mermaid'),
             graphviz: g => toGraph(g, 'graphviz'),
+            cytoscape: g => toGraph(g, 'cytoscape'),
         })
     })
 
@@ -108,6 +109,7 @@ chronologicalCmd
             yaml: t => asYaml(notes(t)),
             mermaid: t => threadToGraph(t, 'mermaid'),
             graphviz: t => threadToGraph(t, 'graphviz'),
+            cytoscape: t => threadToGraph(t, 'cytoscape'),
         })
     })
 
@@ -177,6 +179,15 @@ queryCommand
                     })),
                     'graphviz'
                 ),
+            cytoscape: g =>
+                toGroupedGraph(
+                    infograph,
+                    g.map((component, index) => ({
+                        title: `SCC ${index + 1} — ${component.length} nodes`,
+                        nodes: component,
+                    })),
+                    'cytoscape'
+                ),
         })
     })
 
@@ -213,6 +224,7 @@ groupbyCommand
             emit(groups, {
                 mermaid: g => groupRecordToGraph(infograph, g, 'mermaid'),
                 graphviz: g => groupRecordToGraph(infograph, g, 'graphviz'),
+                cytoscape: g => groupRecordToGraph(infograph, g, 'cytoscape'),
             })
         }
     })

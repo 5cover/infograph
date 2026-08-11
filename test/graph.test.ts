@@ -5,7 +5,7 @@ import { GraphDiagram, renderGraph } from '../src/graph.js'
 
 const diagram = () => {
     const graph = new GraphDiagram('LR')
-    graph.addNode('source node', 'Source\nnode')
+    graph.addNode('source node', 'Source\nnode', { classes: ['site'] })
     graph.addNode('boundary node', 'Boundary', { shape: 'stadium' })
     graph.addEdge('source node', 'boundary node', { label: 'explains', style: 'dotted' })
     graph.addGroup('topic', ['source node', 'boundary node'], { label: 'Topic' })
@@ -22,9 +22,38 @@ test('renders the common graph model as valid Graphviz DOT', () => {
     assert.doesNotThrow(() => fromDot(dot))
 })
 
-test('wraps multiple DOT diagrams in separate markdown blocks', () => {
-    const output = renderGraph([diagram(), diagram()], 'graphviz')
+test('renders Cytoscape elements with compound parents and classes', () => {
+    const elements = JSON.parse(renderGraph(diagram(), 'cytoscape'))
 
-    assert.match(output, /^```dot\ndigraph "G"/)
-    assert.match(output, /\n```\n\n```dot\ndigraph "G"/)
+    assert.deepEqual(elements[0], { group: 'nodes', data: { id: 'topic', label: 'Topic' } })
+    assert.deepEqual(elements[1], {
+        group: 'nodes',
+        data: { id: 'source node', label: 'Source\nnode', parent: 'topic' },
+        classes: ['site'],
+    })
+    assert.deepEqual(elements[2], {
+        group: 'nodes',
+        data: { id: 'boundary node', label: 'Boundary', parent: 'topic', shape: 'stadium' },
+    })
+    assert.deepEqual(elements[3], {
+        group: 'edges',
+        data: {
+            id: 'e1',
+            source: 'source node',
+            target: 'boundary node',
+            label: 'explains',
+            style: 'dotted',
+        },
+        classes: ['dotted'],
+    })
+})
+
+test('wraps multiple diagrams in separate format-appropriate markdown blocks', () => {
+    const dot = renderGraph([diagram(), diagram()], 'graphviz')
+    const cytoscape = renderGraph([diagram(), diagram()], 'cytoscape')
+
+    assert.match(dot, /^```dot\ndigraph "G"/)
+    assert.match(dot, /\n```\n\n```dot\ndigraph "G"/)
+    assert.match(cytoscape, /^```json\n\[/)
+    assert.match(cytoscape, /\n```\n\n```json\n\[/)
 })

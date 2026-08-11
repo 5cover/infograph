@@ -281,7 +281,7 @@ export function groupRecordToGraph<Keys extends BaseKeys, T>(
                 // Necessary workaround due to a bug in mermaid-ast. This remains
                 // presentation text, rather than backend-specific graph construction.
                 text = text.replaceAll(/[()[\]{}]/g, ' ')
-                diagram.addNode(key, `${parseNodeKey(key).kind}: ${text}`, key === center ? { shape: 'circle' } : {})
+                diagram.addNode(key, `${parseNodeKey(key).kind}: ${text}`, key === center ? { shape: 'circle', classes: ['site'] } : {})
             }
 
             for (const id of Object.keys(ids) as EdgeId<Keys>[]) {
