@@ -2,12 +2,12 @@ import { Argument, InvalidArgumentError, Option, program } from '@commander-js/e
 import { readFileSync } from 'node:fs'
 import { inspect } from 'node:util'
 import * as YAML from 'yaml'
-import { subgraphFilterEdges, toGraph, toGroupedGraph, unparseEdgeKey } from './infograph.js'
+import { toGraph, toGroupedGraph } from './infograph.js'
 import { formatInfographByEdges, formatInfographByNodes } from './input/format.js'
 import { parseInfograph } from './input/index.js'
 import {
     chronological,
-    threadStats,
+    compareChronologicalBudgets,
     threadToGraph,
     threadToNotes,
     type ChronologicalComplexity,
@@ -16,15 +16,15 @@ import {
     groupByKinds,
     groupSort,
     groupTreeToGraph,
-    mapGroupTree,
+    summarizeGroupTree,
     type GroupRecordValue,
     type GroupTree,
 } from './queries/groupby.js'
 import { metrics } from './queries/metrics.js'
-import { nonTrivialComponents, stronglyConnectedComponents } from './queries/scc.js'
+import { cyclicComponents } from './queries/scc.js'
+import { edgeSpace, edgesWithVerb, keywordVocabulary } from './queries/inspect.js'
 import type { BaseKeys } from './types.js'
 import { terseDate } from './terseDate.js'
-import { strcmp } from './util.js'
 
 const formats = ['json', 'yaml', 'native', 'plain'] as const
 type Format = (typeof formats)[number]
@@ -132,12 +132,7 @@ chronologicalCmd
         const infograph = readInfograph(file)
         const complexity = getComplexityOptions(options)
         const budgets = options.budget.length ? options.budget : [20]
-        emit(
-            budgets.map(budget => {
-                const stats = threadStats(chronological(infograph, { budget, complexity, cutoff: options.cutoff }))
-                return { budget, ...stats, coverage: round(stats.nodes / infograph.nodes.size) }
-            })
-        )
+        emit(compareChronologicalBudgets(infograph, { budgets, complexity, cutoff: options.cutoff }))
     })
 
 queryCommand
@@ -152,9 +147,7 @@ queryCommand
     .addArgument(args.infograph)
     .action(file => {
         const infograph = readInfograph(file)
-        const groups = nonTrivialComponents(infograph, stronglyConnectedComponents(infograph)).toSorted(
-            (a, b) => b.length - a.length
-        )
+        const groups = cyclicComponents(infograph)
         emit(groups, {
             graph: (components, format) =>
                 toGroupedGraph(
@@ -170,7 +163,7 @@ queryCommand
     .requiredOption('-v, --verb <verb>', 'The verb to filter edges by')
     .addArgument(args.infograph)
     .description('Filter edges')
-    .action((file, options) => emit(readInfograph(file).edges.filter(edge => edge.verb === options.verb)))
+    .action((file, options) => emit(edgesWithVerb(readInfograph(file), options.verb)))
 
 queryCommand
     .command('groupby')
@@ -188,37 +181,20 @@ queryCommand
         }
         const file = arguments_.at(-1)!
         const kinds = arguments_.slice(0, -1)
-        let infograph = readInfograph(file)
-        infograph = subgraphFilterEdges(infograph, e => e.from !== 'actor me' && e.to !== 'actor me')
+        const infograph = readInfograph(file)
         for (const kind of kinds) {
             if (!Object.hasOwn(infograph.domain.kind, kind))
                 throw new InvalidArgumentError(`Unknown node kind: ${kind}`)
         }
-        const edgeById = new Map(infograph.edges.map(edge => [unparseEdgeKey(edge), edge] as const))
         const groups = groupByKinds(infograph, kinds, options.sorted) as unknown as GroupTree<
             BaseKeys,
             GroupRecordValue<BaseKeys, null | number>
         >
         emit(groups, {
             count: tree => {
-                const max = { edges: 0, nodes: 0, centers: [] as string[] }
-                const map: Map<string, unknown> = mapGroupTree(tree, kinds.length, (edges, centers) => {
-                    const nodes = new Set<string>()
-                    for (const id of edges.keys()) {
-                        const edge = edgeById.get(id)
-                        if (edge) {
-                            nodes.add(edge.from)
-                            nodes.add(edge.to)
-                        }
-                    }
-                    if (max.edges + max.nodes < edges.size + nodes.size) {
-                        max.nodes = nodes.size
-                        max.edges = edges.size
-                        max.centers = centers
-                    }
-                    return { edges: edges.size, nodes: nodes.size }
-                })
-                return map.set('max', max)
+                const summary = summarizeGroupTree(infograph, tree, kinds.length)
+                if (summary.largest === undefined) return summary.tree
+                return new Map<string, unknown>(summary.tree).set('max', summary.largest)
             },
             graph: (tree, format) => groupTreeToGraph(infograph, tree, kinds.length, graphFormat(format)),
         })
@@ -228,30 +204,14 @@ queryCommand
     .command('edgespace')
     .description('show possible kind/verb/kind 3-uples in a table')
     .addArgument(args.infograph)
-    .action(file => {
-        const domain = readInfograph(file).domain
-        const verbs = Object.keys(domain.verb).toSorted()
-        const kinds = Object.keys(domain.kind).toSorted()
-        const rows: { from: string; verb: string; to: string }[] = []
-        for (const from of kinds) for (const to of kinds) for (const verb of verbs) rows.push({ from, to, verb })
-        emit(rows)
-    })
+    .action(file => emit(edgeSpace(readInfograph(file).domain)))
 
 queryCommand
     .command('keywords')
     .description('show keywords')
     .option('--desc', 'show descs too')
     .addArgument(args.infograph)
-    .action((file, options) => {
-        const entries = Object.entries(readInfograph(file).domain)
-        const result = options.desc
-            ? entries.map(([key, value]) => [
-                  key,
-                  Object.fromEntries(Object.entries(value).toSorted((a, b) => strcmp(a[0], b[0]))),
-              ])
-            : entries.map(([key, value]) => [key, Object.keys(value).toSorted()])
-        emit(Object.fromEntries(result))
-    })
+    .action((file, options) => emit(keywordVocabulary(readInfograph(file).domain, { descriptions: options.desc })))
 
 program.parse()
 
@@ -353,10 +313,6 @@ function parseNumber(value: string) {
 
 function collectNumber(value: string, previous: number[]) {
     return [...previous, parseNumber(value)]
-}
-
-function round(value: number) {
-    return Number.isFinite(value) ? Math.round(value * 100) / 100 : 0
 }
 
 function parseDate(value: string) {

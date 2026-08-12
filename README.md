@@ -64,6 +64,27 @@ This lets an output remain concise without pretending that omitted information d
 
 ## Documentation map
 
+## Programmatic API
+
+The package also exposes an in-memory API. It accepts structured input objects or canonical `Infograph` values; reading files and choosing JSON, YAML, or plain-text output remain CLI concerns.
+
+```ts
+import { groupByKinds, parseInfograph, renderEdgeGroup, selectGroup } from 'infograph'
+
+const infograph = parseInfograph(input)
+const groups = groupByKinds(infograph, ['project', 'task'], 'funnel')
+const selected = selectGroup(groups, ['project sponsorship', 'task test_flow_runtime_behavior'], 2)
+
+if (selected) {
+    const dot = renderEdgeGroup(infograph, selected.value, {
+        centers: selected.centers,
+        format: 'graphviz',
+    })
+}
+```
+
+Use `infograph/input`, `infograph/model`, `infograph/query`, and `infograph/graph` for focused imports. The root entry re-exports the supported operations. Canonical graphs and grouping results intentionally use `Map`; applications that need a JSON wire representation can serialize them according to their own requirements.
+
 The repository keeps the general method, domain conventions and implementation details separate:
 
 ### Modeling and domain guidance

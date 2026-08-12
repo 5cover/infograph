@@ -288,6 +288,15 @@ export type ThreadStats = {
     reasons: { budget: number; cutoff: number } // frontier edges split by why they're outside
 }
 
+export type ChronologicalComparisonInput = Omit<ChronologicalInput, 'budget'> & {
+    budgets: Iterable<number>
+}
+
+export type ChronologicalComparison = ThreadStats & {
+    budget: number
+    coverage: number
+}
+
 export function threadStats<Keys extends BaseKeys>(thread: ChronologicalThread<Keys>): ThreadStats {
     const reasons = { budget: 0, cutoff: 0 }
     for (const handle of thread.boundary) reasons[handle.reason]++
@@ -299,6 +308,17 @@ export function threadStats<Keys extends BaseKeys>(thread: ChronologicalThread<K
         maxDepth: thread.steps.reduce((max, step) => Math.max(max, step.depth), 0),
         reasons,
     }
+}
+
+/** Compare the same chronological projection across explicitly chosen budgets. */
+export function compareChronologicalBudgets<Keys extends BaseKeys>(
+    infograph: Infograph<Keys>,
+    input: ChronologicalComparisonInput
+): ChronologicalComparison[] {
+    return Iterator.from(input.budgets).map(budget => {
+        const stats = threadStats(chronological(infograph, { ...input, budget }))
+        return { budget, ...stats, coverage: round(stats.nodes / infograph.nodes.size) }
+    }).toArray()
 }
 
 export function chronological<Keys extends BaseKeys>(
@@ -513,4 +533,8 @@ function compareNumbers(a: number, b: number) {
         : a < b ? -1
         : 1
     )
+}
+
+function round(value: number) {
+    return Number.isFinite(value) ? Math.round(value * 100) / 100 : 0
 }

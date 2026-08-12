@@ -63,3 +63,18 @@ export function nonTrivialComponents<Keys extends BaseKeys>(
     }
     return components.filter(component => component.length > 1 || selfLooped.has(component[0]))
 }
+
+/** Non-trivial strongly connected components in a deterministic display order. */
+export function cyclicComponents<Keys extends BaseKeys>(infograph: Infograph<Keys>): InfographNodeKey<Keys>[][] {
+    return nonTrivialComponents(infograph, stronglyConnectedComponents(infograph))
+        .map(component => component.toSorted())
+        .toSorted((a, b) => b.length - a.length || compareComponents(a, b))
+}
+
+function compareComponents<Keys extends BaseKeys>(a: InfographNodeKey<Keys>[], b: InfographNodeKey<Keys>[]) {
+    for (let index = 0; index < Math.min(a.length, b.length); index++) {
+        if (a[index] < b[index]) return -1
+        if (a[index] > b[index]) return 1
+    }
+    return a.length - b.length
+}

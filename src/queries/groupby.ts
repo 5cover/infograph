@@ -19,6 +19,23 @@ export type GroupRecord<Keys extends BaseKeys = BaseKeys, T = null> = Map<
 >
 export type GroupKey<Keys extends BaseKeys> = InfographNodeKey<Keys> | '*'
 export type GroupTree<Keys extends BaseKeys = BaseKeys, T = GroupRecordValue<Keys>> = Map<GroupKey<Keys>, GroupTree<Keys, T> | T>
+export type GroupPath<Keys extends BaseKeys> = readonly GroupKey<Keys>[]
+
+export type GroupSelection<Keys extends BaseKeys, T> = {
+    value: T
+    centers: InfographNodeKey<Keys>[]
+}
+
+export type GroupSummary<Keys extends BaseKeys> = {
+    edges: number
+    nodes: number
+    centers: InfographNodeKey<Keys>[]
+}
+
+export type GroupTreeSummary<Keys extends BaseKeys> = {
+    tree: GroupTree<Keys, GroupSummary<Keys>>
+    largest?: GroupSummary<Keys>
+}
 
 export const groupSort = ['alphabetical', 'funnel'] as const
 export type GroupSort = (typeof groupSort)[number]
@@ -308,7 +325,51 @@ export function groupTreeToGraph<Keys extends BaseKeys, T>(
     depth: number,
     format: GraphFormat
 ): GroupTree<Keys, string> {
-    return mapGroupTree(tree, depth, (edges, centers) => groupEdgesToGraph(infograph, edges, centers, format))
+    return mapGroupTree(tree, depth, (edges, centers) => renderEdgeGroup(infograph, edges, { centers, format }))
+}
+
+/** Return one complete grouping path without retaining its enclosing tree structure. */
+export function selectGroup<Keys extends BaseKeys, T>(
+    tree: GroupTree<Keys, T>,
+    path: GroupPath<Keys>,
+    depth: number
+): GroupSelection<Keys, T> | undefined {
+    if (depth < 1 || path.length !== depth) return undefined
+    let branch: GroupTree<Keys, T> = tree
+    const centers: InfographNodeKey<Keys>[] = []
+    for (const [level, key] of path.entries()) {
+        const value = branch.get(key)
+        if (value === undefined) return undefined
+        if (key !== '*') centers.push(key)
+        if (level === path.length - 1) return { value: value as T, centers }
+        if (!(value instanceof Map)) return undefined
+        branch = value as GroupTree<Keys, T>
+    }
+    return undefined
+}
+
+/** Summarize each leaf of a group tree while preserving its hierarchy. */
+export function summarizeGroupTree<Keys extends BaseKeys, T>(
+    infograph: Infograph<Keys>,
+    tree: GroupTree<Keys, GroupRecordValue<Keys, T>>,
+    depth: number
+): GroupTreeSummary<Keys> {
+    const edgeById = new Map(infograph.edges.map(edge => [unparseEdgeKey(edge), edge] as const))
+    let largest: GroupSummary<Keys> | undefined
+    const result = mapGroupTree(tree, depth, (edges, centers) => {
+        const nodes = new Set<InfographNodeKey<Keys>>()
+        for (const id of edges.keys()) {
+            const edge = edgeById.get(id)
+            if (edge) {
+                nodes.add(edge.from)
+                nodes.add(edge.to)
+            }
+        }
+        const summary = { edges: edges.size, nodes: nodes.size, centers: [...centers] }
+        if (largest === undefined || largest.edges + largest.nodes < summary.edges + summary.nodes) largest = summary
+        return summary
+    })
+    return { tree: result, ...(largest === undefined ? {} : { largest }) }
 }
 
 export function mapGroupTree<Keys extends BaseKeys, T, U>(
@@ -328,16 +389,15 @@ export function mapGroupTree<Keys extends BaseKeys, T, U>(
     return visit(tree, 0, [])
 }
 
-function groupEdgesToGraph<Keys extends BaseKeys, T>(
+export function renderEdgeGroup<Keys extends BaseKeys, T>(
     infograph: Infograph<Keys>,
     edges: GroupRecordValue<Keys, T>,
-    centers: InfographNodeKey<Keys>[],
-    format: GraphFormat
+    config: { centers: Iterable<InfographNodeKey<Keys>>; format: GraphFormat }
 ): string {
     const edgeById = new Map(infograph.edges.map(edge => [unparseEdgeKey(edge), edge] as const))
     const diagram = new GraphDiagram('LR')
-    const centerSet = new Set(centers)
-    const nodeKeys = new Set<InfographNodeKey<Keys>>(centers)
+    const centerSet = new Set(config.centers)
+    const nodeKeys = new Set<InfographNodeKey<Keys>>(centerSet)
     for (const id of edges.keys()) {
         const edge = edgeById.get(id)
         if (!edge) continue
@@ -356,7 +416,7 @@ function groupEdgesToGraph<Keys extends BaseKeys, T>(
         const edge = edgeById.get(id)
         if (edge) diagram.addEdge(edge.from, edge.to, { label: parseEdgeKey(id).verb })
     }
-    return renderGraph(diagram, format)
+    return renderGraph(diagram, config.format)
 }
 
 function addIncident<Keys extends BaseKeys>(
