@@ -2,7 +2,7 @@ import { Argument, InvalidArgumentError, Option, program } from '@commander-js/e
 import { readFileSync } from 'node:fs'
 import { inspect } from 'node:util'
 import * as YAML from 'yaml'
-import { toGraph, toGroupedGraph, unparseEdgeKey } from './infograph.js'
+import { subgraphFilterEdges, toGraph, toGroupedGraph, unparseEdgeKey } from './infograph.js'
 import { formatInfographByEdges, formatInfographByNodes } from './input/format.js'
 import { parseInfograph } from './input/index.js'
 import {
@@ -38,11 +38,7 @@ const args = {
 }
 
 function replacer(_key: unknown, value: unknown) {
-    return value instanceof Date
-        ? terseDate(value)
-        : value instanceof Map
-          ? Object.fromEntries(value.entries())
-          : value
+    return value instanceof Date ? terseDate(value) : value instanceof Map ? Object.fromEntries(value.entries()) : value
 }
 
 const asJson = (value: unknown) => JSON.stringify(value, replacer, 2)
@@ -57,8 +53,16 @@ program
     .name('infograph')
     .description('Manipulate parsed infographs')
     .version('1.0.0')
-    .addOption(new Option('-f, --format <format>', 'output syntax (pass before the subcommand)').choices(formats).default('yaml'))
-    .addOption(new Option('-d, --data <data>', 'requested output data (pass before the subcommand)').choices(data).default('plain'))
+    .addOption(
+        new Option('-f, --format <format>', 'output syntax (pass before the subcommand)')
+            .choices(formats)
+            .default('yaml')
+    )
+    .addOption(
+        new Option('-d, --data <data>', 'requested output data (pass before the subcommand)')
+            .choices(data)
+            .default('plain')
+    )
 
 program
     .command('parse')
@@ -148,7 +152,9 @@ queryCommand
     .addArgument(args.infograph)
     .action(file => {
         const infograph = readInfograph(file)
-        const groups = nonTrivialComponents(infograph, stronglyConnectedComponents(infograph)).toSorted((a, b) => b.length - a.length)
+        const groups = nonTrivialComponents(infograph, stronglyConnectedComponents(infograph)).toSorted(
+            (a, b) => b.length - a.length
+        )
         emit(groups, {
             graph: (components, format) =>
                 toGroupedGraph(
@@ -182,9 +188,11 @@ queryCommand
         }
         const file = arguments_.at(-1)!
         const kinds = arguments_.slice(0, -1)
-        const infograph = readInfograph(file)
+        let infograph = readInfograph(file)
+        infograph = subgraphFilterEdges(infograph, e => e.from !== 'actor me' && e.to !== 'actor me')
         for (const kind of kinds) {
-            if (!Object.hasOwn(infograph.domain.kind, kind)) throw new InvalidArgumentError(`Unknown node kind: ${kind}`)
+            if (!Object.hasOwn(infograph.domain.kind, kind))
+                throw new InvalidArgumentError(`Unknown node kind: ${kind}`)
         }
         const edgeById = new Map(infograph.edges.map(edge => [unparseEdgeKey(edge), edge] as const))
         const groups = groupByKinds(infograph, kinds, options.sorted) as unknown as GroupTree<
@@ -192,8 +200,9 @@ queryCommand
             GroupRecordValue<BaseKeys, null | number>
         >
         emit(groups, {
-            count: tree =>
-                mapGroupTree(tree, kinds.length, edges => {
+            count: tree => {
+                const max = { edges: 0, nodes: 0, centers: [] as string[] }
+                const map: Map<string, unknown> = mapGroupTree(tree, kinds.length, (edges, centers) => {
                     const nodes = new Set<string>()
                     for (const id of edges.keys()) {
                         const edge = edgeById.get(id)
@@ -202,8 +211,15 @@ queryCommand
                             nodes.add(edge.to)
                         }
                     }
+                    if (max.edges + max.nodes < edges.size + nodes.size) {
+                        max.nodes = nodes.size
+                        max.edges = edges.size
+                        max.centers = centers
+                    }
                     return { edges: edges.size, nodes: nodes.size }
-                }),
+                })
+                return map.set('max', max)
+            },
             graph: (tree, format) => groupTreeToGraph(infograph, tree, kinds.length, graphFormat(format)),
         })
     })
@@ -229,7 +245,10 @@ queryCommand
     .action((file, options) => {
         const entries = Object.entries(readInfograph(file).domain)
         const result = options.desc
-            ? entries.map(([key, value]) => [key, Object.fromEntries(Object.entries(value).toSorted((a, b) => strcmp(a[0], b[0])))])
+            ? entries.map(([key, value]) => [
+                  key,
+                  Object.fromEntries(Object.entries(value).toSorted((a, b) => strcmp(a[0], b[0]))),
+              ])
             : entries.map(([key, value]) => [key, Object.keys(value).toSorted()])
         emit(Object.fromEntries(result))
     })
@@ -285,7 +304,10 @@ function structuralCount(value: unknown): unknown {
         return Object.fromEntries(
             Object.entries(value).map(([key, property]) => [
                 key,
-                Array.isArray(property) || property instanceof Set || property instanceof Map || (property !== null && typeof property === 'object' && !(property instanceof Date))
+                Array.isArray(property) ||
+                property instanceof Set ||
+                property instanceof Map ||
+                (property !== null && typeof property === 'object' && !(property instanceof Date))
                     ? structuralSize(property)
                     : property,
             ])

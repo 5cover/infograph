@@ -41,11 +41,7 @@ export class GraphDiagram {
         this.nodes.set(id, { id, label, ...options })
     }
 
-    addEdge(
-        from: string,
-        to: string,
-        options: Omit<GraphEdge, 'id' | 'from' | 'to'> & { id?: string } = {}
-    ): void {
+    addEdge(from: string, to: string, options: Omit<GraphEdge, 'id' | 'from' | 'to'> & { id?: string } = {}): void {
         this.edges.push({ id: options.id ?? `e${this.edges.length + 1}`, from, to, ...options })
     }
 
@@ -55,15 +51,24 @@ export class GraphDiagram {
 }
 
 export function renderGraph(diagram: GraphDiagram, format: GraphFormat): string {
-    if (format === 'mermaid') return renderMermaid(diagram)
-    if (format === 'graphviz') return renderGraphviz(diagram)
-    return renderCytoscape(diagram)
+    switch (format) {
+        case 'mermaid':
+            return renderMermaid(diagram)
+        case 'graphviz':
+            return renderGraphviz(diagram)
+        case 'cytoscape':
+            return renderCytoscape(diagram)
+    }
 }
 
 function renderMermaid(diagram: GraphDiagram): string {
     const flowchart = Flowchart.create(diagram.direction)
     for (const node of diagram.nodes.values()) {
-        flowchart.addNode(sanitizeMermaidId(node.id), node.label.replaceAll('\n', '<br>'), node.shape ? { shape: node.shape } : undefined)
+        flowchart.addNode(
+            sanitizeMermaidId(node.id),
+            node.label.replaceAll('\n', '<br>'),
+            node.shape ? { shape: node.shape } : undefined
+        )
     }
     for (const edge of diagram.edges) {
         flowchart.addLink(sanitizeMermaidId(edge.from), sanitizeMermaidId(edge.to), {
@@ -84,7 +89,10 @@ function renderGraphviz(diagram: GraphDiagram): string {
     const groupForNode = groupParents(diagram)
     const graphvizGroups = new Map<string, ReturnType<typeof graph.createSubgraph>>()
     for (const group of diagram.groups) {
-        graphvizGroups.set(group.id, graph.createSubgraph(`cluster_${group.id}`, group.label ? { [_.label]: group.label } : {}))
+        graphvizGroups.set(
+            group.id,
+            graph.createSubgraph(`cluster_${group.id}`, group.label ? { [_.label]: group.label } : {})
+        )
     }
     for (const node of diagram.nodes.values()) {
         const attributes = {
