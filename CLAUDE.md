@@ -19,6 +19,7 @@ There is no build/lint/test setup. TypeScript runs directly via **tsx** (not ins
   - `query groupby kind <kind...> <file>` — hierarchically groups edges by one or more node kinds. Each scope keeps its own edges and its next-level center nodes; `count` gives matching summaries and `graph:*` matching graph strings.
   - Mermaid, Graphviz DOT, and Cytoscape are rendered from the common `GraphDiagram` model in `src/graph.ts`.
 - Regenerate the JSON Schema: `npx tsx scripts/schemas.ts` (writes `schemas/infograph.json` from the zod schema — the schema is derived, never hand-edit it).
+- Analyze a one-project-per-edge nearest-site partition: `pnpm exec tsx scripts/analyze-project-partition.ts <infograph-file>` (JSON to stdout, comparison table to stderr).
 - Typecheck: `npx tsc --noEmit`. Note tsx runs code by stripping types without checking them, so run `tsc` explicitly to catch type errors.
 - Package manager is **pnpm** (`pnpm@11.9.0`).
 

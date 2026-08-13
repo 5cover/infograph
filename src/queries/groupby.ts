@@ -69,6 +69,15 @@ export type GroupbyOptions<Keys extends BaseKeys> = {
     sorted?: GroupSort
 }
 
+/** A true partition of nearest-site edges: each reachable edge belongs to one site. */
+export type SiteEdgePartition<Keys extends BaseKeys> = {
+    groups: GroupRecord<Keys, null>
+    candidates: Map<InfographEdgeKey<Keys>, InfographNodeKey<Keys>[]>
+    assignment: Map<InfographEdgeKey<Keys>, InfographNodeKey<Keys>>
+    unreachable: InfographEdgeKey<Keys>[]
+    maximumEdges: number
+}
+
 export function groupBySites<Keys extends BaseKeys>(
     infograph: Infograph<Keys>,
     opts: GroupbyOptions<Keys> & { sorted?: 'alphabetical' }
@@ -136,6 +145,155 @@ export function groupBySites<Keys extends BaseKeys>(
         for (const site of assignment.sites.values().toArray().toSorted(strcmp)) result.get(site)!.set(id, null)
     }
     return sortGroupRecord(infograph, result, opts.sorted ?? 'alphabetical')
+}
+
+/**
+ * Partition edges among their nearest sites without duplication. Tied nearest
+ * sites are assigned by an exact minimax edge-capacity flow: the largest group
+ * receives as few edges as possible, while every assignment remains nearest.
+ */
+export function partitionBySites<Keys extends BaseKeys>(
+    infograph: Infograph<Keys>,
+    opts: Pick<GroupbyOptions<Keys>, 'inputSites'>
+): SiteEdgePartition<Keys> {
+    const sites = new Set(opts.inputSites).values().toArray().toSorted(strcmp)
+    const overlapping = groupBySites(infograph, { inputSites: sites, allowUnreachable: true })
+    const candidates = new Map<InfographEdgeKey<Keys>, InfographNodeKey<Keys>[]>()
+    for (const [site, edges] of overlapping) {
+        for (const edge of edges.keys()) {
+            const choices = candidates.get(edge)
+            if (choices) choices.push(site)
+            else candidates.set(edge, [site])
+        }
+    }
+    for (const choices of candidates.values()) choices.sort(strcmp)
+
+    const edgeIds = infograph.edges.map(unparseEdgeKey).toSorted(strcmp)
+    const reachable = edgeIds.filter(edge => candidates.has(edge))
+    const unreachable = edgeIds.filter(edge => !candidates.has(edge))
+    if (!sites.length || !reachable.length) {
+        return {
+            groups: new Map(sites.map(site => [site, new Map()])),
+            candidates,
+            assignment: new Map(),
+            unreachable,
+            maximumEdges: 0,
+        }
+    }
+
+    let low = 0
+    let high = reachable.length
+    while (low < high) {
+        const capacity = Math.floor((low + high) / 2)
+        if (assignAtCapacity(reachable, candidates, sites, capacity) === undefined) low = capacity + 1
+        else high = capacity
+    }
+    const assignment = assignAtCapacity(reachable, candidates, sites, low)
+    if (assignment === undefined) throw new Error('Unable to assign reachable edges to nearest sites')
+
+    const groups: GroupRecord<Keys, null> = new Map(sites.map(site => [site, new Map()]))
+    for (const edge of reachable) groups.get(assignment.get(edge)!)!.set(edge, null)
+    return { groups, candidates, assignment, unreachable, maximumEdges: low }
+}
+
+function assignAtCapacity<Keys extends BaseKeys>(
+    edgeIds: readonly InfographEdgeKey<Keys>[],
+    candidates: Map<InfographEdgeKey<Keys>, InfographNodeKey<Keys>[]>,
+    sites: readonly InfographNodeKey<Keys>[],
+    capacity: number
+): Map<InfographEdgeKey<Keys>, InfographNodeKey<Keys>> | undefined {
+    const source = 0
+    const edgeOffset = 1
+    const siteOffset = edgeOffset + edgeIds.length
+    const sink = siteOffset + sites.length
+    const flow = new Dinic(sink + 1)
+    const siteIndex = new Map(sites.map((site, index) => [site, index] as const))
+    const choices: { site: InfographNodeKey<Keys>; link: FlowLink }[][] = []
+
+    for (const [index, edge] of edgeIds.entries()) {
+        const edgeNode = edgeOffset + index
+        flow.add(source, edgeNode, 1)
+        choices[index] = []
+        for (const site of candidates.get(edge) ?? []) {
+            const link = flow.add(edgeNode, siteOffset + siteIndex.get(site)!, 1)
+            choices[index].push({ site, link })
+        }
+    }
+    for (const [index] of sites.entries()) flow.add(siteOffset + index, sink, capacity)
+    if (flow.max(source, sink) !== edgeIds.length) return undefined
+
+    const assignment = new Map<InfographEdgeKey<Keys>, InfographNodeKey<Keys>>()
+    for (const [index, edge] of edgeIds.entries()) {
+        const chosen = choices[index].find(choice => choice.link.capacity === 0)
+        if (chosen === undefined) return undefined
+        assignment.set(edge, chosen.site)
+    }
+    return assignment
+}
+
+type FlowLink = { to: number; reverse: number; capacity: number }
+
+class Dinic {
+    readonly graph: FlowLink[][]
+
+    constructor(size: number) {
+        this.graph = Array.from({ length: size }, () => [])
+    }
+
+    add(from: number, to: number, capacity: number): FlowLink {
+        const forward: FlowLink = { to, reverse: this.graph[to].length, capacity }
+        const backward: FlowLink = { to: from, reverse: this.graph[from].length, capacity: 0 }
+        this.graph[from].push(forward)
+        this.graph[to].push(backward)
+        return forward
+    }
+
+    max(source: number, sink: number): number {
+        let total = 0
+        while (true) {
+            const level = this.levels(source)
+            if (level[sink] < 0) return total
+            const next = new Array(this.graph.length).fill(0)
+            while (true) {
+                const pushed = this.push(source, sink, Number.POSITIVE_INFINITY, level, next)
+                if (!pushed) break
+                total += pushed
+            }
+        }
+    }
+
+    private levels(source: number): number[] {
+        const level = new Array(this.graph.length).fill(-1)
+        const queue = [source]
+        level[source] = 0
+        for (let head = 0; head < queue.length; head++) {
+            const node = queue[head]
+            for (const link of this.graph[node]) {
+                if (link.capacity > 0 && level[link.to] < 0) {
+                    level[link.to] = level[node] + 1
+                    queue.push(link.to)
+                }
+            }
+        }
+        return level
+    }
+
+    private push(node: number, sink: number, available: number, level: number[], next: number[]): number {
+        if (node === sink) return available
+        while (next[node] < this.graph[node].length) {
+            const link = this.graph[node][next[node]]
+            if (link.capacity > 0 && level[link.to] === level[node] + 1) {
+                const pushed = this.push(link.to, sink, Math.min(available, link.capacity), level, next)
+                if (pushed) {
+                    link.capacity -= pushed
+                    this.graph[link.to][link.reverse].capacity += pushed
+                    return pushed
+                }
+            }
+            next[node]++
+        }
+        return 0
+    }
 }
 
 /**

@@ -4,6 +4,7 @@ import {
     groupByKinds,
     groupBySites,
     groupTreeToGraph,
+    partitionBySites,
     sortGroupRecord,
     type GroupRecord,
     type GroupRecordValue,
@@ -91,6 +92,38 @@ test('funnel sorting assigns costs while alphabetical sorting retains null leaf 
             .every(value => typeof value === 'number')
     )
     assert.deepEqual(funnel, sortGroupRecord(infograph, group, 'funnel'))
+})
+
+test('nearest-site partition assigns every reachable edge once and minimizes the largest edge group', () => {
+    const infograph = graph()
+    infograph.nodes.set('task bridge', node('Bridge'))
+    infograph.nodes.set('tool detached', node('Detached'))
+    infograph.edges.push(
+        {
+            from: 'task design',
+            to: 'task delivery',
+            verb: 'links',
+            info: { complexity: { is: 'simple', why: ['test'] } },
+        },
+        {
+            from: 'tool detached',
+            to: 'task bridge',
+            verb: 'links',
+            info: { complexity: { is: 'simple', why: ['test'] } },
+        }
+    )
+
+    const sites: Node[] = ['project south', 'project north']
+    const partition = partitionBySites(infograph, { inputSites: sites })
+    const repeated = partitionBySites(infograph, { inputSites: sites.toReversed() })
+    const assigned = partition.groups.values().flatMap(edges => edges.keys().toArray()).toArray()
+
+    assert.deepEqual(partition, repeated)
+    assert.equal(new Set(assigned).size, assigned.length)
+    assert.equal(assigned.length, infograph.edges.length - partition.unreachable.length)
+    assert.equal(partition.maximumEdges, 3)
+    for (const [edge, site] of partition.assignment) assert.ok(partition.candidates.get(edge)?.includes(site))
+    assert.ok(partition.unreachable.some(edge => edge.includes('tool detached')))
 })
 
 test('multiple kinds produce a nested tree', () => {

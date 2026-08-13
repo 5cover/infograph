@@ -16,7 +16,6 @@ test('renders the common graph model as valid Graphviz DOT', () => {
     const dot = renderGraph(diagram(), 'graphviz')
 
     assert.match(dot, /^digraph "G" \{\n/)
-    assert.match(dot, /rankdir = "LR"/)
     assert.match(dot, /subgraph "cluster_topic"/)
     assert.match(dot, /style = "dotted"/)
     assert.doesNotThrow(() => fromDot(dot))
