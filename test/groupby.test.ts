@@ -38,7 +38,7 @@ const graph = (): Infograph<Keys> => ({
         ['task delivery', node('Delivery', 'contextual')],
         ['actor alex', node('Alex')],
         ['tool isolated', node('Isolated tool')],
-    ] as [Node, ReturnType<typeof node>][]) ,
+    ] as [Node, ReturnType<typeof node>][]),
     edges: [
         ['project north', 'task design'],
         ['task design', 'actor alex'],
@@ -52,10 +52,12 @@ const graph = (): Infograph<Keys> => ({
     })),
 })
 
-const leaf = <T>(tree: GroupTree<Keys, T>, ...keys: string[]): T => {
-    let value: GroupTree<Keys, T> | T = tree
-    for (const key of keys) value = (value as GroupTree<Keys, T>).get(key as Node | '*')!
-    return value as T
+const groupAt = <T>(tree: GroupTree<Keys, T>, ...keys: string[]): GroupTree<Keys, T> => {
+    let group = tree
+    for (const key of keys) {
+        group = group.nodes?.get(key as Node)!
+    }
+    return group
 }
 
 test('single-site grouping is deterministic, complete, and alphabetically ordered by default', () => {
@@ -76,30 +78,63 @@ test('funnel sorting assigns costs while alphabetical sorting retains null leaf 
     ])
     const alphabetical = sortGroupRecord(infograph, group)
     const funnel = sortGroupRecord(infograph, group, 'funnel')
-    assert.ok(alphabetical.get('project north')!.values().every(value => value === null))
-    assert.ok(funnel.get('project north')!.values().every(value => typeof value === 'number'))
+    assert.ok(
+        alphabetical
+            .get('project north')!
+            .values()
+            .every(value => value === null)
+    )
+    assert.ok(
+        funnel
+            .get('project north')!
+            .values()
+            .every(value => typeof value === 'number')
+    )
     assert.deepEqual(funnel, sortGroupRecord(infograph, group, 'funnel'))
 })
 
-test('multiple kinds produce a nested tree and carry missing sites in a wildcard child', () => {
+test('multiple kinds produce a nested tree', () => {
     const infograph = graph()
     const groups = groupByKinds(infograph, ['project', 'task', 'actor'])
-    const north = leaf(groups, 'project north', 'task design', 'actor alex') as GroupRecordValue<Keys>
-    const south = leaf(groups, 'project south', 'task delivery', '*') as GroupRecordValue<Keys>
+    const north = groupAt(groups, 'project north', 'task design', 'actor alex').edges
+    const south = groupAt(groups, 'project south', 'task delivery').edges
 
-    assert.ok(north.size > 0)
-    assert.ok(south.size > 0)
-    const allLeaves = [north, south]
-    assert.ok(allLeaves.flatMap(value => value.keys().toArray()).every(id => infograph.edges.map(unparseEdgeKey).includes(id)))
+    assert.ok(north)
+    assert.ok(south)
+    const allLeaves = [north!, south!]
+    assert.ok(
+        allLeaves.flatMap(value => value.keys().toArray()).every(id => infograph.edges.map(unparseEdgeKey).includes(id))
+    )
+})
+
+test('unassigned residual edges stay at their current scope without discarding sibling centers', () => {
+    const infograph = graph()
+    infograph.nodes.set('task independent', node('Independent'))
+    infograph.nodes.set('tool orphan', node('Orphan'))
+    infograph.edges.push({
+        from: 'task independent',
+        to: 'tool orphan',
+        verb: 'links',
+        info: { complexity: { is: 'simple', why: ['test'] } },
+    })
+
+    const groups = groupByKinds(infograph, ['project', 'task'])
+    assert.deepEqual(groups.nodes?.keys().toArray(), ['project north', 'project south'])
+    assert.equal(groups.edges?.size, 1)
+    assert.equal(groupAt(groups, 'project north', 'task design').edges?.size, 2)
 })
 
 test('hierarchical graph data preserves the hierarchy and renders raw backend strings at leaves', () => {
     const infograph = graph()
     const tree = groupByKinds(infograph, ['project', 'task', 'actor'])
-    const graphs = groupTreeToGraph(infograph, tree, 3, 'graphviz')
-    const north = leaf(graphs, 'project north', 'task design', 'actor alex')
-    const south = leaf(graphs, 'project south', 'task delivery', '*')
-    assert.match(north, /^digraph "G"/)
-    assert.match(south, /^digraph "G"/)
-    assert.doesNotMatch(north, /```/)
+    const graphs = groupTreeToGraph(infograph, tree, 'graphviz')
+    const north = groupAt(graphs, 'project north', 'task design', 'actor alex').edges
+    const south = groupAt(graphs, 'project south', 'task delivery').edges
+    assert.equal(graphs.edges, undefined)
+    assert.equal(groupAt(graphs, 'project north').edges, undefined)
+    assert.equal(typeof north, 'string')
+    assert.equal(typeof south, 'string')
+    assert.match(north!, /^digraph "G"/)
+    assert.match(south!, /^digraph "G"/)
+    assert.doesNotMatch(north!, /```/)
 })

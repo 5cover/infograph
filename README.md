@@ -75,8 +75,8 @@ const infograph = parseInfograph(input)
 const groups = groupByKinds(infograph, ['project', 'task'], 'funnel')
 const selected = selectGroup(groups, ['project sponsorship', 'task test_flow_runtime_behavior'], 2)
 
-if (selected) {
-    const dot = renderEdgeGroup(infograph, selected.value, {
+if (selected?.edges) {
+    const dot = renderEdgeGroup(infograph, selected.edges, {
         centers: selected.centers,
         format: 'graphviz',
     })

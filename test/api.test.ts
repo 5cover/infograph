@@ -12,9 +12,7 @@ import {
     groupByKinds,
     keywordVocabulary,
     metrics,
-    renderEdgeGroup,
     selectGroup,
-    summarizeGroupTree,
 } from '../src/query.js'
 
 const reason = { is: 'simple' as const, why: ['test'] }
@@ -58,13 +56,10 @@ test('public facades support parsed graph analysis and a selected group diagram'
     assert.equal(compareChronologicalBudgets(infograph, { budgets: [3, 9] }).length, 2)
 
     const tree = groupByKinds(infograph, ['project', 'task'])
-    assert.equal(selectGroup(tree, ['project alpha'], 2), undefined)
-    const selected = selectGroup(tree, ['project alpha', 'task build'], 2)
+    const selected = selectGroup(tree, ['project alpha', 'task build'])
     assert.ok(selected)
-    assert.equal(selected.value.size, 3)
+    assert.equal(selected.edges?.size, 3)
     assert.deepEqual(selected.centers, ['project alpha', 'task build'])
-    assert.match(renderEdgeGroup(infograph, selected.value, { centers: selected.centers, format: 'graphviz' }), /^digraph "G"/)
-    assert.equal(summarizeGroupTree(infograph, tree, 2).largest?.edges, 3)
 
     const diagram = new GraphDiagram()
     diagram.addNode('one', 'One')

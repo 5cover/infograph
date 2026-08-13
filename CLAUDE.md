@@ -16,7 +16,7 @@ There is no build/lint/test setup. TypeScript runs directly via **tsx** (not ins
   - `query chronological run <file> [--budget N] [--simple N --natural N --contextual N --intertwined N]` — traversal thread, or a rendered graph. `--notes` changes plain thread data into the readable notes document.
   - `metrics <file>` — graph statistics (JSON/YAML).
   - `query scc <file>` — non-trivial strongly connected components, or one graph with a visual group per SCC.
-  - `query groupby kind <kind...> <file>` — hierarchically partitions edges by one or more node kinds. `*` carries a residual branch; `count` gives leaf node/edge counts and `graph:*` gives graph strings at leaves.
+  - `query groupby kind <kind...> <file>` — hierarchically groups edges by one or more node kinds. Each scope keeps its own edges and its next-level center nodes; `count` gives matching summaries and `graph:*` matching graph strings.
   - Mermaid, Graphviz DOT, and Cytoscape are rendered from the common `GraphDiagram` model in `src/graph.ts`.
 - Regenerate the JSON Schema: `npx tsx scripts/schemas.ts` (writes `schemas/infograph.json` from the zod schema — the schema is derived, never hand-edit it).
 - Typecheck: `npx tsc --noEmit`. Note tsx runs code by stripping types without checking them, so run `tsc` explicitly to catch type errors.

@@ -17,12 +17,22 @@ export type GroupRecord<Keys extends BaseKeys = BaseKeys, T = null> = Map<
     InfographNodeKey<Keys>,
     GroupRecordValue<Keys, T>
 >
-export type GroupKey<Keys extends BaseKeys> = InfographNodeKey<Keys> | '*'
-export type GroupTree<Keys extends BaseKeys = BaseKeys, T = GroupRecordValue<Keys>> = Map<GroupKey<Keys>, GroupTree<Keys, T> | T>
-export type GroupPath<Keys extends BaseKeys> = readonly GroupKey<Keys>[]
+
+/**
+ * A grouping scope and its increasingly specific center scopes. `edges` holds
+ * only the residual edges not assigned to a child center; `nodes` holds the next
+ * grouping kind's centers. This keeps residuals at their natural parent without
+ * inventing a synthetic center key or duplicating child-edge payloads.
+ */
+export type GroupTree<Keys extends BaseKeys = BaseKeys, T = GroupRecordValue<Keys>> = {
+    nodes?: Map<InfographNodeKey<Keys>, GroupTree<Keys, T>>
+    edges?: T
+}
+
+export type GroupPath<Keys extends BaseKeys> = readonly InfographNodeKey<Keys>[]
 
 export type GroupSelection<Keys extends BaseKeys, T> = {
-    value: T
+    edges?: T
     centers: InfographNodeKey<Keys>[]
 }
 
@@ -103,7 +113,8 @@ export function groupBySites<Keys extends BaseKeys>(
     for (let head = 0; head < queue.length; head++) {
         const item = queue[head]
         const assignment = assignments.get(item.edge)
-        if (assignment === undefined || assignment.distance !== item.distance || !assignment.sites.has(item.site)) continue
+        if (assignment === undefined || assignment.distance !== item.distance || !assignment.sites.has(item.site))
+            continue
         for (const next of adjacentEdges(edgeById, incidence, item.edge)) {
             addReach(assignments, queue, next, item.site, item.distance + 1)
         }
@@ -112,7 +123,9 @@ export function groupBySites<Keys extends BaseKeys>(
     if (!opts.allowUnreachable) {
         const unreachable = sortedEdgeIds.filter(id => !assignments.has(id))
         if (unreachable.length) {
-            throw new Error(`Cannot group edges unreachable from any Voronoi site (${sites}): ${unreachable.join(', ')}`)
+            throw new Error(
+                `Cannot group edges unreachable from any Voronoi site (${sites}): ${unreachable.join(', ')}`
+            )
         }
     }
 
@@ -126,9 +139,8 @@ export function groupBySites<Keys extends BaseKeys>(
 }
 
 /**
- * Group the same edge set repeatedly by each requested node kind. Every requested
- * depth is present: `*` carries the residual branch when that kind has no applicable
- * site, or when a site's Voronoi grouping leaves edges unreachable.
+ * Group the same edge set repeatedly by each requested node kind. Every scope
+ * retains its own edges, while child nodes represent the next available centers.
  */
 export function groupByKinds<Keys extends BaseKeys>(
     infograph: Infograph<Keys>,
@@ -153,8 +165,7 @@ export function groupByKinds<Keys extends BaseKeys>(
     if (!kinds.length) throw new Error('At least one grouping kind is required')
     const all = new Map(infograph.edges.map(edge => [unparseEdgeKey(edge), null] as const))
     return groupLevel(infograph, all, kinds, sorted) as unknown as
-        | GroupTree<Keys, GroupRecordValue<Keys, null>>
-        | GroupTree<Keys, GroupRecordValue<Keys, number>>
+        GroupTree<Keys, GroupRecordValue<Keys, null>> | GroupTree<Keys, GroupRecordValue<Keys, number>>
 }
 
 function groupLevel<Keys extends BaseKeys>(
@@ -162,27 +173,27 @@ function groupLevel<Keys extends BaseKeys>(
     edges: Map<InfographEdgeKey<Keys>, unknown>,
     kinds: readonly Keys['kind'][],
     sorted: GroupSort
-): GroupTree<Keys, GroupRecordValue<Keys, null | number>> | GroupRecordValue<Keys, null | number> {
-    if (!kinds.length) return orderEdgeMap(infograph, edges.keys(), sorted)
+): GroupTree<Keys, GroupRecordValue<Keys, null | number>> {
+    if (!kinds.length) return { edges: orderEdgeMap(infograph, edges.keys(), sorted) }
 
     const subinfograph = subgraphFilterEdges(infograph, edge => edges.has(unparseEdgeKey(edge)))
     const sites = subinfograph.nodes
         .keys()
         .filter(key => parseNodeKey(key).kind === kinds[0])
         .toArray()
-    if (!sites.length) return new Map([['*', groupLevel(infograph, edges, kinds.slice(1), sorted)]])
+    if (!sites.length) return groupLevel(infograph, edges, kinds.slice(1), sorted)
 
     const grouped = groupBySites(subinfograph, { inputSites: sites, allowUnreachable: true, sorted })
     const assigned = new Set<InfographEdgeKey<Keys>>()
-    const result: GroupTree<Keys, GroupRecordValue<Keys, null | number>> = new Map()
+    const nodes = new Map<InfographNodeKey<Keys>, GroupTree<Keys, GroupRecordValue<Keys, null | number>>>()
+    const result: GroupTree<Keys, GroupRecordValue<Keys, null | number>> = { nodes }
     for (const [site, group] of grouped) {
         if (!group.size) continue
         for (const edge of group.keys()) assigned.add(edge)
-        result.set(site, groupLevel(infograph, group, kinds.slice(1), sorted))
+        nodes.set(site, groupLevel(infograph, group, kinds.slice(1), sorted))
     }
-
     const residual = new Map(edges.entries().filter(([edge]) => !assigned.has(edge)))
-    if (residual.size) result.set('*', groupLevel(infograph, residual, kinds.slice(1), sorted))
+    if (residual.size) result.edges = orderEdgeMap(infograph, residual.keys(), sorted)
     return result
 }
 
@@ -231,7 +242,10 @@ export function nodeExpositionCost<Keys extends BaseKeys>(node: InfographNode<Ke
 }
 
 /** Numeric exposition score for an edge, intentionally ignoring the edge's own complexity. */
-export function edgeExpositionCost<Keys extends BaseKeys>(edge: InfographEdge<Keys>, infograph: Infograph<Keys>): number {
+export function edgeExpositionCost<Keys extends BaseKeys>(
+    edge: InfographEdge<Keys>,
+    infograph: Infograph<Keys>
+): number {
     const from = infograph.nodes.get(edge.from)
     const to = infograph.nodes.get(edge.to)
     if (from === undefined || to === undefined) throw new Error(`Unknown edge endpoint: ${edge.from} → ${edge.to}`)
@@ -287,11 +301,13 @@ function compareFunnelCandidates<Keys extends BaseKeys>(
     if (a === undefined || b === undefined) return a === undefined ? 1 : -1
     if (lastExpositionCost === null) return compareEdgeOrder(infograph, edgeById, aId, bId)
 
-    const continuity = (edge: InfographEdge<Keys>) => Number(threadNodes.has(edge.from)) + Number(threadNodes.has(edge.to))
+    const continuity = (edge: InfographEdge<Keys>) =>
+        Number(threadNodes.has(edge.from)) + Number(threadNodes.has(edge.to))
     const continuityDifference = continuity(b) - continuity(a)
     if (continuityDifference) return continuityDifference
 
-    const backwardJump = (edge: InfographEdge<Keys>) => Math.max(0, lastExpositionCost - edgeExpositionCost(edge, infograph))
+    const backwardJump = (edge: InfographEdge<Keys>) =>
+        Math.max(0, lastExpositionCost - edgeExpositionCost(edge, infograph))
     const backwardDifference = backwardJump(a) - backwardJump(b)
     if (backwardDifference) return backwardDifference
     return compareEdgeOrder(infograph, edgeById, aId, bId)
@@ -322,41 +338,33 @@ function ordinalScore<T>(levels: readonly T[], value: T | undefined): number {
 export function groupTreeToGraph<Keys extends BaseKeys, T>(
     infograph: Infograph<Keys>,
     tree: GroupTree<Keys, GroupRecordValue<Keys, T>>,
-    depth: number,
     format: GraphFormat
 ): GroupTree<Keys, string> {
-    return mapGroupTree(tree, depth, (edges, centers) => renderEdgeGroup(infograph, edges, { centers, format }))
+    return mapGroupTree(tree, (edges, centers) => renderEdgeGroup(infograph, edges, { centers, format }))
 }
 
-/** Return one complete grouping path without retaining its enclosing tree structure. */
+/** Select one group scope by its complete or partial center path. */
 export function selectGroup<Keys extends BaseKeys, T>(
     tree: GroupTree<Keys, T>,
-    path: GroupPath<Keys>,
-    depth: number
+    path: GroupPath<Keys>
 ): GroupSelection<Keys, T> | undefined {
-    if (depth < 1 || path.length !== depth) return undefined
-    let branch: GroupTree<Keys, T> = tree
-    const centers: InfographNodeKey<Keys>[] = []
-    for (const [level, key] of path.entries()) {
-        const value = branch.get(key)
-        if (value === undefined) return undefined
-        if (key !== '*') centers.push(key)
-        if (level === path.length - 1) return { value: value as T, centers }
-        if (!(value instanceof Map)) return undefined
-        branch = value as GroupTree<Keys, T>
+    let group = tree
+    for (const center of path) {
+        const next = group.nodes?.get(center)
+        if (next === undefined) return undefined
+        group = next
     }
-    return undefined
+    return { edges: group.edges, centers: [...path] }
 }
 
 /** Summarize each leaf of a group tree while preserving its hierarchy. */
 export function summarizeGroupTree<Keys extends BaseKeys, T>(
     infograph: Infograph<Keys>,
-    tree: GroupTree<Keys, GroupRecordValue<Keys, T>>,
-    depth: number
+    tree: GroupTree<Keys, GroupRecordValue<Keys, T>>
 ): GroupTreeSummary<Keys> {
     const edgeById = new Map(infograph.edges.map(edge => [unparseEdgeKey(edge), edge] as const))
     let largest: GroupSummary<Keys> | undefined
-    const result = mapGroupTree(tree, depth, (edges, centers) => {
+    const result = mapGroupTree(tree, (edges, centers) => {
         const nodes = new Set<InfographNodeKey<Keys>>()
         for (const id of edges.keys()) {
             const edge = edgeById.get(id)
@@ -374,19 +382,21 @@ export function summarizeGroupTree<Keys extends BaseKeys, T>(
 
 export function mapGroupTree<Keys extends BaseKeys, T, U>(
     tree: GroupTree<Keys, T>,
-    depth: number,
-    mapLeaf: (value: T, centers: InfographNodeKey<Keys>[]) => U
+    mapEdges: (edges: T, centers: InfographNodeKey<Keys>[]) => U
 ): GroupTree<Keys, U> {
-    if (depth < 1) throw new Error('A group tree must have at least one level')
-    const visit = (branch: GroupTree<Keys, T>, level: number, centers: InfographNodeKey<Keys>[]): GroupTree<Keys, U> => {
-        const result: GroupTree<Keys, U> = new Map()
-        for (const [key, value] of branch) {
-            const nextCenters = key === '*' ? centers : [...centers, key]
-            result.set(key, level === depth - 1 ? mapLeaf(value as T, nextCenters) : visit(value as GroupTree<Keys, T>, level + 1, nextCenters))
+    const visit = (branch: GroupTree<Keys, T>, centers: InfographNodeKey<Keys>[]): GroupTree<Keys, U> => {
+        const result: GroupTree<Keys, U> = {}
+        if (branch.edges !== undefined) result.edges = mapEdges(branch.edges, centers)
+        if (branch.nodes !== undefined) {
+            result.nodes = new Map()
+            for (const [key, value] of branch.nodes) {
+                const nextCenters = [...centers, key]
+                result.nodes.set(key, visit(value, nextCenters))
+            }
         }
         return result
     }
-    return visit(tree, 0, [])
+    return visit(tree, [])
 }
 
 export function renderEdgeGroup<Keys extends BaseKeys, T>(

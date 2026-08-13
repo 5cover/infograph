@@ -25,6 +25,7 @@ import { cyclicComponents } from './queries/scc.js'
 import { edgeSpace, edgesWithVerb, keywordVocabulary } from './queries/inspect.js'
 import type { BaseKeys } from './types.js'
 import { terseDate } from './terseDate.js'
+import type { number } from 'zod'
 
 const formats = ['json', 'yaml', 'native', 'plain'] as const
 type Format = (typeof formats)[number]
@@ -190,13 +191,12 @@ queryCommand
             BaseKeys,
             GroupRecordValue<BaseKeys, null | number>
         >
+
         emit(groups, {
             count: tree => {
-                const summary = summarizeGroupTree(infograph, tree, kinds.length)
-                if (summary.largest === undefined) return summary.tree
-                return new Map<string, unknown>(summary.tree).set('max', summary.largest)
+                return summarizeGroupTree(infograph, tree)
             },
-            graph: (tree, format) => groupTreeToGraph(infograph, tree, kinds.length, graphFormat(format)),
+            graph: (tree, format) => groupTreeToGraph(infograph, tree, graphFormat(format)),
         })
     })
 
