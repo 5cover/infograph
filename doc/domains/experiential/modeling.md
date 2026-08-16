@@ -26,8 +26,6 @@ Three design commitments follow, and they explain most of the choices below.
 
 **Knowledge is an output.** Much of the value of an experience is what was discovered, not only what was delivered. `finding`, `model` and `learning` give discovered behavior, structural interpretation and personal progression each a place, and `produces` and `verifies` connect them to the work that established them.
 
-**Not everything deserves a node.** The graph is a presentation surface, not an archive. A projection selects a subset; edges crossing the boundary become discussion openings. That only works if nodes are things worth navigating to. Most detail belongs in `claim`, `summary` and `tag`.
-
 ## Vocabulary
 
 Twenty kinds and eighteen verbs, including one fallback each.
@@ -88,7 +86,7 @@ How much technical background a reader needs, as a proportion of the understandi
 
 `all` should be rare. Reaching for it is usually a signal that the element is under-modeled rather than genuinely inaccessible: if no accessible framing exists yet, it has probably not been found. A function named "convert to integer" that refuses integers is a fully accessible framing of something that sounds maximally technical.
 
-High technicality is an asset, not something to minimize. A presentation usually needs a small number of deliberately deep elements for the technical reader.
+High technicality is an asset, not something to minimize.
 
 **Rate technicality only where it is useful.** Useful means: it is load-bearing for a depth decision, or it defies what the element's kind would lead you to assume. Defaults are predictable, so the informative ratings are the surprises.
 
