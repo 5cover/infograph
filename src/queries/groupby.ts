@@ -576,7 +576,7 @@ export function renderEdgeGroup<Keys extends BaseKeys, T>(
         const title = (infograph.nodes.get(key)?.title ?? key).replaceAll(/[()[\]{}]/g, ' ')
         diagram.addNode(
             key,
-            `${parseNodeKey(key).kind}: ${title}`,
+            `${parseNodeKey(key).kind} ${title}`,
             centerSet.has(key) ? { shape: 'circle', classes: ['site'] } : {}
         )
     }

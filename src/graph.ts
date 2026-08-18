@@ -66,7 +66,7 @@ function renderMermaid(diagram: GraphDiagram): string {
     for (const node of diagram.nodes.values()) {
         flowchart.addNode(
             sanitizeMermaidId(node.id),
-            node.label.replaceAll('\n', '<br>'),
+            node.label.trim().replaceAll('\n', '<br>'),
             node.shape ? { shape: node.shape } : undefined
         )
     }
