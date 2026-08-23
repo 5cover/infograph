@@ -19,6 +19,7 @@ There is no build/lint/test setup. TypeScript runs directly via **tsx** (not ins
   - `query groupby kind <kind...> <file>` — hierarchically groups edges by one or more node kinds. Each scope keeps its own edges and its next-level center nodes; `count` gives matching summaries and `graph:*` matching graph strings.
   - `query select nodes <file> [--kind <kind> ...]` / `query select edges <file> [--verb <verb> ...]` — declarative graph retrieval. Node filters include identity, tags, sources, dates, ordinal ratings and literal `--match field=text`; edge filters include endpoints, verb, ratings and claim text.
   - `query traverse <file> --from <node-key> [--direction in|out|both] [--max-hops N]` — bounded breadth-first traversal, optionally restricted with `--via <verb>` and node filters.
+  - `edit apply <file> [changefile] [--dry-run]` — applies a constrained YAML/JSON operation list. Omit `changefile` to read the list from stdin, which supports heredocs. Writes canonical node-first YAML atomically after full validation; `remove-node` deletes incident edges.
   - `skill install --agent codex` — copies the bundled `skills/infograph-query` agent skill into Codex's skill directory; `skill path` prints the reusable source directory for another host.
   - Mermaid, Graphviz DOT, and Cytoscape are rendered from the common `GraphDiagram` model in `src/graph.ts`.
 - Regenerate the JSON Schema: `npx tsx scripts/schemas.ts` (writes `schemas/infograph.json` from the zod schema — the schema is derived, never hand-edit it).

@@ -17,7 +17,7 @@ import {
     type Flexarray,
 } from './types.js'
 import { verbPattern, zInfographInput } from './schemas.js'
-import { parseEdgeKey, parseNodeKey, unparseNodeKey } from '../infograph.js';
+import { parseEdgeKey, parseNodeKey, unparseNodeKey } from '../infograph.js'
 
 export const defineInfograph = <Keys extends BaseKeys>(infograph: InputInfograph<Keys>) => infograph
 
@@ -164,8 +164,6 @@ const zInfograph = zInfographInput.transform((g, ctx): Infograph => {
             })
         })
     }
-
-    
 
     function* entries<V>(o: { [k: string]: V }) {
         for (const [k, v] of Object.entries(o)) {

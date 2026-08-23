@@ -1,4 +1,12 @@
-import type { BaseKeys, Complexity, Infograph, InfographDate, InfographEdge, InfographNode, InfographNodeKey } from '../types.js'
+import type {
+    BaseKeys,
+    Complexity,
+    Infograph,
+    InfographDate,
+    InfographEdge,
+    InfographNode,
+    InfographNodeKey,
+} from '../types.js'
 import { GraphDiagram, type GraphFormat, renderGraph } from '../graph.js'
 
 export type ChronologicalComplexity = Partial<Record<Complexity, number>>
@@ -174,9 +182,7 @@ export function threadToNotes<Keys extends BaseKeys>(
         if (a.kind === 'boundary' && b.kind === 'boundary') {
             return (
                 compareDates(a.handle.date, b.handle.date) ||
-                (a.handle.external < b.handle.external ? -1
-                : a.handle.external > b.handle.external ? 1
-                : 0)
+                (a.handle.external < b.handle.external ? -1 : a.handle.external > b.handle.external ? 1 : 0)
             )
         }
         return 0
@@ -315,10 +321,12 @@ export function compareChronologicalBudgets<Keys extends BaseKeys>(
     infograph: Infograph<Keys>,
     input: ChronologicalComparisonInput
 ): ChronologicalComparison[] {
-    return Iterator.from(input.budgets).map(budget => {
-        const stats = threadStats(chronological(infograph, { ...input, budget }))
-        return { budget, ...stats, coverage: round(stats.nodes / infograph.nodes.size) }
-    }).toArray()
+    return Iterator.from(input.budgets)
+        .map(budget => {
+            const stats = threadStats(chronological(infograph, { ...input, budget }))
+            return { budget, ...stats, coverage: round(stats.nodes / infograph.nodes.size) }
+        })
+        .toArray()
 }
 
 export function chronological<Keys extends BaseKeys>(
@@ -528,11 +536,7 @@ function dateValue(date: Date | undefined) {
 }
 
 function compareNumbers(a: number, b: number) {
-    return (
-        a === b ? 0
-        : a < b ? -1
-        : 1
-    )
+    return a === b ? 0 : a < b ? -1 : 1
 }
 
 function round(value: number) {

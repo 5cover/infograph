@@ -37,21 +37,22 @@ if (file === undefined || rest.length) {
         project,
         overlapping: counts(overlapping.get(project)?.keys() ?? []),
         exclusive: counts(partition.groups.get(project)?.keys() ?? []),
-        tiedCandidates: [...partition.candidates.values()].filter(candidates => candidates.length > 1 && candidates.includes(project))
-            .length,
+        tiedCandidates: [...partition.candidates.values()].filter(
+            candidates => candidates.length > 1 && candidates.includes(project)
+        ).length,
     }))
     const membershipCounts = new Map<number, number>()
     for (const candidates of partition.candidates.values()) {
         membershipCounts.set(candidates.length, (membershipCounts.get(candidates.length) ?? 0) + 1)
     }
-    const totalMemberships = [...partition.candidates.values()].reduce((total, candidates) => total + candidates.length, 0)
+    const totalMemberships = [...partition.candidates.values()].reduce(
+        (total, candidates) => total + candidates.length,
+        0
+    )
     const edgeAssignments = Object.fromEntries(
         [...partition.candidates.entries()]
             .toSorted(([a], [b]) => strcmp(a, b))
-            .map(([edge, nearestProjects]) => [
-                edge,
-                { nearestProjects, project: partition.assignment.get(edge) },
-            ])
+            .map(([edge, nearestProjects]) => [edge, { nearestProjects, project: partition.assignment.get(edge) }])
     )
     const report = {
         input: {
@@ -80,7 +81,9 @@ if (file === undefined || rest.length) {
         `\nOverlap: ${report.overlapping.totalMemberships} memberships for ${report.overlapping.uniqueEdges} reachable edges; ` +
             `${report.overlapping.duplicatePlacements} duplicate placements (${report.overlapping.duplicationFactor.toFixed(2)}x).\n` +
             `Exclusive nearest-edge partition: at most ${partition.maximumEdges} edges per project.\n` +
-            (partition.unreachable.length ? `${partition.unreachable.length} edge(s) unreachable from every project.\n` : '')
+            (partition.unreachable.length
+                ? `${partition.unreachable.length} edge(s) unreachable from every project.\n`
+                : '')
     )
     process.stdout.write(JSON.stringify(report, null, 2) + '\n')
 }

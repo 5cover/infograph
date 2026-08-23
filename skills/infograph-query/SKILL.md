@@ -28,6 +28,28 @@ Use the Infograph CLI for normal graph investigation. It emits YAML by default; 
 
 Repeated `--kind`, `--tag`, `--source`, `--via`, and identity flags are alternatives within that field. Different flags combine as constraints. Text matches are literal, case-insensitive substrings of `title`, `summary`, or `claim`; they are not semantic search.
 
+## Editing an Infograph
+
+Use a constrained semantic patch rather than rereading and rewriting the corpus. First dry-run the patch, then apply it and query the affected key to verify the result. When no changefile is supplied, `edit apply` reads the YAML operation list from standard input; use a quoted heredoc so the agent can pass the patch without shell interpolation:
+
+```sh
+infograph edit apply corpus.yaml --dry-run <<'PATCH'
+- add-tag:
+    node: decision adopt_api
+    tag: validation
+- add-edge:
+    from: decision adopt_api
+    verb: explains
+    to: finding retry_policy
+    with:
+      complexity:
+        is: natural
+        why: The decision follows from the finding.
+PATCH
+```
+
+Run the same command without `--dry-run` only after a successful review. The fixed operations are `add-node`, `set-node`, `add-claim`, `add-tag`, `add-edge`, `remove-edge`, and `remove-node`; every target is exact. `remove-node` removes incident edges automatically. `set-node` leaves omitted fields unchanged, uses `null` to remove optional fields, and treats empty `claim`, `source`, or `tag` arrays as absent. The file is reformatted into canonical node-first YAML.
+
 ## Evidence discipline
 
 - Treat node and edge claims as the corpus evidence. State the node key, source, or relationship when it materially supports an answer.
@@ -36,7 +58,7 @@ Repeated `--kind`, `--tag`, `--source`, `--via`, and identity flags are alternat
 
 ## Complex analysis
 
-Do not pass JavaScript through CLI arguments. For a one-off calculation, create a short temporary `.mts` file that imports the public API, then run it with `pnpm exec tsx`. Read [the API recipe](references/api-recipe.md) before doing this. Prefer adding a reusable API primitive only when the operation is broadly useful and has stable semantics.
+Do not pass JavaScript through CLI arguments. For a one-off calculation, create a short temporary `.mts` file that imports the public API, then run it with `pnpm exec tsx`. The public `infograph/edit` API exposes the same `parseEdits` and `applyEdits` composition used by the CLI. Read [the API recipe](references/api-recipe.md) before doing this. Prefer adding a reusable API primitive only when the operation is broadly useful and has stable semantics.
 
 ## Installation
 

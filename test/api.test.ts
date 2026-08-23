@@ -2,6 +2,7 @@ import assert from 'node:assert/strict'
 import test from 'node:test'
 import * as api from '../src/index.js'
 import { formatInfographByEdges, parseInfograph } from '../src/input.js'
+import { applyEdits } from '../src/edit.js'
 import { subgraph, type Infograph } from '../src/model.js'
 import { GraphDiagram, renderGraph } from '../src/graph.js'
 import {
@@ -32,11 +33,17 @@ const graph = (): Infograph => ({
         ['project alpha', 'task build'],
         ['task build', 'task verify'],
         ['task verify', 'task build'],
-    ].map(([from, to]) => ({ from: from as `project ${string}` | `task ${string}`, to: to as `project ${string}` | `task ${string}`, verb: 'links', info: { complexity: reason } })),
+    ].map(([from, to]) => ({
+        from: from as `project ${string}` | `task ${string}`,
+        to: to as `project ${string}` | `task ${string}`,
+        verb: 'links',
+        info: { complexity: reason },
+    })),
 })
 
 test('public facades support parsed graph analysis and a selected group diagram', () => {
     assert.equal(api.groupByKinds, groupByKinds)
+    assert.equal(api.applyEdits, applyEdits)
     assert.equal(api.parseInfograph, parseInfograph)
     assert.equal(api.renderGraph, renderGraph)
     const infograph = graph()

@@ -1,13 +1,22 @@
-import { Argument, Command, InvalidArgumentError, Option, type OptionValues, program } from '@commander-js/extra-typings'
-import { cpSync, existsSync, mkdirSync, readFileSync } from 'node:fs'
+import {
+    Argument,
+    Command,
+    InvalidArgumentError,
+    Option,
+    type OptionValues,
+    program,
+} from '@commander-js/extra-typings'
+import { cpSync, existsSync, mkdirSync, readFileSync, renameSync, unlinkSync, writeFileSync } from 'node:fs'
 import { homedir } from 'node:os'
 import { resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { randomUUID } from 'node:crypto'
 import { inspect } from 'node:util'
 import * as YAML from 'yaml'
 import { toGraph, toGroupedGraph } from './infograph.js'
 import { formatInfographByEdges, formatInfographByNodes } from './input/format.js'
 import { parseInfograph } from './input/index.js'
+import { applyEdits, parseEdits } from './edit.js'
 import {
     chronological,
     compareChronologicalBudgets,
@@ -29,7 +38,6 @@ import { edgeSpace, edgesWithVerb, keywordVocabulary } from './queries/inspect.j
 import { select, traverse, type EdgePredicate, type NodePredicate, type TextMatch } from './queries/select.js'
 import { complexity, importance, technicality, type BaseKeys } from './types.js'
 import { terseDate } from './terseDate.js'
-import type { number } from 'zod'
 
 const formats = ['json', 'yaml', 'native', 'plain'] as const
 type Format = (typeof formats)[number]
@@ -89,6 +97,25 @@ formatCommand
     .description('edges first')
     .addArgument(args.infograph)
     .action(file => emit(formatInfographByEdges(readInfograph(file))))
+
+const editCommand = program.command('edit').description('Apply constrained semantic edits to an infograph')
+editCommand
+    .command('apply')
+    .description('Apply a YAML/JSON operation list from an optional file or standard input')
+    .addArgument(args.infograph)
+    .addArgument(new Argument('[changefile]', 'YAML or JSON operation list; omit to read standard input'))
+    .option('--dry-run', 'validate and summarize without writing')
+    .action((file, changefile, options) => {
+        const edits = parseEdits(YAML.parse(readEditInput(changefile)))
+        const result = applyEdits(readInfograph(file), edits)
+        if (!options.dryRun) writeInfograph(file, result.infograph)
+        emit({
+            dryRun: Boolean(options.dryRun),
+            changes: result.changes,
+            nodeCount: result.nodeCount,
+            edgeCount: result.edgeCount,
+        })
+    })
 
 const skillCommand = program.command('skill').description('Locate or install the bundled agent skill')
 skillCommand
@@ -189,7 +216,9 @@ queryCommand
     .description('Filter edges')
     .action((file, options) => emit(edgesWithVerb(readInfograph(file), options.verb)))
 
-const selectCommand = queryCommand.command('select').description('Select graph nodes or edges with declarative predicates')
+const selectCommand = queryCommand
+    .command('select')
+    .description('Select graph nodes or edges with declarative predicates')
 const selectNodesCommand = addNodePredicateOptions(
     selectCommand.command('nodes').description('Select nodes').addArgument(args.infograph)
 )
@@ -211,7 +240,11 @@ const traverseCommand = queryCommand
     .addArgument(args.infograph)
     .requiredOption('--from <node-key>', 'root node key (repeatable)', collectString, [] as string[])
     .addOption(new Option('--direction <direction>', 'edge direction').choices(['in', 'out', 'both']).default('out'))
-    .addOption(new Option('--max-hops <number>', 'maximum number of edges from each root').default(1).argParser(parsePositiveInteger))
+    .addOption(
+        new Option('--max-hops <number>', 'maximum number of edges from each root')
+            .default(1)
+            .argParser(parsePositiveInteger)
+    )
     .option('--via <verb>', 'allow an edge verb at every hop (repeatable)', collectString, [] as string[])
 const configuredTraverseCommand = addNodePredicateOptions(traverseCommand)
 configuredTraverseCommand.action((file, options) => {
@@ -356,6 +389,21 @@ function readInfograph(file: string) {
     return parseInfograph(YAML.parse(readFileSync(file, 'utf8')))
 }
 
+function readEditInput(changefile: string | undefined) {
+    return readFileSync(changefile ?? 0, 'utf8')
+}
+
+function writeInfograph(file: string, infograph: ReturnType<typeof readInfograph>) {
+    const destination = resolve(file)
+    const temporary = `${destination}.${randomUUID()}.tmp`
+    try {
+        writeFileSync(temporary, asYaml(formatInfographByNodes(infograph)))
+        renameSync(temporary, destination)
+    } finally {
+        if (existsSync(temporary)) unlinkSync(temporary)
+    }
+}
+
 function getComplexityOptions(options: {
     simple?: number
     natural?: number
@@ -388,7 +436,8 @@ function parseDate(value: string) {
 
 function parsePositiveInteger(value: string) {
     const number = Number(value)
-    if (!Number.isInteger(number) || number < 1) throw new InvalidArgumentError(`Expected a positive integer, got '${value}'`)
+    if (!Number.isInteger(number) || number < 1)
+        throw new InvalidArgumentError(`Expected a positive integer, got '${value}'`)
     return number
 }
 
@@ -396,9 +445,11 @@ function collectString(value: string, previous: string[]) {
     return [...previous, value]
 }
 
-function addNodePredicateOptions<Args extends unknown[], Options extends OptionValues, GlobalOptions extends OptionValues>(
-    command: Command<Args, Options, GlobalOptions>
-) {
+function addNodePredicateOptions<
+    Args extends unknown[],
+    Options extends OptionValues,
+    GlobalOptions extends OptionValues,
+>(command: Command<Args, Options, GlobalOptions>) {
     return command
         .option('--key <node-key>', 'match an exact node key (repeatable)', collectString, [] as string[])
         .option('--kind <kind>', 'match a node kind (repeatable)', collectString, [] as string[])
@@ -409,19 +460,31 @@ function addNodePredicateOptions<Args extends unknown[], Options extends OptionV
         .option('--technicality <comparison>', 'compare technicality, e.g. =some', parseComparison)
         .option('--date-from <date>', 'match dates ending on or after this date', parseDate)
         .option('--date-to <date>', 'match dates starting on or before this date', parseDate)
-        .option('--match <field=literal>', 'case-insensitive text match in title, summary, or claim (repeatable)', collectMatch, [] as TextMatch[])
+        .option(
+            '--match <field=literal>',
+            'case-insensitive text match in title, summary, or claim (repeatable)',
+            collectMatch,
+            [] as TextMatch[]
+        )
 }
 
-function addEdgePredicateOptions<Args extends unknown[], Options extends OptionValues, GlobalOptions extends OptionValues>(
-    command: Command<Args, Options, GlobalOptions>
-) {
+function addEdgePredicateOptions<
+    Args extends unknown[],
+    Options extends OptionValues,
+    GlobalOptions extends OptionValues,
+>(command: Command<Args, Options, GlobalOptions>) {
     return command
         .option('--from <node-key>', 'match an exact source node key (repeatable)', collectString, [] as string[])
         .option('--to <node-key>', 'match an exact target node key (repeatable)', collectString, [] as string[])
         .option('--verb <verb>', 'match an edge verb (repeatable)', collectString, [] as string[])
         .option('--complexity <comparison>', 'compare complexity, e.g. <=natural', parseComparison)
         .option('--technicality <comparison>', 'compare technicality, e.g. =some', parseComparison)
-        .option('--match <literal>', 'case-insensitive match in edge claim content (repeatable)', collectEdgeMatch, [] as { value: string }[])
+        .option(
+            '--match <literal>',
+            'case-insensitive match in edge claim content (repeatable)',
+            collectEdgeMatch,
+            [] as { value: string }[]
+        )
 }
 
 function nodePredicate(infograph: ReturnType<typeof readInfograph>, options: Record<string, unknown>): NodePredicate {
@@ -462,7 +525,7 @@ function edgePredicate(infograph: ReturnType<typeof readInfograph>, options: Rec
 
 function stringOption(options: Record<string, unknown>, name: string): string[] {
     const value = options[name]
-    return Array.isArray(value) ? value as string[] : []
+    return Array.isArray(value) ? (value as string[]) : []
 }
 
 function dateRange(options: Record<string, unknown>) {
@@ -512,7 +575,8 @@ function verifyVocabulary(
     values: readonly string[]
 ) {
     for (const value of values) {
-        if (!Object.hasOwn(infograph.domain[vocabulary], value)) throw new InvalidArgumentError(`Unknown ${vocabulary}: ${value}`)
+        if (!Object.hasOwn(infograph.domain[vocabulary], value))
+            throw new InvalidArgumentError(`Unknown ${vocabulary}: ${value}`)
     }
 }
 

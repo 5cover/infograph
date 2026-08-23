@@ -25,6 +25,10 @@
       "types": "./dist/graph.d.ts",
       "import": "./dist/graph.js"
     },
+    "./edit": {
+      "types": "./dist/edit.d.ts",
+      "import": "./dist/edit.js"
+    },
     "./package.json": "./package.json"
   },
   "scripts": {

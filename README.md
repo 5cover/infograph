@@ -76,10 +76,10 @@ const groups = groupByKinds(infograph, ['project', 'task'], 'funnel')
 const selected = selectGroup(groups, ['project sponsorship', 'task test_flow_runtime_behavior'], 2)
 
 if (selected?.edges) {
-    const dot = renderEdgeGroup(infograph, selected.edges, {
-        centers: selected.centers,
-        format: 'graphviz',
-    })
+  const dot = renderEdgeGroup(infograph, selected.edges, {
+    centers: selected.centers,
+    format: 'graphviz',
+  })
 }
 ```
 
@@ -93,8 +93,8 @@ For LLM or programmatic investigation, use the read-only `select` and `traverse`
 import { select, traverse } from 'infograph/query'
 
 const decisions = select(infograph, {
-    target: 'nodes',
-    where: { kind: ['decision'], importance: { operator: '>=', value: 'major' } },
+  target: 'nodes',
+  where: { kind: ['decision'], importance: { operator: '>=', value: 'major' } },
 })
 const context = traverse(infograph, { from: ['decision adopt_api'], direction: 'both', maxHops: 2 })
 ```
@@ -109,6 +109,24 @@ infograph query traverse corpus.yaml --from 'decision adopt_api' --direction bot
 `select` supports exact identity, vocabulary, tags, sources, dates, ordinal ratings, and literal case-insensitive text matches. `traverse` performs a bounded breadth-first traversal. For custom joins, ranking, or report assembly, compose these public API results in TypeScript rather than placing JavaScript in CLI arguments.
 
 The package also ships an agent skill at `skills/infograph-query`. A global npm install makes it available on disk; install it for Codex explicitly with `infograph skill install --agent codex`, or use `infograph skill path` to integrate the same directory with another agent host.
+
+### Constrained editing
+
+Use `infograph/edit` to apply a short semantic operation list without exposing the full YAML document to an agent. The CLI reads an optional changefile or standard input, validates every operation before writing, and rewrites the file in canonical node-first YAML form:
+
+```sh
+infograph edit apply corpus.yaml --dry-run <<'PATCH'
+- add-claim:
+    node: decision adopt_api
+    claim:
+      fact: The API was adopted after validation.
+- add-tag:
+    node: decision adopt_api
+    tag: validation
+PATCH
+```
+
+Run the same command without `--dry-run` to write the result. Supported operations are `add-node`, `set-node`, `add-claim`, `add-tag`, `add-edge`, `remove-edge`, and `remove-node`. Every operation names exact node keys or an exact edge triple; `remove-node` also removes all incident edges. In `set-node`, omitted fields are unchanged, `null` removes an optional field, and empty `claim`, `source`, or `tag` arrays normalize to absence.
 
 The repository keeps the general method, domain conventions and implementation details separate:
 

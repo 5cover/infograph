@@ -138,10 +138,7 @@ const zExternalNodeRef = zNodeRef.refine(node => !(kdataNode in node), {
 const zOutgoing: z.ZodType<InputOutgoing<BaseKeys>> = z.looseRecord(
     zVerbKey,
     z
-        .record(
-            zNodeKey,
-            z.union([zNodeRef.and(zNode).and(z.lazy(() => zOutgoing)), zExternalNodeRef])
-        )
+        .record(zNodeKey, z.union([zNodeRef.and(zNode).and(z.lazy(() => zOutgoing)), zExternalNodeRef]))
         .describe('Outgoing edges.')
 )
 

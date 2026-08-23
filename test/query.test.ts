@@ -64,7 +64,10 @@ test('select applies declarative node and edge predicates', () => {
     })
     assert.equal(nodes.target, 'nodes')
     if (nodes.target !== 'nodes') throw new Error('Expected node selection')
-    assert.deepEqual(nodes.nodes.map(result => result.key), ['decision adopt_api'])
+    assert.deepEqual(
+        nodes.nodes.map(result => result.key),
+        ['decision adopt_api']
+    )
 
     const dated = select(infograph, {
         target: 'nodes',
@@ -72,12 +75,18 @@ test('select applies declarative node and edge predicates', () => {
     })
     assert.equal(dated.target, 'nodes')
     if (dated.target !== 'nodes') throw new Error('Expected node selection')
-    assert.deepEqual(dated.nodes.map(result => result.key), ['project alpha'])
+    assert.deepEqual(
+        dated.nodes.map(result => result.key),
+        ['project alpha']
+    )
 
     const edges = select(infograph, { target: 'edges', where: { verb: ['explains'] } })
     assert.equal(edges.target, 'edges')
     if (edges.target !== 'edges') throw new Error('Expected edge selection')
-    assert.deepEqual(edges.edges.map(edge => edge.from), ['project alpha', 'finding retry'])
+    assert.deepEqual(
+        edges.edges.map(edge => edge.from),
+        ['project alpha', 'finding retry']
+    )
 })
 
 test('traverse is bounded, breadth-first, and respects node and edge predicates', () => {
@@ -88,11 +97,14 @@ test('traverse is bounded, breadth-first, and respects node and edge predicates'
         maxHops: 2,
         edge: { verb: ['explains', 'uses'] },
     })
-    assert.deepEqual(result.nodes.map(node => [node.key, node.depth]), [
-        ['project alpha', 0],
-        ['decision adopt_api', 1],
-        ['finding retry', 2],
-    ])
+    assert.deepEqual(
+        result.nodes.map(node => [node.key, node.depth]),
+        [
+            ['project alpha', 0],
+            ['decision adopt_api', 1],
+            ['finding retry', 2],
+        ]
+    )
     assert.deepEqual(result.frontier, ['finding retry'])
 
     const filtered = traverse(infograph, {
@@ -101,6 +113,9 @@ test('traverse is bounded, breadth-first, and respects node and edge predicates'
         maxHops: 2,
         node: { kind: ['decision'] },
     })
-    assert.deepEqual(filtered.nodes.map(node => node.key), ['project alpha', 'decision adopt_api'])
+    assert.deepEqual(
+        filtered.nodes.map(node => node.key),
+        ['project alpha', 'decision adopt_api']
+    )
     assert.throws(() => traverse(infograph, { from: ['project alpha'], maxHops: 0 }), /positive integer/)
 })

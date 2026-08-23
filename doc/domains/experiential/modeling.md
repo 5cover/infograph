@@ -18,7 +18,7 @@ Use this file as the modeling reference in prompts. Use the yaml as the vocabula
 
 ## What the domain is for
 
-The domain assumes a first-person corpus: a journal, project artifacts, conversations, documentation. It is built to answer questions of the form *what happened, under what conditions, why did it go that way, what did I learn, and what can I show*.
+The domain assumes a first-person corpus: a journal, project artifacts, conversations, documentation. It is built to answer questions of the form _what happened, under what conditions, why did it go that way, what did I learn, and what can I show_.
 
 Three design commitments follow, and they explain most of the choices below.
 
@@ -75,12 +75,12 @@ Do not confuse "often written about in the sources" with "central". A journal ov
 
 How much technical background a reader needs, as a proportion of the understanding available to them:
 
-| Value | Meaning |
-| --- | --- |
-| `none` | No part of understanding requires technical knowledge. |
-| `some` | Most understanding requires none; some parts are conditioned by it. |
+| Value  | Meaning                                                                                     |
+| ------ | ------------------------------------------------------------------------------------------- |
+| `none` | No part of understanding requires technical knowledge.                                      |
+| `some` | Most understanding requires none; some parts are conditioned by it.                         |
 | `most` | Most understanding is conditioned by technical knowledge, but an accessible framing exists. |
-| `all` | No part can be conveyed without technical grounding. |
+| `all`  | No part can be conveyed without technical grounding.                                        |
 
 `technicality` and `complexity` are independent axes and must not leak into each other. `complexity` asks how hard this is to explain; `technicality` asks how much background the reader needs. A discovered behavior can be trivial to state and useless to a non-technical reader; a business lifecycle can be intertwined to explain and perfectly accessible.
 
@@ -107,11 +107,11 @@ Which source establishes the element, with a `why` pointing at the specific entr
 
 Ask what kind of statement it is.
 
-- *How does this actually behave?* → `finding`
-- *What condition am I working under?* → `constraint`
-- *Why is it like this?* → `model`
+- _How does this actually behave?_ → `finding`
+- _What condition am I working under?_ → `constraint`
+- _Why is it like this?_ → `model`
 
-Worked example. *Saving a flow in the legacy designer removes an explicitly configured retry policy* is a finding. *Flows must be edited through tools that are not round-trip safe* is a constraint. *A visual designer is not a sufficient source of truth because the platform layers lifecycle semantics under a consumer interface* is a model.
+Worked example. _Saving a flow in the legacy designer removes an explicitly configured retry policy_ is a finding. _Flows must be edited through tools that are not round-trip safe_ is a constraint. _A visual designer is not a sufficient source of truth because the platform layers lifecycle semantics under a consumer interface_ is a model.
 
 A finding states behavior. Keep the appraisal of that behavior in `claim: opinion`, and the general reading in a `model`. This is what stops a corpus full of platform frustrations from turning the graph into a pamphlet.
 
@@ -123,8 +123,8 @@ This is the guard against a pitfall catalogue. A corpus can easily contain a hun
 
 ### `learning` vs `skill`
 
-- *What changed in me?* → `learning`
-- *What capability, independent of me, can be referenced, required or developed?* → `skill`
+- _What changed in me?_ → `learning`
+- _What capability, independent of me, can be referenced, required or developed?_ → `skill`
 
 `learning` is the change of acquiring or refining a capability; `skill` is the capability itself, as a reusable thing that several parts of the graph can point at (`requires`, `uses`, `contributes`, `involves`). A skill node does not imply that ownership needs its own edge for every actor who has it: only add one when it matters. When a capability is only ever discussed as something the author personally gained, it can stay a `learning`; give it a `skill` node once something else in the graph needs to require, use or develop it independently of that one progression.
 
@@ -192,7 +192,7 @@ Use `involves` when the source inherently concerns the target: the target is a s
 
 The same situation may legitimately use both when they express different aspects. Many situations need only one: `project sponsorship involves actor secretariat_general` holds even though that body does not take part in implementation.
 
-Rule of thumb: *who does this concern?* → `involves`. *What did this actor take part in?* → `participates`.
+Rule of thumb: _who does this concern?_ → `involves`. _What did this actor take part in?_ → `participates`.
 
 ### `explains` vs `illustrates`
 
@@ -203,7 +203,7 @@ These connect the same kinds but encode opposite directions of reasoning. A phen
 
 Do not assign both to the same pair merely because they are strongly related.
 
-Rule of thumb: *why did this happen or become relevant?* → `explains`. *what concrete case makes this visible?* → `illustrates`.
+Rule of thumb: _why did this happen or become relevant?_ → `explains`. _what concrete case makes this visible?_ → `illustrates`.
 
 ### `contains` vs `uses`
 
@@ -214,7 +214,7 @@ Composition versus dependency. A target may be essential without being a constit
 
 Do not use `contains` to group merely related concepts. Do not use `uses` when the target is work or structure that belongs inside the source.
 
-Rule of thumb: *is the target part of what the source is made of?* → `contains`. *does the source depend on something that stays external?* → `uses`.
+Rule of thumb: _is the target part of what the source is made of?_ → `contains`. _does the source depend on something that stays external?_ → `uses`.
 
 ### `claim: hypothesis` vs a `model` node
 
@@ -252,7 +252,7 @@ An entity earns an `actor` node when its participation, stakeholder role, decisi
 - `actor antoine` is justified: he specifies the need, tests the system, leads a demo, and appears across several elements.
 - A colleague named once as the sender of a message does not need a node.
 
-Rule of thumb: *would this entity support meaningful edges or repeated attribution?* → node. *is the name only useful inside this one statement?* → prose.
+Rule of thumb: _would this entity support meaningful edges or repeated attribution?_ → node. _is the name only useful inside this one statement?_ → prose.
 
 ### node vs claim or prose
 
@@ -263,7 +263,7 @@ Create a node when a concept has stable identity: it can support several relatio
 
 Do not create nodes because a noun phrase can be extracted from a sentence. Do not overload one node with a concept that has acquired its own relations.
 
-Rule of thumb: *could I meaningfully navigate to this and connect it elsewhere?* → node. *does this only help explain the current element?* → claim or prose.
+Rule of thumb: _could I meaningfully navigate to this and connect it elsewhere?_ → node. _does this only help explain the current element?_ → claim or prose.
 
 ### claims within a node
 
@@ -284,7 +284,7 @@ The activities that a planning would show — learning, exploration, skill build
 Two cases that look like periods but are not tasks:
 
 - A stretch of time whose significance is entirely at its boundaries is an `event`, even if it spans months.
-- A period during which the project was in a state that shaped the available work is a `constraint`. *The project is in requirements analysis, so no development work is available* is a condition, not an activity.
+- A period during which the project was in a state that shaped the available work is a `constraint`. _The project is in requirements analysis, so no development work is available_ is a condition, not an activity.
 
 ### Node keys: Avoid generic labels, favor diverging kind
 
@@ -378,7 +378,7 @@ Some distinctions are real and recurring but belong to a projection, a claim, or
 
 **Projection concepts.** Report chapters, presentation sections, SWOT quadrants, planning charts, STAR stages, competence referentials. These are query-time classifications and report-plan metadata, not kinds.
 
-SWOT deserves a specific note, because it is the most tempting. Quadrant membership is not a property of a thing: it is a property of a *(thing, subject, valence)* tuple. One organizational change can be a threat to a team's mission, an opportunity for cost control, and a weakness in knowledge retention at the same time. Encoding it as a kind forces one reading and destroys the others, and duplicates a node that already exists as a `constraint`, `problem` or `event`. Keep one node per real thing, carry valence in `importance` and `claim: opinion`, and assign quadrants in the report plan.
+SWOT deserves a specific note, because it is the most tempting. Quadrant membership is not a property of a thing: it is a property of a _(thing, subject, valence)_ tuple. One organizational change can be a threat to a team's mission, an opportunity for cost control, and a weakness in knowledge retention at the same time. Encoding it as a kind forces one reading and destroys the others, and duplicates a node that already exists as a `constraint`, `problem` or `event`. Keep one node per real thing, carry valence in `importance` and `claim: opinion`, and assign quadrants in the report plan.
 
 The same argument covers a `strength` or `weakness` kind: a weakness of an organization is a `problem` or a `constraint`, with a better name and existing relations.
 

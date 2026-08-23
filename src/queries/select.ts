@@ -47,8 +47,7 @@ export type EdgePredicate<Keys extends BaseKeys = BaseKeys> = {
 }
 
 export type SelectQuery<Keys extends BaseKeys = BaseKeys> =
-    | { target: 'nodes'; where?: NodePredicate<Keys> }
-    | { target: 'edges'; where?: EdgePredicate<Keys> }
+    { target: 'nodes'; where?: NodePredicate<Keys> } | { target: 'edges'; where?: EdgePredicate<Keys> }
 
 export type NodeSelection<Keys extends BaseKeys = BaseKeys> = {
     target: 'nodes'
@@ -79,7 +78,10 @@ export type TraversalResult<Keys extends BaseKeys = BaseKeys> = {
     frontier: InfographNodeKey<Keys>[]
 }
 
-export function select<Keys extends BaseKeys>(infograph: Infograph<Keys>, query: SelectQuery<Keys>): SelectionResult<Keys> {
+export function select<Keys extends BaseKeys>(
+    infograph: Infograph<Keys>,
+    query: SelectQuery<Keys>
+): SelectionResult<Keys> {
     if (query.target === 'nodes') {
         return {
             target: 'nodes',
@@ -92,7 +94,10 @@ export function select<Keys extends BaseKeys>(infograph: Infograph<Keys>, query:
 }
 
 /** Breadth-first traversal with deterministic canonical edge and node order. */
-export function traverse<Keys extends BaseKeys>(infograph: Infograph<Keys>, query: TraverseQuery<Keys>): TraversalResult<Keys> {
+export function traverse<Keys extends BaseKeys>(
+    infograph: Infograph<Keys>,
+    query: TraverseQuery<Keys>
+): TraversalResult<Keys> {
     const maxHops = query.maxHops ?? 1
     if (!Number.isInteger(maxHops) || maxHops < 1) throw new RangeError('maxHops must be a positive integer')
     if (query.from.length === 0) throw new RangeError('from must contain at least one node key')
@@ -151,9 +156,20 @@ function matchesNode<Keys extends BaseKeys>(
 ): boolean {
     if (predicate === undefined) return true
     if (predicate.key !== undefined && predicate.key.length > 0 && !predicate.key.includes(key)) return false
-    if (predicate.kind !== undefined && predicate.kind.length > 0 && !predicate.kind.includes(nodeKind(key) as Keys['kind'])) return false
-    if (predicate.tag !== undefined && predicate.tag.length > 0 && !predicate.tag.some(tag => node.tag?.includes(tag))) return false
-    if (predicate.source !== undefined && predicate.source.length > 0 && !predicate.source.some(source => node.source?.some(reason => reason.is === source))) return false
+    if (
+        predicate.kind !== undefined &&
+        predicate.kind.length > 0 &&
+        !predicate.kind.includes(nodeKind(key) as Keys['kind'])
+    )
+        return false
+    if (predicate.tag !== undefined && predicate.tag.length > 0 && !predicate.tag.some(tag => node.tag?.includes(tag)))
+        return false
+    if (
+        predicate.source !== undefined &&
+        predicate.source.length > 0 &&
+        !predicate.source.some(source => node.source?.some(reason => reason.is === source))
+    )
+        return false
     if (!matchesLevel(node.importance?.is, predicate.importance, importance)) return false
     if (!matchesLevel(node.complexity.is, predicate.complexity, complexity)) return false
     if (!matchesLevel(node.technicality?.is, predicate.technicality, technicality)) return false
@@ -161,14 +177,21 @@ function matchesNode<Keys extends BaseKeys>(
     return predicate.match?.every(match => matchesText(node, match)) ?? true
 }
 
-function matchesEdge<Keys extends BaseKeys>(edge: InfographEdge<Keys>, predicate: EdgePredicate<Keys> | undefined): boolean {
+function matchesEdge<Keys extends BaseKeys>(
+    edge: InfographEdge<Keys>,
+    predicate: EdgePredicate<Keys> | undefined
+): boolean {
     if (predicate === undefined) return true
     if (predicate.from !== undefined && predicate.from.length > 0 && !predicate.from.includes(edge.from)) return false
     if (predicate.to !== undefined && predicate.to.length > 0 && !predicate.to.includes(edge.to)) return false
     if (predicate.verb !== undefined && predicate.verb.length > 0 && !predicate.verb.includes(edge.verb)) return false
     if (!matchesLevel(edge.info.complexity.is, predicate.complexity, complexity)) return false
     if (!matchesLevel(edge.info.technicality?.is, predicate.technicality, technicality)) return false
-    return predicate.match?.every(match => contains(edge.info.claim?.map(claim => claim.content).join('\n'), match.value)) ?? true
+    return (
+        predicate.match?.every(match =>
+            contains(edge.info.claim?.map(claim => claim.content).join('\n'), match.value)
+        ) ?? true
+    )
 }
 
 function matchesText(node: InfographNode, match: TextMatch): boolean {
@@ -187,7 +210,11 @@ function matchesDate(date: InfographDate | undefined, range: DateRange | undefin
     return (range.from === undefined || date.to >= range.from) && (range.to === undefined || date.from <= range.to)
 }
 
-function matchesLevel<T extends string>(value: T | undefined, comparison: LevelComparison<T> | undefined, levels: readonly T[]): boolean {
+function matchesLevel<T extends string>(
+    value: T | undefined,
+    comparison: LevelComparison<T> | undefined,
+    levels: readonly T[]
+): boolean {
     if (comparison === undefined) return true
     if (!levels.includes(comparison.value)) throw new RangeError(`Unknown comparison level: ${comparison.value}`)
     if (value === undefined) return comparison.operator === '!='

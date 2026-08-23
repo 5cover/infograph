@@ -12,12 +12,12 @@ import { select, traverse } from 'infograph/query'
 
 const graph = parseInfograph(YAML.parse(readFileSync(process.argv[2]!, 'utf8')))
 const decisions = select(graph, {
-    target: 'nodes',
-    where: { kind: ['decision'], match: [{ field: 'claim', value: 'validation' }] },
+  target: 'nodes',
+  where: { kind: ['decision'], match: [{ field: 'claim', value: 'validation' }] },
 })
 
-const context = decisions.nodes.flatMap(({ key }) =>
-    traverse(graph, { from: [key], direction: 'both', maxHops: 2 }).nodes
+const context = decisions.nodes.flatMap(
+  ({ key }) => traverse(graph, { from: [key], direction: 'both', maxHops: 2 }).nodes
 )
 console.log(JSON.stringify({ decisions, context }, null, 2))
 ```

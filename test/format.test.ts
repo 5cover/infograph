@@ -3,8 +3,8 @@ import test from 'node:test'
 import * as YAML from 'yaml'
 import { formatInfographByNodes } from '../src/input/format.js'
 import { parseInfograph } from '../src/input/index.js'
-import type {  Infograph, InfographNodeKey } from '../src/types.js'
-import { unparseEdgeKey } from '../src/infograph.js';
+import type { Infograph, InfographNodeKey } from '../src/types.js'
+import { unparseEdgeKey } from '../src/infograph.js'
 
 type Keys = {
     node: string
@@ -168,10 +168,7 @@ test('formatted infograph parses back to an equivalent graph', () => {
     const parsed = parseInfograph(formatInfographByNodes(infograph()))
 
     assert.deepEqual([...parsed.nodes.keys()].sort(), [...infograph().nodes.keys()].sort())
-    assert.deepEqual(
-        parsed.edges.map(unparseEdgeKey),
-        infograph().edges.map(unparseEdgeKey)
-    )
+    assert.deepEqual(parsed.edges.map(unparseEdgeKey), infograph().edges.map(unparseEdgeKey))
 })
 
 test('throws when duplicate canonical edges cannot be represented in input objects', () => {

@@ -15,11 +15,7 @@
           "$ref": "#/definitions/__schema3"
         }
       },
-      "required": [
-        "title",
-        "context",
-        "author"
-      ],
+      "required": ["title", "context", "author"],
       "description": "Infograph metadata.",
       "additionalProperties": false
     },
@@ -36,11 +32,7 @@
           "$ref": "#/definitions/__schema9"
         }
       },
-      "required": [
-        "kind",
-        "verb",
-        "source"
-      ],
+      "required": ["kind", "verb", "source"],
       "description": "Definitions of the infograph's vocabulary.",
       "additionalProperties": false
     },
@@ -63,10 +55,7 @@
       ]
     }
   },
-  "required": [
-    "domain",
-    "nodes"
-  ],
+  "required": ["domain", "nodes"],
   "additionalProperties": false,
   "definitions": {
     "__schema0": {
@@ -126,9 +115,7 @@
               ]
             }
           },
-          "required": [
-            "desc"
-          ],
+          "required": ["desc"],
           "additionalProperties": false
         },
         {
@@ -230,10 +217,7 @@
                   "$ref": "#/definitions/__schema30"
                 }
               },
-              "required": [
-                "is",
-                "why"
-              ],
+              "required": ["is", "why"],
               "description": "Estimated explanation cost of this node. Note: this refers to explanation complexity, not node complexity. A node may refer to a very complex task and remain reasonably simple to explain.",
               "additionalProperties": false
             },
@@ -262,16 +246,11 @@
               ]
             }
           },
-          "required": [
-            "title",
-            "complexity"
-          ],
+          "required": ["title", "complexity"],
           "additionalProperties": false
         }
       },
-      "required": [
-        "info"
-      ],
+      "required": ["info"],
       "additionalProperties": {}
     },
     "__schema13": {
@@ -290,9 +269,7 @@
           "additionalProperties": {
             "$ref": "#/definitions/__schema1"
           },
-          "required": [
-            "fact"
-          ],
+          "required": ["fact"],
           "description": "affirmation held to be true in the infographic, because observed or sufficiently supported by sources. It can include a reasonable inference, without imposing an additional distinction."
         },
         {
@@ -303,9 +280,7 @@
           "additionalProperties": {
             "$ref": "#/definitions/__schema1"
           },
-          "required": [
-            "hypothesis"
-          ],
+          "required": ["hypothesis"],
           "description": "possible explanation whose sources do not yet allow establishing the truth."
         },
         {
@@ -316,9 +291,7 @@
           "additionalProperties": {
             "$ref": "#/definitions/__schema1"
           },
-          "required": [
-            "opinion"
-          ],
+          "required": ["opinion"],
           "description": "judgment, appreciation, preference or position of the author. It is not intended to become true or false by accumulation of evidence."
         },
         {
@@ -329,9 +302,7 @@
           "additionalProperties": {
             "$ref": "#/definitions/__schema1"
           },
-          "required": [
-            "counterfactual"
-          ],
+          "required": ["counterfactual"],
           "description": "affirmation about what could have, should have, or might occur in a different situation."
         },
         {
@@ -342,9 +313,7 @@
           "additionalProperties": {
             "$ref": "#/definitions/__schema1"
           },
-          "required": [
-            "option"
-          ],
+          "required": ["option"],
           "description": "alternative that was genuinely considered in the context of the node, at the time. Distinct from counterfactual: an option was actually on the table, not reasoning about changed circumstances."
         }
       ]
@@ -381,10 +350,7 @@
               "$ref": "#/definitions/__schema21"
             }
           },
-          "required": [
-            "from",
-            "to"
-          ],
+          "required": ["from", "to"],
           "additionalProperties": false
         },
         {
@@ -406,12 +372,7 @@
       "properties": {
         "is": {
           "type": "string",
-          "enum": [
-            "minor",
-            "useful",
-            "major",
-            "central"
-          ],
+          "enum": ["minor", "useful", "major", "central"],
           "description": "Selected value."
         },
         "why": {
@@ -426,10 +387,7 @@
           "description": "Justification for selecting this value. Why choose this value and not another. Retraces author intent."
         }
       },
-      "required": [
-        "is",
-        "why"
-      ],
+      "required": ["is", "why"],
       "additionalProperties": false
     },
     "__schema23": {
@@ -524,10 +482,7 @@
           "description": "Justification for selecting this value. Why choose this value and not another. Retraces author intent."
         }
       },
-      "required": [
-        "is",
-        "why"
-      ],
+      "required": ["is", "why"],
       "additionalProperties": false
     },
     "__schema33": {
@@ -610,10 +565,7 @@
           "description": "Justification for selecting this value. Why choose this value and not another. Retraces author intent."
         }
       },
-      "required": [
-        "is",
-        "why"
-      ],
+      "required": ["is", "why"],
       "additionalProperties": false
     },
     "__schema41": {
@@ -687,9 +639,7 @@
           "$ref": "#/definitions/__schema46"
         }
       },
-      "required": [
-        "with"
-      ],
+      "required": ["with"],
       "additionalProperties": {
         "$ref": "#/definitions/__schema55"
       }
@@ -725,10 +675,7 @@
           "description": "Justification for selecting this value. Why choose this value and not another. Retraces author intent."
         }
       },
-      "required": [
-        "is",
-        "why"
-      ],
+      "required": ["is", "why"],
       "additionalProperties": false
     },
     "__schema48": {
@@ -769,10 +716,7 @@
           "description": "Justification for selecting this value. Why choose this value and not another. Retraces author intent."
         }
       },
-      "required": [
-        "is",
-        "why"
-      ],
+      "required": ["is", "why"],
       "additionalProperties": false
     },
     "__schema51": {
@@ -809,9 +753,7 @@
           "$ref": "#/definitions/__schema52"
         }
       },
-      "required": [
-        "complexity"
-      ],
+      "required": ["complexity"],
       "additionalProperties": false
     },
     "__schema55": {},

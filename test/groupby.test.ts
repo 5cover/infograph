@@ -116,7 +116,10 @@ test('nearest-site partition assigns every reachable edge once and minimizes the
     const sites: Node[] = ['project south', 'project north']
     const partition = partitionBySites(infograph, { inputSites: sites })
     const repeated = partitionBySites(infograph, { inputSites: sites.toReversed() })
-    const assigned = partition.groups.values().flatMap(edges => edges.keys().toArray()).toArray()
+    const assigned = partition.groups
+        .values()
+        .flatMap(edges => edges.keys().toArray())
+        .toArray()
 
     assert.deepEqual(partition, repeated)
     assert.equal(new Set(assigned).size, assigned.length)
