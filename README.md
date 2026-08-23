@@ -85,6 +85,31 @@ if (selected?.edges) {
 
 Use `infograph/input`, `infograph/model`, `infograph/query`, and `infograph/graph` for focused imports. The root entry re-exports the supported operations. Canonical graphs and grouping results intentionally use `Map`; applications that need a JSON wire representation can serialize them according to their own requirements.
 
+### Generic graph retrieval
+
+For LLM or programmatic investigation, use the read-only `select` and `traverse` APIs. They use deterministic, serializable predicates instead of executing JavaScript supplied to the CLI:
+
+```ts
+import { select, traverse } from 'infograph/query'
+
+const decisions = select(infograph, {
+    target: 'nodes',
+    where: { kind: ['decision'], importance: { operator: '>=', value: 'major' } },
+})
+const context = traverse(infograph, { from: ['decision adopt_api'], direction: 'both', maxHops: 2 })
+```
+
+The corresponding CLI keeps YAML as the default output syntax:
+
+```sh
+infograph query select nodes corpus.yaml --kind decision --importance '>=major'
+infograph query traverse corpus.yaml --from 'decision adopt_api' --direction both --max-hops 2
+```
+
+`select` supports exact identity, vocabulary, tags, sources, dates, ordinal ratings, and literal case-insensitive text matches. `traverse` performs a bounded breadth-first traversal. For custom joins, ranking, or report assembly, compose these public API results in TypeScript rather than placing JavaScript in CLI arguments.
+
+The package also ships an agent skill at `skills/infograph-query`. A global npm install makes it available on disk; install it for Codex explicitly with `infograph skill install --agent codex`, or use `infograph skill path` to integrate the same directory with another agent host.
+
 The repository keeps the general method, domain conventions and implementation details separate:
 
 ### Modeling and domain guidance

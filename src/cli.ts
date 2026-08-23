@@ -1,5 +1,8 @@
-import { Argument, InvalidArgumentError, Option, program } from '@commander-js/extra-typings'
-import { readFileSync } from 'node:fs'
+import { Argument, Command, InvalidArgumentError, Option, type OptionValues, program } from '@commander-js/extra-typings'
+import { cpSync, existsSync, mkdirSync, readFileSync } from 'node:fs'
+import { homedir } from 'node:os'
+import { resolve } from 'node:path'
+import { fileURLToPath } from 'node:url'
 import { inspect } from 'node:util'
 import * as YAML from 'yaml'
 import { toGraph, toGroupedGraph } from './infograph.js'
@@ -23,7 +26,8 @@ import {
 import { metrics } from './queries/metrics.js'
 import { cyclicComponents } from './queries/scc.js'
 import { edgeSpace, edgesWithVerb, keywordVocabulary } from './queries/inspect.js'
-import type { BaseKeys } from './types.js'
+import { select, traverse, type EdgePredicate, type NodePredicate, type TextMatch } from './queries/select.js'
+import { complexity, importance, technicality, type BaseKeys } from './types.js'
 import { terseDate } from './terseDate.js'
 import type { number } from 'zod'
 
@@ -85,6 +89,25 @@ formatCommand
     .description('edges first')
     .addArgument(args.infograph)
     .action(file => emit(formatInfographByEdges(readInfograph(file))))
+
+const skillCommand = program.command('skill').description('Locate or install the bundled agent skill')
+skillCommand
+    .command('path')
+    .description('Print the bundled Infograph query skill directory')
+    .action(() => emit({ path: bundledSkillPath() }))
+skillCommand
+    .command('install')
+    .description('Install the bundled skill into an agent skill directory')
+    .addOption(new Option('--agent <agent>', 'agent skill convention').choices(['codex']).default('codex'))
+    .option('--path <directory>', 'parent directory for installed skills')
+    .action(options => {
+        const parent = options.path ?? resolve(process.env.CODEX_HOME ?? resolve(homedir(), '.codex'), 'skills')
+        const destination = resolve(parent, 'infograph-query')
+        if (existsSync(destination)) throw new InvalidArgumentError(`Skill already exists: ${destination}`)
+        mkdirSync(parent, { recursive: true })
+        cpSync(bundledSkillPath(), destination, { recursive: true, force: false, errorOnExist: true })
+        emit({ installed: destination })
+    })
 
 const queryCommand = program.command('query').description('run a query on the infograph')
 const chronologicalCmd = queryCommand
@@ -165,6 +188,48 @@ queryCommand
     .addArgument(args.infograph)
     .description('Filter edges')
     .action((file, options) => emit(edgesWithVerb(readInfograph(file), options.verb)))
+
+const selectCommand = queryCommand.command('select').description('Select graph nodes or edges with declarative predicates')
+const selectNodesCommand = addNodePredicateOptions(
+    selectCommand.command('nodes').description('Select nodes').addArgument(args.infograph)
+)
+selectNodesCommand.action((file, options) => {
+    const infograph = readInfograph(file)
+    emit(select(infograph, { target: 'nodes', where: nodePredicate(infograph, options) }))
+})
+const selectEdgesCommand = addEdgePredicateOptions(
+    selectCommand.command('edges').description('Select edges').addArgument(args.infograph)
+)
+selectEdgesCommand.action((file, options) => {
+    const infograph = readInfograph(file)
+    emit(select(infograph, { target: 'edges', where: edgePredicate(infograph, options) }))
+})
+
+const traverseCommand = queryCommand
+    .command('traverse')
+    .description('Traverse from one or more nodes through a bounded neighborhood')
+    .addArgument(args.infograph)
+    .requiredOption('--from <node-key>', 'root node key (repeatable)', collectString, [] as string[])
+    .addOption(new Option('--direction <direction>', 'edge direction').choices(['in', 'out', 'both']).default('out'))
+    .addOption(new Option('--max-hops <number>', 'maximum number of edges from each root').default(1).argParser(parsePositiveInteger))
+    .option('--via <verb>', 'allow an edge verb at every hop (repeatable)', collectString, [] as string[])
+const configuredTraverseCommand = addNodePredicateOptions(traverseCommand)
+configuredTraverseCommand.action((file, options) => {
+    const infograph = readInfograph(file)
+    const from = options.from as string[]
+    for (const key of from) verifyNodeKey(infograph, key)
+    const verbs = options.via as string[]
+    verifyVocabulary(infograph, 'verb', verbs)
+    emit(
+        traverse(infograph, {
+            from: from as never,
+            direction: options.direction,
+            maxHops: options.maxHops,
+            node: nodePredicate(infograph, options),
+            edge: verbs.length === 0 ? undefined : { verb: verbs },
+        })
+    )
+})
 
 queryCommand
     .command('groupby')
@@ -319,4 +384,142 @@ function parseDate(value: string) {
     const date = new Date(value)
     if (Number.isNaN(date.valueOf())) throw new InvalidArgumentError(`Expected a date, got '${value}'`)
     return date
+}
+
+function parsePositiveInteger(value: string) {
+    const number = Number(value)
+    if (!Number.isInteger(number) || number < 1) throw new InvalidArgumentError(`Expected a positive integer, got '${value}'`)
+    return number
+}
+
+function collectString(value: string, previous: string[]) {
+    return [...previous, value]
+}
+
+function addNodePredicateOptions<Args extends unknown[], Options extends OptionValues, GlobalOptions extends OptionValues>(
+    command: Command<Args, Options, GlobalOptions>
+) {
+    return command
+        .option('--key <node-key>', 'match an exact node key (repeatable)', collectString, [] as string[])
+        .option('--kind <kind>', 'match a node kind (repeatable)', collectString, [] as string[])
+        .option('--tag <tag>', 'match any node tag (repeatable)', collectString, [] as string[])
+        .option('--source <source>', 'match any node source (repeatable)', collectString, [] as string[])
+        .option('--importance <comparison>', 'compare importance, e.g. >=major', parseComparison)
+        .option('--complexity <comparison>', 'compare complexity, e.g. <=natural', parseComparison)
+        .option('--technicality <comparison>', 'compare technicality, e.g. =some', parseComparison)
+        .option('--date-from <date>', 'match dates ending on or after this date', parseDate)
+        .option('--date-to <date>', 'match dates starting on or before this date', parseDate)
+        .option('--match <field=literal>', 'case-insensitive text match in title, summary, or claim (repeatable)', collectMatch, [] as TextMatch[])
+}
+
+function addEdgePredicateOptions<Args extends unknown[], Options extends OptionValues, GlobalOptions extends OptionValues>(
+    command: Command<Args, Options, GlobalOptions>
+) {
+    return command
+        .option('--from <node-key>', 'match an exact source node key (repeatable)', collectString, [] as string[])
+        .option('--to <node-key>', 'match an exact target node key (repeatable)', collectString, [] as string[])
+        .option('--verb <verb>', 'match an edge verb (repeatable)', collectString, [] as string[])
+        .option('--complexity <comparison>', 'compare complexity, e.g. <=natural', parseComparison)
+        .option('--technicality <comparison>', 'compare technicality, e.g. =some', parseComparison)
+        .option('--match <literal>', 'case-insensitive match in edge claim content (repeatable)', collectEdgeMatch, [] as { value: string }[])
+}
+
+function nodePredicate(infograph: ReturnType<typeof readInfograph>, options: Record<string, unknown>): NodePredicate {
+    const keys = stringOption(options, 'key')
+    for (const key of keys) verifyNodeKey(infograph, key)
+    const kinds = stringOption(options, 'kind')
+    const sources = stringOption(options, 'source')
+    verifyVocabulary(infograph, 'kind', kinds)
+    verifyVocabulary(infograph, 'source', sources)
+    return {
+        key: keys as never,
+        kind: kinds as never,
+        tag: stringOption(options, 'tag'),
+        source: sources as never,
+        importance: levelComparison(options, 'importance', importance),
+        complexity: levelComparison(options, 'complexity', complexity),
+        technicality: levelComparison(options, 'technicality', technicality),
+        date: dateRange(options),
+        match: options.match as TextMatch[],
+    }
+}
+
+function edgePredicate(infograph: ReturnType<typeof readInfograph>, options: Record<string, unknown>): EdgePredicate {
+    const from = stringOption(options, 'from')
+    const to = stringOption(options, 'to')
+    const verbs = stringOption(options, 'verb')
+    for (const key of [...from, ...to]) verifyNodeKey(infograph, key)
+    verifyVocabulary(infograph, 'verb', verbs)
+    return {
+        from: from as never,
+        to: to as never,
+        verb: verbs as never,
+        complexity: levelComparison(options, 'complexity', complexity),
+        technicality: levelComparison(options, 'technicality', technicality),
+        match: options.match as { value: string }[],
+    }
+}
+
+function stringOption(options: Record<string, unknown>, name: string): string[] {
+    const value = options[name]
+    return Array.isArray(value) ? value as string[] : []
+}
+
+function dateRange(options: Record<string, unknown>) {
+    const from = options.dateFrom as Date | undefined
+    const to = options.dateTo as Date | undefined
+    if (from !== undefined && to !== undefined && from > to) {
+        throw new InvalidArgumentError('--date-from must not be after --date-to')
+    }
+    return from === undefined && to === undefined ? undefined : { from, to }
+}
+
+function parseComparison(value: string) {
+    const match = /^(=|!=|<=|>=|<|>)([a-z]+)$/.exec(value)
+    if (match === null) throw new InvalidArgumentError(`Expected a comparison such as '>=major', got '${value}'`)
+    return { operator: match[1], value: match[2] }
+}
+
+function levelComparison<T extends string>(options: Record<string, unknown>, name: string, values: readonly T[]) {
+    const comparison = options[name] as { operator: string; value: string } | undefined
+    if (comparison === undefined) return undefined
+    if (!values.includes(comparison.value as T)) {
+        throw new InvalidArgumentError(`Expected ${name} level (${values.join(', ')}), got '${comparison.value}'`)
+    }
+    return comparison as { operator: '=' | '!=' | '<' | '<=' | '>' | '>='; value: T }
+}
+
+function collectMatch(value: string, previous: TextMatch[]) {
+    const separator = value.indexOf('=')
+    if (separator < 1 || separator === value.length - 1) {
+        throw new InvalidArgumentError(`Expected a text match such as 'title=decision', got '${value}'`)
+    }
+    const field = value.slice(0, separator)
+    if (field !== 'title' && field !== 'summary' && field !== 'claim') {
+        throw new InvalidArgumentError(`Unknown text field '${field}' (expected title, summary, or claim)`)
+    }
+    return [...previous, { field: field as TextMatch['field'], value: value.slice(separator + 1) }]
+}
+
+function collectEdgeMatch(value: string, previous: { value: string }[]) {
+    if (value.length === 0) throw new InvalidArgumentError('Edge text match cannot be empty')
+    return [...previous, { value }]
+}
+
+function verifyVocabulary(
+    infograph: ReturnType<typeof readInfograph>,
+    vocabulary: 'kind' | 'verb' | 'source',
+    values: readonly string[]
+) {
+    for (const value of values) {
+        if (!Object.hasOwn(infograph.domain[vocabulary], value)) throw new InvalidArgumentError(`Unknown ${vocabulary}: ${value}`)
+    }
+}
+
+function verifyNodeKey(infograph: ReturnType<typeof readInfograph>, key: string) {
+    if (!infograph.nodes.has(key as never)) throw new InvalidArgumentError(`Unknown node key: ${key}`)
+}
+
+function bundledSkillPath() {
+    return fileURLToPath(new URL('../skills/infograph-query/', import.meta.url))
 }

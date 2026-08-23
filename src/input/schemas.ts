@@ -12,7 +12,8 @@ import {
 import { kdataEdge, kdataNode, type InputOutgoing, type InputInfograph } from './types.js'
 
 const slugPattern = '(-|[a-z0-9]+(_[a-z0-9]+)*)'
-export const verbPattern = new RegExp(`^(?!${RegExp.escape(kdataEdge)}$|${RegExp.escape(kdataNode)}$)${slugPattern}$`)
+const escapeRegex = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+export const verbPattern = new RegExp(`^(?!${escapeRegex(kdataEdge)}$|${escapeRegex(kdataNode)}$)${slugPattern}$`)
 const zSlug = z.string().regex(new RegExp(`^${slugPattern}$`))
 const zKindKey = zSlug
 const zNodeId = zSlug

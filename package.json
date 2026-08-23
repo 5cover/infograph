@@ -51,7 +51,8 @@
     "typescript": "^6.0.3"
   },
   "files": [
-    "dist"
+    "dist",
+    "skills"
   ],
   "prettier": {
     "printWidth": 120,
