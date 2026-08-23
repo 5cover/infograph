@@ -46,7 +46,6 @@ domain:
       desc: Dated AI conversation export in which the author works through a subject.
     url:
       desc: specific url (put url in why)
-
   kind:
     project:
       desc: |
@@ -147,7 +146,7 @@ domain:
         A person, team, support group, role or institution involved in the situation.
         Some constraints and decisions are organizational. Keeping actors explicit avoids hiding social and project context in prose.
         Create separate nodes for a person and for a role or body only when both carry edges.
-        Example: IUT, support team, Indian team, project owner, Mahmoud, Fabrice, CODIR.
+        Example: IUT, support team, Indian team, project owner, Alex, Jordan, CODIR.
     jargon:
       desc: |
         A named technical or business term used within this corpus to refer to a recurring concept, including terms coined by the author.
@@ -242,13 +241,13 @@ domain:
         The source inherently involves the target as a stakeholder, contributor or responsible party.
         Describes structural or organizational participation rather than a single occurrence.
         The target's perspective, input, actions or constraints are part of the situation.
-        Example: Sponsorship involves Antoine.
+        Example: Sponsorship involves Alex.
     participates:
       desc: |
         The source takes part in the target.
         Describes participation from the participant's point of view, without implying ownership or responsibility.
         Useful for actors participating in projects, events, processes or tasks.
-        Example: Antoine participates in the June 9 demo.
+        Example: Alex participates in the June 9 demo.
     '-':
       desc: |
         Weak fallback relation when a connection matters but is not yet precise.
@@ -322,13 +321,13 @@ nodes:
             why: My involvement in the project is direct and easy to state.
           claim:
             - fact: I was the main implementer and context reconstructor for the sponsorship work.
-      actor antoine:
+      actor alex:
         with:
           complexity:
             is: natural
             why: The business owner's role needs a sentence about the requesting service.
           claim:
-            - fact: Antoine specifies the need, tests the system with real requests, and arbitrates functional questions.
+            - fact: Alex specifies the need, tests the system with real requests, and arbitrates functional questions.
     uses:
       tool power_automate:
         # provides additional edge information.
@@ -602,7 +601,7 @@ nodes:
         - business_rules
         - validation
     involves:
-      actor antoine:
+      actor alex:
         with:
           complexity:
             is: simple
@@ -630,9 +629,9 @@ nodes:
         - fact: The value sought was primarily visibility over requests and amounts rather than automation.
       tag:
         - visibility
-  actor antoine:
+  actor alex:
     info:
-      title: Antoine
+      title: Alex
       summary: Business owner for the sponsorship process, from the requesting service. Specifies the need, tests with real requests, and arbitrates functional questions.
       complexity:
         is: natural
@@ -788,7 +787,7 @@ nodes:
       tag:
         - incident
     involves:
-      actor antoine:
+      actor alex:
         with:
           complexity:
             is: simple
