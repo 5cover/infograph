@@ -8,7 +8,7 @@ Infograph structures information, experiences and their relationships in a factu
 
 ## Commands
 
-There is no build/lint/test setup. TypeScript runs directly via **tsx** (not installed as a dependency — invoked through `npx`). Plain `node src/*.ts` fails because the code uses directory imports (`./input`) that only tsx's resolver handles.
+There is no build/lint/test setup. TypeScript runs directly via `tsx`. Plain `node src/*.ts` fails because the code uses directory imports (`./input`) that only tsx's resolver handles.
 
 - Run the CLI: `tsx src/cli.ts <command> <file> [-f json|yaml|native|plain] [-d plain|count|graph:mermaid|graph:graphviz|graph:cytoscape]`
   - `-f, --format` selects syntax and `-d, --data` selects the requested data. Each command declares only the options it reads, so both go **after** the subcommand, and `--help` lists what each command accepts. `emit()` first transforms the query result by data mode, then serializes it in the selected form.

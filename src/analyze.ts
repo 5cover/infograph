@@ -39,10 +39,7 @@ export function analyze<Keys extends BaseKeys>(infograph: Infograph<Keys>, optio
         })
         pages.push([link(`${name}.md`, title), description])
     }
-    const section = (title: string, blocks: (string | string[])[]) => [
-        heading(title, { level: 2 }),
-        ...blocks.flat(),
-    ]
+    const section = (title: string, blocks: (string | string[])[]) => [heading(title, { level: 2 }), ...blocks.flat()]
     const selectNodes = (where: NodePredicate<Keys>) => {
         const result = select(infograph, { target: 'nodes', where })
         return result.target === 'nodes' ? result.nodes : []
@@ -58,129 +55,113 @@ export function analyze<Keys extends BaseKeys>(infograph: Infograph<Keys>, optio
     const m = metrics(infograph)
     const metricsPath = raw('metrics', m)
 
-    page(
-        'summary',
-        'Summary',
-        'Headline figures for the whole infograph.',
-        [
+    page('summary', 'Summary', 'Headline figures for the whole infograph.', [
+        table(
+            ['Measure', 'Value'],
+            [
+                ['Nodes', String(m.nodeCount)],
+                ['Edges', String(m.edgeCount)],
+                ['Density', String(m.density)],
+                ['Source nodes (no incoming edges)', String(m.sourceCount)],
+                ['Sink nodes (no outgoing edges)', String(m.sinkCount)],
+                ['Isolated nodes', String(m.isolatedNodeCount)],
+                ['Self-loops', String(m.selfLoopCount)],
+                ['Weakly connected components', String(m.components.count)],
+                ['Largest weakly connected component', String(m.components.largestSize)],
+                ['Non-trivial strongly connected components', String(m.stronglyConnected.nonTrivial)],
+                ['Feedback arc set size', String(m.feedbackArcSetSize)],
+                ['Undated nodes', String(m.undated.length)],
+            ],
+            { compact: true }
+        ),
+        section('Field coverage', [
             table(
-                ['Measure', 'Value'],
+                ['Field', 'Nodes', 'Ratio'],
+                Object.entries(m.fieldCoverage).map(([field, coverage]) => [
+                    code(field),
+                    String(coverage.count),
+                    `${Math.round(coverage.ratio * 100)}%`,
+                ]),
+                { compact: true }
+            ),
+        ]),
+        link(metricsPath, 'Raw metrics'),
+    ])
+
+    page('structure', 'Structure', 'Distributions of kinds, verbs, ratings and degrees.', [
+        section('Kinds', [
+            table(
+                ['Kind', 'Nodes'],
+                Object.entries(m.nodesByKind).map(([kind, count]) => [code(kind), String(count)]),
+                { compact: true }
+            ),
+        ]),
+        section('Verbs', [
+            table(
+                ['Verb', 'Edges'],
+                Object.entries(m.edgesByVerb).map(([verb, count]) => [code(verb), String(count)]),
+                { compact: true }
+            ),
+        ]),
+        section('Node importance', [
+            table(
+                ['Importance', 'Nodes'],
+                Object.entries(m.nodesByImportance).map(([level, count]) => [code(level), String(count)]),
+                { compact: true }
+            ),
+        ]),
+        section('Node complexity', [
+            table(
+                ['Complexity', 'Nodes'],
+                Object.entries(m.nodesByComplexity).map(([level, count]) => [code(level), String(count)]),
+                { compact: true }
+            ),
+        ]),
+        section('Edge complexity', [
+            table(
+                ['Complexity', 'Edges'],
+                Object.entries(m.edgesByComplexity).map(([level, count]) => [code(level), String(count)]),
+                { compact: true }
+            ),
+        ]),
+        section('Degrees', [
+            table(
+                ['Measure', 'Minimum', 'Average', 'Maximum'],
                 [
-                    ['Nodes', String(m.nodeCount)],
-                    ['Edges', String(m.edgeCount)],
-                    ['Density', String(m.density)],
-                    ['Source nodes (no incoming edges)', String(m.sourceCount)],
-                    ['Sink nodes (no outgoing edges)', String(m.sinkCount)],
-                    ['Isolated nodes', String(m.isolatedNodeCount)],
-                    ['Self-loops', String(m.selfLoopCount)],
-                    ['Weakly connected components', String(m.components.count)],
-                    ['Largest weakly connected component', String(m.components.largestSize)],
-                    ['Non-trivial strongly connected components', String(m.stronglyConnected.nonTrivial)],
-                    ['Feedback arc set size', String(m.feedbackArcSetSize)],
-                    ['Undated nodes', String(m.undated.length)],
+                    ['Incidence', String(m.incidence.min), String(m.incidence.average), String(m.incidence.max)],
+                    ['In-degree', String(m.inDegree.min), String(m.inDegree.average), String(m.inDegree.max)],
+                    ['Out-degree', String(m.outDegree.min), String(m.outDegree.average), String(m.outDegree.max)],
                 ],
                 { compact: true }
             ),
-            section('Field coverage', [
-                table(
-                    ['Field', 'Nodes', 'Ratio'],
-                    Object.entries(m.fieldCoverage).map(([field, coverage]) => [
-                        code(field),
-                        String(coverage.count),
-                        `${Math.round(coverage.ratio * 100)}%`,
-                    ]),
-                    { compact: true }
-                ),
-            ]),
-            link(metricsPath, 'Raw metrics'),
-        ]
-    )
-
-    page(
-        'structure',
-        'Structure',
-        'Distributions of kinds, verbs, ratings and degrees.',
-        [
-            section('Kinds', [
-                table(
-                    ['Kind', 'Nodes'],
-                    Object.entries(m.nodesByKind).map(([kind, count]) => [code(kind), String(count)]),
-                    { compact: true }
-                ),
-            ]),
-            section('Verbs', [
-                table(
-                    ['Verb', 'Edges'],
-                    Object.entries(m.edgesByVerb).map(([verb, count]) => [code(verb), String(count)]),
-                    { compact: true }
-                ),
-            ]),
-            section('Node importance', [
-                table(
-                    ['Importance', 'Nodes'],
-                    Object.entries(m.nodesByImportance).map(([level, count]) => [code(level), String(count)]),
-                    { compact: true }
-                ),
-            ]),
-            section('Node complexity', [
-                table(
-                    ['Complexity', 'Nodes'],
-                    Object.entries(m.nodesByComplexity).map(([level, count]) => [code(level), String(count)]),
-                    { compact: true }
-                ),
-            ]),
-            section('Edge complexity', [
-                table(
-                    ['Complexity', 'Edges'],
-                    Object.entries(m.edgesByComplexity).map(([level, count]) => [code(level), String(count)]),
-                    { compact: true }
-                ),
-            ]),
-            section('Degrees', [
-                table(
-                    ['Measure', 'Minimum', 'Average', 'Maximum'],
-                    [
-                        ['Incidence', String(m.incidence.min), String(m.incidence.average), String(m.incidence.max)],
-                        ['In-degree', String(m.inDegree.min), String(m.inDegree.average), String(m.inDegree.max)],
-                        ['Out-degree', String(m.outDegree.min), String(m.outDegree.average), String(m.outDegree.max)],
-                    ],
-                    { compact: true }
-                ),
-            ]),
-            link(metricsPath, 'Raw metrics'),
-        ]
-    )
+        ]),
+        link(metricsPath, 'Raw metrics'),
+    ])
 
     const components = cyclicComponents(infograph)
     const sccPath = raw('scc', components)
-    page(
-        'cycles',
-        'Cycles',
-        'Non-trivial strongly connected components: nodes that reach each other through edges.',
-        [
-            table(
-                ['Measure', 'Value'],
-                [
-                    ['Non-trivial components', String(m.stronglyConnected.nonTrivial)],
-                    ['Largest component', String(m.stronglyConnected.largestSize)],
-                    ['Feedback arc set size', String(m.feedbackArcSetSize)],
-                ],
-                { compact: true }
-            ),
-            components.length === 0
-                ? 'No cycles were found.'
-                : components.flatMap((nodes, index) =>
-                      section(`Component ${index + 1}`, [
-                          list(nodes.map(key => code(key))),
-                          codeBlock(
-                              toGroupedGraph(infograph, [{ title: `Component ${index + 1}`, nodes }], 'mermaid'),
-                              { language: 'mermaid' }
-                          ),
-                      ])
-                  ),
-            link(sccPath, 'Raw components'),
-        ]
-    )
+    page('cycles', 'Cycles', 'Non-trivial strongly connected components: nodes that reach each other through edges.', [
+        table(
+            ['Measure', 'Value'],
+            [
+                ['Non-trivial components', String(m.stronglyConnected.nonTrivial)],
+                ['Largest component', String(m.stronglyConnected.largestSize)],
+                ['Feedback arc set size', String(m.feedbackArcSetSize)],
+            ],
+            { compact: true }
+        ),
+        components.length === 0
+            ? 'No cycles were found.'
+            : components.flatMap((nodes, index) =>
+                  section(`Component ${index + 1}`, [
+                      list(nodes.map(key => code(key))),
+                      codeBlock(toGroupedGraph(infograph, [{ title: `Component ${index + 1}`, nodes }], 'mermaid'), {
+                          language: 'mermaid',
+                      }),
+                  ])
+              ),
+        link(sccPath, 'Raw components'),
+    ])
 
     const budgets = [...new Set(options.budgets)].toSorted((a, b) => a - b)
     const chronologyBlocks: (string | string[])[] = []
@@ -210,7 +191,9 @@ export function analyze<Keys extends BaseKeys>(infograph: Infograph<Keys>, optio
         )
         const presentation = budgets.indexOf(presentationBudget)
         if (presentation === -1) {
-            chronologyBlocks.push(`Presentation notes need budget ${presentationBudget}, which is not in the requested budgets.`)
+            chronologyBlocks.push(
+                `Presentation notes need budget ${presentationBudget}, which is not in the requested budgets.`
+            )
         } else {
             const thread = threads[presentation]
             chronologyBlocks.push(
@@ -231,27 +214,22 @@ export function analyze<Keys extends BaseKeys>(infograph: Infograph<Keys>, optio
         hub: key,
         result: traverse(infograph, { from: [key], direction: 'both', maxHops: 1 }),
     }))
-    page(
-        'hubs',
-        'Hubs',
-        'One-hop neighborhoods of every node rated central.',
-        [
-            hubs.length === 0
-                ? 'No node is rated central.'
-                : neighborhoods.flatMap(({ hub, result }) =>
-                      section(escape(hub), [
-                          result.edges.length === 0
-                              ? 'No edges.'
-                              : table(
-                                    ['From', 'Verb', 'To'],
-                                    result.edges.map(edge => [code(edge.from), code(edge.verb), code(edge.to)]),
-                                    { compact: true }
-                                ),
-                      ])
-                  ),
-            link(raw('hubs', neighborhoods), 'Raw neighborhoods'),
-        ]
-    )
+    page('hubs', 'Hubs', 'One-hop neighborhoods of every node rated central.', [
+        hubs.length === 0
+            ? 'No node is rated central.'
+            : neighborhoods.flatMap(({ hub, result }) =>
+                  section(escape(hub), [
+                      result.edges.length === 0
+                          ? 'No edges.'
+                          : table(
+                                ['From', 'Verb', 'To'],
+                                result.edges.map(edge => [code(edge.from), code(edge.verb), code(edge.to)]),
+                                { compact: true }
+                            ),
+                  ])
+              ),
+        link(raw('hubs', neighborhoods), 'Raw neighborhoods'),
+    ])
 
     const groupKinds = options.groupKinds.filter(kind => Object.hasOwn(domain.kind, kind))
     const skipped = options.groupKinds.filter(kind => !groupKinds.includes(kind))
@@ -294,51 +272,45 @@ export function analyze<Keys extends BaseKeys>(infograph: Infograph<Keys>, optio
     )
 
     const space = edgeSpace(domain)
-    const usedTriples = new Set(
-        infograph.edges.map(edge => `${kindOf(edge.from)} ${edge.verb} ${kindOf(edge.to)}`)
-    ).size
+    const usedTriples = new Set(infograph.edges.map(edge => `${kindOf(edge.from)} ${edge.verb} ${kindOf(edge.to)}`))
+        .size
     const declaredSources = (Object.keys(domain.source) as Keys['source'][]).toSorted()
-    page(
-        'vocabulary',
-        'Vocabulary',
-        'Declared kinds, verbs and sources, with how often the graph uses each.',
-        [
-            `${usedTriples} of ${space.length} possible kind-verb-kind triples are used.`,
-            section('Kinds', [
-                table(
-                    ['Kind', 'Nodes', 'Definition'],
-                    (Object.keys(domain.kind) as Keys['kind'][])
-                        .toSorted()
-                        .map(kind => [code(kind), String(m.nodesByKind[kind] ?? 0), escape(domain.kind[kind]?.desc ?? '')]),
-                    { compact: true }
-                ),
-            ]),
-            section('Verbs', [
-                table(
-                    ['Verb', 'Edges', 'Definition'],
-                    (Object.keys(domain.verb) as Keys['verb'][])
-                        .toSorted()
-                        .map(verb => [code(verb), String(m.edgesByVerb[verb] ?? 0), escape(domain.verb[verb]?.desc ?? '')]),
-                    { compact: true }
-                ),
-            ]),
-            section('Sources', [
-                declaredSources.length === 0
-                    ? 'No sources are declared.'
-                    : table(
-                          ['Source', 'Nodes', 'Definition'],
-                          declaredSources.map(source => [
-                              code(source),
-                              String(selectNodes({ source: [source] }).length),
-                              escape(domain.source[source]?.desc ?? ''),
-                          ]),
-                          { compact: true }
-                      ),
-            ]),
-            link(raw('keywords', keywordVocabulary(domain, { descriptions: true })), 'Raw keywords'),
-            link(raw('edgespace', space), 'Raw possible triples'),
-        ]
-    )
+    page('vocabulary', 'Vocabulary', 'Declared kinds, verbs and sources, with how often the graph uses each.', [
+        `${usedTriples} of ${space.length} possible kind-verb-kind triples are used.`,
+        section('Kinds', [
+            table(
+                ['Kind', 'Nodes', 'Definition'],
+                (Object.keys(domain.kind) as Keys['kind'][])
+                    .toSorted()
+                    .map(kind => [code(kind), String(m.nodesByKind[kind] ?? 0), escape(domain.kind[kind]?.desc ?? '')]),
+                { compact: true }
+            ),
+        ]),
+        section('Verbs', [
+            table(
+                ['Verb', 'Edges', 'Definition'],
+                (Object.keys(domain.verb) as Keys['verb'][])
+                    .toSorted()
+                    .map(verb => [code(verb), String(m.edgesByVerb[verb] ?? 0), escape(domain.verb[verb]?.desc ?? '')]),
+                { compact: true }
+            ),
+        ]),
+        section('Sources', [
+            declaredSources.length === 0
+                ? 'No sources are declared.'
+                : table(
+                      ['Source', 'Nodes', 'Definition'],
+                      declaredSources.map(source => [
+                          code(source),
+                          String(selectNodes({ source: [source] }).length),
+                          escape(domain.source[source]?.desc ?? ''),
+                      ]),
+                      { compact: true }
+                  ),
+        ]),
+        link(raw('keywords', keywordVocabulary(domain, { descriptions: true })), 'Raw keywords'),
+        link(raw('edgespace', space), 'Raw possible triples'),
+    ])
 
     const touched = new Set(infograph.edges.flatMap(edge => [edge.from, edge.to]))
     const allTechnical = selectNodes({ technicality: { operator: '=', value: 'all' } })
@@ -410,7 +382,8 @@ export function analyze<Keys extends BaseKeys>(infograph: Infograph<Keys>, optio
         }))
         guidance.push({
             title: 'Challenges without a response',
-            description: 'Challenges that nothing mitigates or anticipates. Such a challenge is a constraint or a claim.',
+            description:
+                'Challenges that nothing mitigates or anticipates. Such a challenge is a constraint or a claim.',
             items: responses.filter(({ result }) => result.nodes.length === 1).map(({ challenge }) => code(challenge)),
             raw: raw('traverse-challenge-responses', responses),
         })
@@ -423,7 +396,8 @@ export function analyze<Keys extends BaseKeys>(infograph: Infograph<Keys>, optio
         }))
         guidance.push({
             title: 'Findings without a referent',
-            description: 'Findings that no other element points at. A finding earns a node only when something points at it.',
+            description:
+                'Findings that no other element points at. A finding earns a node only when something points at it.',
             items: referents.filter(({ result }) => result.nodes.length === 1).map(({ finding }) => code(finding)),
             raw: raw('traverse-finding-referents', referents),
         })
@@ -437,15 +411,10 @@ export function analyze<Keys extends BaseKeys>(infograph: Infograph<Keys>, optio
                 ...(check.raw === undefined ? [] : [link(check.raw, 'Raw query output')]),
             ])
         )
-    page(
-        'attention',
-        'Attention',
-        'Nodes and edges that the graph itself flags for review.',
-        [
-            ...checkBlocks(generic, ''),
-            ...checkBlocks(guidance, ' (domain guidance)'),
-        ]
-    )
+    page('attention', 'Attention', 'Nodes and edges that the graph itself flags for review.', [
+        ...checkBlocks(generic, ''),
+        ...checkBlocks(guidance, ' (domain guidance)'),
+    ])
 
     const title = infograph.info?.title ?? options.source.name
     const facts: string[][] = [

@@ -6,7 +6,16 @@ import {
     type OptionValues,
     program,
 } from '@commander-js/extra-typings'
-import { cpSync, existsSync, mkdirSync, readdirSync, readFileSync, renameSync, unlinkSync, writeFileSync } from 'node:fs'
+import {
+    cpSync,
+    existsSync,
+    mkdirSync,
+    readdirSync,
+    readFileSync,
+    renameSync,
+    unlinkSync,
+    writeFileSync,
+} from 'node:fs'
 import { homedir } from 'node:os'
 import { basename, dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -343,11 +352,14 @@ program
             (value: string, previous?: number[]) => collectNumber(value, previous ?? [])
         )
     )
-    .addOption(new Option('--cutoff <date>', 'only root chronology at a node dated on or after this date').argParser(parseDate))
     .addOption(
-        new Option('--group-kind <kind>', 'kind to group by, hierarchically (repeatable; default project, product)').argParser(
-            (value: string, previous?: string[]) => collectString(value, previous ?? [])
-        )
+        new Option('--cutoff <date>', 'only root chronology at a node dated on or after this date').argParser(parseDate)
+    )
+    .addOption(
+        new Option(
+            '--group-kind <kind>',
+            'kind to group by, hierarchically (repeatable; default project, product)'
+        ).argParser((value: string, previous?: string[]) => collectString(value, previous ?? []))
     )
     .option('--force', 'replace generated files in a non-empty output directory')
     .action((file, outDirectory, options) => {
@@ -371,10 +383,7 @@ program
             const text = output.kind === 'raw' ? serializeRaw(output.value, options.format) : output.text
             writeFileSync(path, `${text}\n`)
         }
-        emit(
-            { directory: destination, files: outputs.map(output => output.path) },
-            { format: options.format }
-        )
+        emit({ directory: destination, files: outputs.map(output => output.path) }, { format: options.format })
     })
 
 program.parse()
