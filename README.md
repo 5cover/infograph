@@ -128,6 +128,40 @@ PATCH
 
 Run the same command without `--dry-run` to write the result. Supported operations are `add-node`, `set-node`, `add-claim`, `add-tag`, `add-edge`, `remove-edge`, and `remove-node`. Every operation names exact node keys or an exact edge triple; `remove-node` also removes all incident edges. In `set-node`, omitted fields are unchanged, `null` removes an optional field, and empty `claim`, `source`, or `tag` arrays normalize to absence.
 
+### Analysis reports
+
+`analyze` runs the query profiles over one infograph and writes a directory of markdown pages, with the raw query outputs beside them. It only reads the infograph:
+
+```sh
+infograph analyze corpus.yaml reports/corpus
+infograph analyze corpus.yaml reports/corpus -f json -b 10 -b 30 --group-kind project
+```
+
+The directory starts with `index.md`, which links to one page per theme:
+
+- `summary.md` gives headline counts, density, components, cycles and field coverage.
+- `structure.md` gives distributions of kinds, verbs, importance, complexity and degrees.
+- `cycles.md` lists the strongly connected components, each with a diagram.
+- `chronology.md` compares chronological threads under several complexity budgets. At budget 20 it adds a diagram and presentation notes.
+- `hubs.md` shows the one-hop neighborhood of every node rated central.
+- `groups.md` groups edges hierarchically by kind, with a diagram for each scope.
+- `vocabulary.md` lists the declared kinds, verbs and sources with usage counts, and how many of the possible kind-verb-kind triples the graph uses.
+- `attention.md` lists the nodes and edges flagged for review.
+
+Each page links to the raw query output it summarizes in `raw/`, so a table can be traced to the exact result. Raw files use YAML by default.
+
+Options:
+
+- `-f, --format yaml|json` selects the syntax of the raw files. The pages are always markdown.
+- `-b, --budget <n>` sets the chronology budgets. Repeat it for several. The default is 10, 20 and 40. Presentation notes are written only when 20 is among them.
+- `--cutoff <date>` roots chronology only at nodes dated on or after the date, as `query chronological run` does.
+- `--group-kind <kind>` sets the grouping kinds, applied hierarchically in the order given. The default is `project` and `product`. Kinds the domain does not declare are skipped, and the page says so.
+- `--force` allows writing into a directory that is not empty. It replaces only files with generated names and leaves other files alone. Without it, analyze refuses to run in a non-empty directory.
+
+Generic checks always run in `attention.md`: undated nodes, isolated nodes, nodes without a source, nodes rated all technical, and intertwined nodes of major or central importance. Checks that depend on the domain vocabulary run only when the domain declares the keywords they use. For the experiential domain these are fallback kinds and verbs (`-`), challenges that no `mitigates` or `anticipates` edge answers, and findings that no other element points at.
+
+The output contains no timestamps, and the source file is identified by its SHA-256. Running the command twice on the same file therefore produces identical output.
+
 The repository keeps the general method, domain conventions and implementation details separate:
 
 ### Modeling and domain guidance
