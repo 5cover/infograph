@@ -2,10 +2,11 @@ import assert from 'node:assert/strict'
 import { copyFileSync, existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
+import { fileURLToPath } from 'node:url'
 import { spawnSync } from 'node:child_process'
 import test from 'node:test'
 
-const root = new URL('..', import.meta.url).pathname
+const root = fileURLToPath(new URL('..', import.meta.url))
 const fixture = 'doc/domains/experiential/example-infograph.yaml'
 
 function cli(...args: string[]) {
@@ -21,7 +22,7 @@ function cliInput(input: string | undefined, ...args: string[]) {
 }
 
 test('query select and traverse preserve machine-readable output formats', t => {
-    const selected = cli('-f', 'json', 'query', 'select', 'nodes', fixture, '--kind', 'project')
+    const selected = cli('query', 'select', 'nodes', fixture, '--kind', 'project', '-f', 'json')
     if (sandboxBlocks(selected)) return t.skip('sandbox does not permit spawning the CLI process')
     assert.equal(selected.status, 0, selected.stderr)
     const selection = JSON.parse(selected.stdout) as { target: string; nodes: { key: string }[] }

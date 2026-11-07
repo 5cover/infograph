@@ -10,8 +10,9 @@ Infograph structures information, experiences and their relationships in a factu
 
 There is no build/lint/test setup. TypeScript runs directly via **tsx** (not installed as a dependency — invoked through `npx`). Plain `node src/*.ts` fails because the code uses directory imports (`./input`) that only tsx's resolver handles.
 
-- Run the CLI: `npx tsx src/cli.ts [-f json|yaml|native|plain] [-d plain|count|graph:mermaid|graph:graphviz|graph:cytoscape] <command> <file>`
-  - The global `-f, --format` option selects syntax and `-d, --data` selects the requested data; both go **before** the subcommand. `emit()` first transforms the query result by data mode, then serializes it in the selected form.
+- Run the CLI: `tsx src/cli.ts <command> <file> [-f json|yaml|native|plain] [-d plain|count|graph:mermaid|graph:graphviz|graph:cytoscape]`
+  - `-f, --format` selects syntax and `-d, --data` selects the requested data. Each command declares only the options it reads, so both go **after** the subcommand, and `--help` lists what each command accepts. `emit()` first transforms the query result by data mode, then serializes it in the selected form.
+  - `analyze <file> <out-dir> [-f yaml|json] [-b N]... [--cutoff date] [--group-kind kind]... [--force]` — writes a directory with `index.md`, one markdown page per theme (summary, structure, cycles, chronology, hubs, groups, vocabulary, attention), and the raw query outputs under `raw/`. Refuses a non-empty directory unless `--force`. Markdown is written with `ts-markdown-builder`.
   - `parse <file>` — flattened canonical graph, or one graph string with a `graph:*` data mode.
   - `query chronological run <file> [--budget N] [--simple N --natural N --contextual N --intertwined N]` — traversal thread, or a rendered graph. `--notes` changes plain thread data into the readable notes document.
   - `metrics <file>` — graph statistics (JSON/YAML).

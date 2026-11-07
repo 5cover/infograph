@@ -6,13 +6,14 @@ import {
     type OptionValues,
     program,
 } from '@commander-js/extra-typings'
-import { cpSync, existsSync, mkdirSync, readFileSync, renameSync, unlinkSync, writeFileSync } from 'node:fs'
+import { cpSync, existsSync, mkdirSync, readdirSync, readFileSync, renameSync, unlinkSync, writeFileSync } from 'node:fs'
 import { homedir } from 'node:os'
-import { resolve } from 'node:path'
+import { basename, dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { randomUUID } from 'node:crypto'
+import { createHash, randomUUID } from 'node:crypto'
 import { inspect } from 'node:util'
 import * as YAML from 'yaml'
+import { analyze } from './analyze.js'
 import { toGraph, toGroupedGraph } from './infograph.js'
 import { formatInfographByEdges, formatInfographByNodes } from './input/format.js'
 import { parseInfograph } from './input/index.js'
@@ -41,6 +42,7 @@ import { terseDate } from './terseDate.js'
 
 const formats = ['json', 'yaml', 'native', 'plain'] as const
 type Format = (typeof formats)[number]
+const rawFormats = ['yaml', 'json'] as const
 const data = ['plain', 'count', 'graph:mermaid', 'graph:graphviz', 'graph:cytoscape'] as const
 type Data = (typeof data)[number]
 type DataKind = 'plain' | 'count' | 'graph'
@@ -62,28 +64,24 @@ const asYaml = (value: unknown) =>
         singleQuote: true,
     })
 
-program
-    .name('infograph')
-    .description('Manipulate parsed infographs')
-    .version('1.0.0')
-    .addOption(
-        new Option('-f, --format <format>', 'output syntax (pass before the subcommand)')
-            .choices(formats)
-            .default('yaml')
-    )
-    .addOption(
-        new Option('-d, --data <data>', 'requested output data (pass before the subcommand)')
-            .choices(data)
-            .default('plain')
-    )
+program.name('infograph').description('Manipulate parsed infographs').version('1.0.0')
+
+function formatOption() {
+    return new Option('-f, --format <format>', 'output syntax').choices(formats).default('yaml')
+}
+
+function dataOption(modes: readonly Data[]) {
+    return new Option('-d, --data <data>', 'requested output data').choices(modes).default('plain')
+}
 
 program
     .command('parse')
     .description('Parse an infograph file and output the flattened graph')
     .addArgument(args.infograph)
-    .action(file => {
-        const infograph = readInfograph(file)
-        emit(infograph, { graph: (graph, format) => toGraph(graph, graphFormat(format)) })
+    .addOption(formatOption())
+    .addOption(dataOption(['plain', 'count', 'graph:mermaid', 'graph:graphviz', 'graph:cytoscape']))
+    .action((file, options) => {
+        emit(readInfograph(file), options, { graph: (graph, format) => toGraph(graph, graphFormat(format)) })
     })
 
 const formatCommand = program.command('format').description('Rewrite an infograph')
@@ -91,12 +89,14 @@ formatCommand
     .command('nodes')
     .description('nodes first')
     .addArgument(args.infograph)
-    .action(file => emit(formatInfographByNodes(readInfograph(file))))
+    .addOption(formatOption())
+    .action((file, options) => emit(formatInfographByNodes(readInfograph(file)), options))
 formatCommand
     .command('edges')
     .description('edges first')
     .addArgument(args.infograph)
-    .action(file => emit(formatInfographByEdges(readInfograph(file))))
+    .addOption(formatOption())
+    .action((file, options) => emit(formatInfographByEdges(readInfograph(file)), options))
 
 const editCommand = program.command('edit').description('Apply constrained semantic edits to an infograph')
 editCommand
@@ -105,35 +105,41 @@ editCommand
     .addArgument(args.infograph)
     .addArgument(new Argument('[changefile]', 'YAML or JSON operation list; omit to read standard input'))
     .option('--dry-run', 'validate and summarize without writing')
+    .addOption(formatOption())
     .action((file, changefile, options) => {
         const edits = parseEdits(YAML.parse(readEditInput(changefile)))
         const result = applyEdits(readInfograph(file), edits)
         if (!options.dryRun) writeInfograph(file, result.infograph)
-        emit({
-            dryRun: Boolean(options.dryRun),
-            changes: result.changes,
-            nodeCount: result.nodeCount,
-            edgeCount: result.edgeCount,
-        })
+        emit(
+            {
+                dryRun: Boolean(options.dryRun),
+                changes: result.changes,
+                nodeCount: result.nodeCount,
+                edgeCount: result.edgeCount,
+            },
+            options
+        )
     })
 
 const skillCommand = program.command('skill').description('Locate or install the bundled agent skill')
 skillCommand
     .command('path')
     .description('Print the bundled Infograph query skill directory')
-    .action(() => emit({ path: bundledSkillPath() }))
+    .addOption(formatOption())
+    .action(options => emit({ path: bundledSkillPath() }, options))
 skillCommand
     .command('install')
     .description('Install the bundled skill into an agent skill directory')
     .addOption(new Option('--agent <agent>', 'agent skill convention').choices(['codex']).default('codex'))
     .option('--path <directory>', 'parent directory for installed skills')
+    .addOption(formatOption())
     .action(options => {
         const parent = options.path ?? resolve(process.env.CODEX_HOME ?? resolve(homedir(), '.codex'), 'skills')
         const destination = resolve(parent, 'infograph-query')
         if (existsSync(destination)) throw new InvalidArgumentError(`Skill already exists: ${destination}`)
         mkdirSync(parent, { recursive: true })
         cpSync(bundledSkillPath(), destination, { recursive: true, force: false, errorOnExist: true })
-        emit({ installed: destination })
+        emit({ installed: destination }, options)
     })
 
 const queryCommand = program.command('query').description('run a query on the infograph')
@@ -152,6 +158,8 @@ chronologicalCmd
     .addOption(new Option('--intertwined <number>', 'cost of intertwined complexity').argParser(parseNumber))
     .addOption(new Option('--cutoff <date>', 'only root at a node dated on or after this date').argParser(parseDate))
     .addOption(new Option('--notes', 'render plain thread data as presentation notes'))
+    .addOption(formatOption())
+    .addOption(dataOption(['plain', 'graph:mermaid', 'graph:graphviz', 'graph:cytoscape']))
     .action((file, options) => {
         const infograph = readInfograph(file)
         const thread = chronological(infograph, {
@@ -159,7 +167,7 @@ chronologicalCmd
             complexity: getComplexityOptions(options),
             cutoff: options.cutoff,
         })
-        emit(thread, {
+        emit(thread, options, {
             plain: value => (options.notes ? threadToNotes(infograph, value) : value),
             graph: (value, format) => threadToGraph(value, graphFormat(format)),
         })
@@ -179,27 +187,31 @@ chronologicalCmd
     .addOption(new Option('--contextual <number>', 'cost of contextual complexity').argParser(parseNumber))
     .addOption(new Option('--intertwined <number>', 'cost of intertwined complexity').argParser(parseNumber))
     .addOption(new Option('--cutoff <date>', 'only root at a node dated on or after this date').argParser(parseDate))
+    .addOption(formatOption())
     .action((file, options) => {
         const infograph = readInfograph(file)
         const complexity = getComplexityOptions(options)
         const budgets = options.budget.length ? options.budget : [20]
-        emit(compareChronologicalBudgets(infograph, { budgets, complexity, cutoff: options.cutoff }))
+        emit(compareChronologicalBudgets(infograph, { budgets, complexity, cutoff: options.cutoff }), options)
     })
 
 queryCommand
     .command('metrics')
     .description('Compute and display statistics about an infograph file')
     .addArgument(args.infograph)
-    .action(file => emit(metrics(readInfograph(file))))
+    .addOption(formatOption())
+    .action((file, options) => emit(metrics(readInfograph(file)), options))
 
 queryCommand
     .command('scc')
     .description('Display the non-trivial strongly connected components of an infograph')
     .addArgument(args.infograph)
-    .action(file => {
+    .addOption(formatOption())
+    .addOption(dataOption(['plain', 'graph:mermaid', 'graph:graphviz', 'graph:cytoscape']))
+    .action((file, options) => {
         const infograph = readInfograph(file)
         const groups = cyclicComponents(infograph)
-        emit(groups, {
+        emit(groups, options, {
             graph: (components, format) =>
                 toGroupedGraph(
                     infograph,
@@ -213,25 +225,26 @@ queryCommand
     .command('elements')
     .requiredOption('-v, --verb <verb>', 'The verb to filter edges by')
     .addArgument(args.infograph)
+    .addOption(formatOption())
     .description('Filter edges')
-    .action((file, options) => emit(edgesWithVerb(readInfograph(file), options.verb)))
+    .action((file, options) => emit(edgesWithVerb(readInfograph(file), options.verb), options))
 
 const selectCommand = queryCommand
     .command('select')
     .description('Select graph nodes or edges with declarative predicates')
 const selectNodesCommand = addNodePredicateOptions(
-    selectCommand.command('nodes').description('Select nodes').addArgument(args.infograph)
+    selectCommand.command('nodes').description('Select nodes').addArgument(args.infograph).addOption(formatOption())
 )
 selectNodesCommand.action((file, options) => {
     const infograph = readInfograph(file)
-    emit(select(infograph, { target: 'nodes', where: nodePredicate(infograph, options) }))
+    emit(select(infograph, { target: 'nodes', where: nodePredicate(infograph, options) }), options)
 })
 const selectEdgesCommand = addEdgePredicateOptions(
-    selectCommand.command('edges').description('Select edges').addArgument(args.infograph)
+    selectCommand.command('edges').description('Select edges').addArgument(args.infograph).addOption(formatOption())
 )
 selectEdgesCommand.action((file, options) => {
     const infograph = readInfograph(file)
-    emit(select(infograph, { target: 'edges', where: edgePredicate(infograph, options) }))
+    emit(select(infograph, { target: 'edges', where: edgePredicate(infograph, options) }), options)
 })
 
 const traverseCommand = queryCommand
@@ -246,6 +259,7 @@ const traverseCommand = queryCommand
             .argParser(parsePositiveInteger)
     )
     .option('--via <verb>', 'allow an edge verb at every hop (repeatable)', collectString, [] as string[])
+    .addOption(formatOption())
 const configuredTraverseCommand = addNodePredicateOptions(traverseCommand)
 configuredTraverseCommand.action((file, options) => {
     const infograph = readInfograph(file)
@@ -260,7 +274,8 @@ configuredTraverseCommand.action((file, options) => {
             maxHops: options.maxHops,
             node: nodePredicate(infograph, options),
             edge: verbs.length === 0 ? undefined : { verb: verbs },
-        })
+        }),
+        options
     )
 })
 
@@ -274,6 +289,8 @@ queryCommand
             .choices(groupSort)
             .default('alphabetical')
     )
+    .addOption(formatOption())
+    .addOption(dataOption(['plain', 'count', 'graph:mermaid', 'graph:graphviz', 'graph:cytoscape']))
     .action((arguments_, options) => {
         if (arguments_.length < 2) {
             throw new InvalidArgumentError('Expected at least one kind followed by an infograph file')
@@ -290,7 +307,7 @@ queryCommand
             GroupRecordValue<BaseKeys, null | number>
         >
 
-        emit(groups, {
+        emit(groups, options, {
             count: tree => {
                 return summarizeGroupTree(infograph, tree)
             },
@@ -302,23 +319,72 @@ queryCommand
     .command('edgespace')
     .description('show possible kind/verb/kind 3-uples in a table')
     .addArgument(args.infograph)
-    .action(file => emit(edgeSpace(readInfograph(file).domain)))
+    .addOption(formatOption())
+    .action((file, options) => emit(edgeSpace(readInfograph(file).domain), options))
 
 queryCommand
     .command('keywords')
     .description('show keywords')
     .option('--desc', 'show descs too')
     .addArgument(args.infograph)
-    .action((file, options) => emit(keywordVocabulary(readInfograph(file).domain, { descriptions: options.desc })))
+    .addOption(formatOption())
+    .action((file, options) =>
+        emit(keywordVocabulary(readInfograph(file).domain, { descriptions: options.desc }), options)
+    )
+
+program
+    .command('analyze')
+    .description('Write markdown reports and raw query outputs for an infograph into a directory')
+    .addArgument(args.infograph)
+    .addArgument(new Argument('<out-dir>', 'directory to write the report into'))
+    .addOption(new Option('-f, --format <format>', 'raw output syntax').choices(rawFormats).default('yaml'))
+    .addOption(
+        new Option('-b, --budget <number>', 'chronology budget (repeatable; default 10, 20, 40)').argParser(
+            (value: string, previous?: number[]) => collectNumber(value, previous ?? [])
+        )
+    )
+    .addOption(new Option('--cutoff <date>', 'only root chronology at a node dated on or after this date').argParser(parseDate))
+    .addOption(
+        new Option('--group-kind <kind>', 'kind to group by, hierarchically (repeatable; default project, product)').argParser(
+            (value: string, previous?: string[]) => collectString(value, previous ?? [])
+        )
+    )
+    .option('--force', 'replace generated files in a non-empty output directory')
+    .action((file, outDirectory, options) => {
+        const bytes = readFileSync(file)
+        const outputs = analyze(parseInfograph(YAML.parse(bytes.toString('utf8'))), {
+            source: { name: basename(file), sha256: createHash('sha256').update(bytes).digest('hex') },
+            rawFormat: options.format,
+            budgets: options.budget?.length ? options.budget : [10, 20, 40],
+            cutoff: options.cutoff,
+            groupKinds: options.groupKind?.length ? options.groupKind : ['project', 'product'],
+        })
+        const destination = resolve(outDirectory)
+        if (existsSync(destination) && readdirSync(destination).length > 0 && !options.force) {
+            throw new InvalidArgumentError(
+                `Output directory is not empty: ${destination} (pass --force to replace generated files)`
+            )
+        }
+        for (const output of outputs) {
+            const path = join(destination, output.path)
+            mkdirSync(dirname(path), { recursive: true })
+            const text = output.kind === 'raw' ? serializeRaw(output.value, options.format) : output.text
+            writeFileSync(path, `${text}\n`)
+        }
+        emit(
+            { directory: destination, files: outputs.map(output => output.path) },
+            { format: options.format }
+        )
+    })
 
 program.parse()
 
-function globalFormat(): Format {
-    return (program.opts() as { format: Format }).format
-}
+type EmitOptions = { format: Format; data?: Data }
 
-function globalData(): Data {
-    return (program.opts() as { data: Data }).data
+function emit<T>(value: T, options: EmitOptions, handlers: DataHandlers<T> = {}): void {
+    const [kind, argument] = (options.data ?? 'plain').split(':') as [DataKind, string | undefined]
+    const transformed = handlers[kind]?.(value, argument as never) ?? defaultData(kind, value)
+    console.log(serialize(transformed, options.format))
 }
 
 type DataHandlers<T> = Partial<{
@@ -327,28 +393,21 @@ type DataHandlers<T> = Partial<{
     graph: (value: T, format: string | undefined) => unknown
 }>
 
-function emit<T>(value: T, handlers: DataHandlers<T> = {}): void {
-    const [kind, argument] = globalData().split(':') as [DataKind, string | undefined]
-    const transformed = handlers[kind]?.(value, argument as never) ?? defaultData(kind, value)
-    if (transformed === undefined) {
-        throw new InvalidArgumentError(
-            `--data ${globalData()} is not supported by this command (supported: ${['plain', 'count', ...Object.keys(handlers)].filter((x, i, all) => all.indexOf(x) === i).join(', ')})`
-        )
-    }
-    console.log(serialize(transformed))
-}
-
 function defaultData(kind: DataKind, value: unknown): unknown {
     if (kind === 'plain') return value
     if (kind === 'count') return structuralCount(value)
     return undefined
 }
 
-function serialize(value: unknown): string {
-    if (globalFormat() === 'json') return asJson(value)
-    if (globalFormat() === 'yaml') return asYaml(value)
-    if (globalFormat() === 'native') return inspect(value)
+function serialize(value: unknown, format: Format): string {
+    if (format === 'json') return asJson(value)
+    if (format === 'yaml') return asYaml(value)
+    if (format === 'native') return inspect(value)
     return flatten(value)
+}
+
+function serializeRaw(value: unknown, format: (typeof rawFormats)[number]): string {
+    return format === 'json' ? asJson(value) : asYaml(value)
 }
 
 function flatten(value: unknown): string {
