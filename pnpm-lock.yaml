@@ -20,6 +20,9 @@ importers:
       ts-graphviz:
         specifier: ^3.0.7
         version: 3.0.7
+      ts-markdown-builder:
+        specifier: ^0.6.0
+        version: 0.6.0
       yaml:
         specifier: ^2.9.0
         version: 2.9.0
@@ -277,6 +280,10 @@ packages:
     resolution: {integrity: sha512-aGAjNs7IA+d3ZAflF9QluxWWtKCo8Ehrv0MziCY5Vi6hedugeZYfedq2cIIHX4be3ovGEDq+4D8/y9RrkdNFqw==}
     engines: {node: '>=20'}
 
+  ts-markdown-builder@0.6.0:
+    resolution: {integrity: sha512-O0ZmHM5fLRgO+FkXol2yCPV5oqbNA3InmuuuXdbwT+j249l+30Ty6gL4B540Ru/D2JEY91qwS+L3irUfDivfjQ==}
+    engines: {node: '>= 18.0.0'}
+
   tsx@4.23.11:
     resolution: {integrity: sha512-Ry2oTEUnhBdeEdWIztY8kf3/nBGnPnjMLVGL0YfdRXMORuPER5NlKmayqxtxRxwB1xBN+RivRaJfe7PM1rtiyw==}
     engines: {node: '>=18.0.0'}
@@ -512,6 +519,8 @@ snapshots:
       '@ts-graphviz/ast': 3.0.6
       '@ts-graphviz/common': 3.0.5
       '@ts-graphviz/core': 3.0.7
+
+  ts-markdown-builder@0.6.0: {}
 
   tsx@4.23.11:
     dependencies:
