@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { Flowchart } from 'mermaid-ast'
+import { Flowchart } from '@5cover/mermaid-ast'
 import { render } from '../src/mermaid.js'
 
 const diagram = (id: string, label: string) => {

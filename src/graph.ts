@@ -1,5 +1,5 @@
 import { attribute as _, Digraph, toDot } from 'ts-graphviz'
-import { Flowchart } from 'mermaid-ast'
+import { Flowchart } from '@5cover/mermaid-ast'
 
 export type GraphFormat = 'mermaid' | 'graphviz' | 'cytoscape'
 export type GraphDirection = 'TD' | 'LR'
